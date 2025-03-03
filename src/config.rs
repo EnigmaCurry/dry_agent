@@ -1,3 +1,4 @@
+// src/config.rs
 use anyhow::Result;
 use serde::Deserialize;
 use std::env;
@@ -11,6 +12,9 @@ pub struct Config {
     pub mqtt_broker: String,
     pub mqtt_port: u16,
     pub mqtt_topic: String,
+    pub mqtt_client_cert: String,
+    pub mqtt_client_key: String,
+    pub mqtt_ca_cert: String,
 }
 
 impl Config {
@@ -25,6 +29,9 @@ impl Config {
             mqtt_broker: env::var("MQTT_BROKER")?,
             mqtt_port: env::var("MQTT_PORT")?.parse()?,
             mqtt_topic: env::var("MQTT_TOPIC")?,
+            mqtt_client_cert: env::var("MQTT_CLIENT_CERT")?,
+            mqtt_client_key: env::var("MQTT_CLIENT_KEY")?,
+            mqtt_ca_cert: env::var("MQTT_CA_CERT")?,
         })
     }
 }

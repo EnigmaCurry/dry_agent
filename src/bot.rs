@@ -26,9 +26,8 @@ pub struct Bot {
 
 impl Bot {
     pub async fn new(config: Config) -> Result<Self> {
-        // Make sure we're parsing the URL correctly
         let homeserver_url =
-            url::Url::parse(&config.matrix_homeserver).context("Invalid homeserver URL")?;
+            reqwest::Url::parse(&config.matrix_homeserver).context("Invalid homeserver URL")?;
 
         let client = Client::builder()
             .homeserver_url(homeserver_url)
@@ -37,11 +36,16 @@ impl Bot {
 
         let llm_client = LlmClient::new(config.llm_api_url.clone());
 
+        // Pass certificate and key paths to MqttClient
+        // In bot.rs where you create the MQTT client
         let mqtt_client = MqttClient::new(
             config.mqtt_broker.clone(),
             config.mqtt_port,
             "dry_agent_bot",
             config.mqtt_topic.clone(),
+            config.mqtt_client_cert.clone(),
+            config.mqtt_client_key.clone(),
+            config.mqtt_ca_cert.clone(),
         )?;
 
         Ok(Self {
@@ -61,7 +65,7 @@ impl Bot {
             .send()
             .await?;
 
-        println!("Logged in as {}", self.config.matrix_username);
+        println!("Logged into matrix as {}", self.config.matrix_username);
         Ok(())
     }
 

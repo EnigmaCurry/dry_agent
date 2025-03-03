@@ -5,12 +5,12 @@ mod models;
 mod mqtt;
 
 use anyhow::Result;
-use tracing_subscriber;
 
 #[tokio::main]
 async fn main() -> Result<()> {
     // Initialize logging
-    tracing_subscriber::fmt::init();
+    //std::env::set_var("RUST_LOG", "debug,paho_mqtt=trace");
+    env_logger::init();
 
     // Load configuration
     let config = config::Config::from_env()?;
