@@ -8,8 +8,8 @@ use anyhow::Result;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    // Initialize logging
-    //std::env::set_var("RUST_LOG", "debug,paho_mqtt=trace");
+    // Initialize logging with more verbose output
+    std::env::set_var("RUST_LOG", "info,matrix_sdk=debug,dry_agent=trace");
     env_logger::init();
 
     // Load configuration
@@ -18,11 +18,14 @@ async fn main() -> Result<()> {
     // Create and start the bot
     let bot = bot::Bot::new(config).await?;
     bot.login().await?;
+
+    println!("Bot started and logged in, now starting event handlers...");
+
+    // This will set up the event handlers
     bot.start().await?;
 
-    // This will keep running until interrupted
-    tokio::signal::ctrl_c().await?;
-    println!("Shutting down...");
+    // This part should never be reached as sync() will run forever
+    println!("Sync ended - this message should not appear under normal circumstances");
 
     Ok(())
 }

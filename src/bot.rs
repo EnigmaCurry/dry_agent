@@ -1,7 +1,10 @@
 use anyhow::{Context, Result};
 use matrix_sdk::{
     config::SyncSettings,
-    ruma::{events::room::message::RoomMessageEventContent, OwnedRoomId, OwnedUserId},
+    ruma::{
+        events::room::member::StrippedRoomMemberEvent,
+        events::room::message::RoomMessageEventContent, OwnedRoomId, OwnedUserId,
+    },
     Client,
 };
 use std::collections::HashMap;
@@ -15,6 +18,7 @@ use crate::{
     models::{BotMessage, MessageType, MqttActionMessage},
     mqtt::MqttClient,
 };
+use std::collections::HashSet;
 
 pub struct Bot {
     client: Client,
@@ -22,6 +26,7 @@ pub struct Bot {
     mqtt_client: Arc<Mutex<MqttClient>>,
     pending_confirmations: Arc<Mutex<HashMap<String, MqttActionMessage>>>,
     config: Config,
+    processed_events: Arc<Mutex<HashSet<String>>>,
 }
 
 impl Bot {
@@ -37,7 +42,6 @@ impl Bot {
         let llm_client = LlmClient::new(config.llm_api_url.clone());
 
         // Pass certificate and key paths to MqttClient
-        // In bot.rs where you create the MQTT client
         let mqtt_client = MqttClient::new(
             config.mqtt_broker.clone(),
             config.mqtt_port,
@@ -54,6 +58,8 @@ impl Bot {
             mqtt_client: Arc::new(Mutex::new(mqtt_client)),
             pending_confirmations: Arc::new(Mutex::new(HashMap::new())),
             config,
+            // Initialize the new field:
+            processed_events: Arc::new(Mutex::new(HashSet::new())),
         })
     }
 
@@ -72,83 +78,164 @@ impl Bot {
     pub async fn start(&self) -> Result<()> {
         let user_id = self.client.user_id().context("Not logged in")?.to_owned();
 
+        // Set up message handler with deduplication
         let bot = self.clone();
-
-        // Use add_event_handler with the correct content access
         self.client.add_event_handler(
             move |event: matrix_sdk::ruma::events::room::message::OriginalSyncRoomMessageEvent,
                   room: matrix_sdk::Room| {
                 let bot = bot.clone();
                 let user_id = user_id.clone();
 
+                // Get a unique ID for this event
+                let event_id = event.event_id.to_string();
+
                 async move {
                     // Don't respond to our own messages
-                    if event.sender != user_id {
-                        // Extract the message text based on the message type
-                        if let Some(text) = get_message_text(&event.content) {
-                            let owned_sender = event.sender.clone();
-                            bot.handle_message(room, &owned_sender, &text).await;
+                    if event.sender == user_id {
+                        return;
+                    }
+
+                    // Check if we've already processed this event
+                    {
+                        let mut processed = bot.processed_events.lock().await;
+
+                        // If already processed, skip it
+                        if processed.contains(&event_id) {
+                            println!("Skipping already processed event: {}", event_id);
+                            return;
+                        }
+
+                        // Mark as processed
+                        processed.insert(event_id.clone());
+                    }
+
+                    // Extract the message text and process as before
+                    if let Some(text) = get_message_text(&event.content) {
+                        let owned_sender = event.sender.clone();
+
+                        // Only process the message now that we know it's new
+                        if let Err(e) = bot.handle_message(room, &owned_sender, &text).await {
+                            eprintln!("Error handling message: {:?}", e);
                         }
                     }
                 }
             },
         );
 
-        self.client.sync(SyncSettings::default()).await?;
+        // Add room invite handler
+        self.client.add_event_handler(
+            |event: StrippedRoomMemberEvent, client: matrix_sdk::Client, room: matrix_sdk::Room| {
+                async move {
+                    // Get our own user_id
+                    let our_user_id = client.user_id().expect("Client should be logged in");
+
+                    // Check if this event is an invite for our user
+                    if event.state_key != our_user_id {
+                        return; // Not for us
+                    }
+
+                    if event.content.membership
+                        == matrix_sdk::ruma::events::room::member::MembershipState::Invite
+                    {
+                        // Use the room's room_id
+                        let room_id = room.room_id();
+                        println!("Received invite to room {} from {}", room_id, event.sender);
+
+                        match client.join_room_by_id(room_id).await {
+                            Ok(_) => println!("Successfully joined room {}", room_id),
+                            Err(e) => eprintln!("Failed to join room {}: {:?}", room_id, e),
+                        }
+                    }
+                }
+            },
+        );
+
+        println!("Starting sync, bot is now running...");
+
+        // Modify to actually sync continuously
+        let settings = SyncSettings::default();
+        self.client.sync(settings).await?;
+
         Ok(())
     }
 
-    async fn handle_message(&self, room: matrix_sdk::Room, sender: &OwnedUserId, message: &str) {
-        println!("Received message from {}: {}", sender, message);
+    async fn handle_message(
+        &self,
+        room: matrix_sdk::Room,
+        sender: &OwnedUserId,
+        message: &str,
+    ) -> Result<()> {
+        println!("========== START HANDLING MESSAGE ==========");
+        println!("Message from {}: {}", sender, message);
 
         // Check if this is a confirmation response
         if let Some(confirmation_id) = self.extract_confirmation_id(message) {
+            println!("Detected confirmation ID: {}", confirmation_id);
             if message.to_lowercase().contains("yes") || message.to_lowercase().contains("confirm")
             {
-                // Convert room_id() to OwnedRoomId
+                println!("Processing as CONFIRM");
                 let room_id = room.room_id().to_owned();
                 self.handle_confirmation(&room_id, confirmation_id, true)
                     .await;
-                return;
+                println!("========== END HANDLING MESSAGE (CONFIRMATION) ==========");
+                return Ok(());
             } else if message.to_lowercase().contains("no")
                 || message.to_lowercase().contains("cancel")
             {
-                // Convert room_id() to OwnedRoomId
+                println!("Processing as CANCEL");
                 let room_id = room.room_id().to_owned();
                 self.handle_confirmation(&room_id, confirmation_id, false)
                     .await;
-                return;
+                println!("========== END HANDLING MESSAGE (CANCELLATION) ==========");
+                return Ok(());
             }
         }
 
         // Process with LLM
+        println!("Processing with LLM");
         match self.llm_client.process_message(message).await {
             Ok(bot_message) => {
-                // Convert room_id() to OwnedRoomId
+                println!("LLM processing successful!");
                 let room_id = room.room_id().to_owned();
                 self.handle_bot_message(&room_id, bot_message).await;
+                println!("========== END HANDLING MESSAGE (SUCCESS) ==========");
+                Ok(())
             }
             Err(e) => {
+                println!("LLM processing failed with error: {:?}", e);
                 eprintln!("Error processing message: {:?}", e);
-                // Use the updated API for sending messages
-                let content = RoomMessageEventContent::text_plain(
-                    "Sorry, I encountered an error processing your request.",
-                );
-                let _ = room.send(content).await;
+                let content = RoomMessageEventContent::text_plain(&format!(
+                    "Sorry, I encountered an error processing your request: {}",
+                    e
+                ));
+                println!("Sending error message to room");
+                room.send(content).await?;
+                println!("========== END HANDLING MESSAGE (ERROR) ==========");
+                Err(anyhow::anyhow!("Failed to process message: {}", e))
             }
         }
     }
 
     async fn handle_bot_message(&self, room_id: &OwnedRoomId, bot_message: BotMessage) {
+        println!("====== START HANDLE_BOT_MESSAGE ======");
+        println!("Message type: {:?}", bot_message.message_type);
+
         match bot_message.message_type {
             MessageType::Chat => {
+                println!("Processing CHAT message");
                 if let Ok(content) = serde_json::from_value::<crate::models::ChatContent>(
                     serde_json::to_value(bot_message.content.content).unwrap(),
                 ) {
+                    println!("Successfully parsed chat content: {}", content.text);
                     if let Some(room) = self.client.get_room(room_id) {
                         let message = RoomMessageEventContent::text_plain(&content.text);
+                        println!("Sending chat message to room");
                         let _ = room.send(message).await;
+                    } else {
+                        println!("Failed to get room with ID {}", room_id);
                     }
+                } else {
+                    println!("Failed to parse chat content from value");
                 }
             }
             MessageType::Action => {
@@ -220,6 +307,7 @@ impl Bot {
                 }
             }
         }
+        println!("====== END HANDLE_BOT_MESSAGE ======");
     }
 
     async fn handle_confirmation(
@@ -238,7 +326,7 @@ impl Bot {
                     eprintln!("Error sending action to MQTT: {:?}", e);
                     if let Some(room) = self.client.get_room(room_id) {
                         let message = RoomMessageEventContent::text_plain(
-                            "Sorry, I encountered an error executing your request.",
+                            "Sorry, I encountered an error executing your confirmation.",
                         );
                         let _ = room.send(message).await;
                     }
@@ -281,7 +369,7 @@ impl Bot {
             eprintln!("Error sending action to MQTT: {:?}", e);
             if let Some(room) = self.client.get_room(room_id) {
                 let message = RoomMessageEventContent::text_plain(
-                    "Sorry, I encountered an error executing your request.",
+                    "Sorry, I encountered an error executing your action request.",
                 );
                 let _ = room.send(message).await;
             }
@@ -321,6 +409,7 @@ impl Clone for Bot {
             mqtt_client: self.mqtt_client.clone(),
             pending_confirmations: self.pending_confirmations.clone(),
             config: self.config.clone(),
+            processed_events: self.processed_events.clone(),
         }
     }
 }
