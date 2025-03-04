@@ -18,7 +18,6 @@ use crate::{
     models::{BotMessage, MessageType, MqttActionMessage},
     mqtt::MqttClient,
 };
-use std::collections::HashSet;
 
 pub struct Bot {
     client: Client,
@@ -26,7 +25,6 @@ pub struct Bot {
     mqtt_client: Arc<Mutex<MqttClient>>,
     pending_confirmations: Arc<Mutex<HashMap<String, MqttActionMessage>>>,
     config: Config,
-    processed_events: Arc<Mutex<HashSet<String>>>,
 }
 
 impl Bot {
@@ -58,8 +56,6 @@ impl Bot {
             mqtt_client: Arc::new(Mutex::new(mqtt_client)),
             pending_confirmations: Arc::new(Mutex::new(HashMap::new())),
             config,
-            // Initialize the new field:
-            processed_events: Arc::new(Mutex::new(HashSet::new())),
         })
     }
 
@@ -86,27 +82,10 @@ impl Bot {
                 let bot = bot.clone();
                 let user_id = user_id.clone();
 
-                // Get a unique ID for this event
-                let event_id = event.event_id.to_string();
-
                 async move {
                     // Don't respond to our own messages
                     if event.sender == user_id {
                         return;
-                    }
-
-                    // Check if we've already processed this event
-                    {
-                        let mut processed = bot.processed_events.lock().await;
-
-                        // If already processed, skip it
-                        if processed.contains(&event_id) {
-                            println!("Skipping already processed event: {}", event_id);
-                            return;
-                        }
-
-                        // Mark as processed
-                        processed.insert(event_id.clone());
                     }
 
                     // Extract the message text and process as before
@@ -205,7 +184,7 @@ impl Bot {
                 println!("LLM processing failed with error: {:?}", e);
                 eprintln!("Error processing message: {:?}", e);
                 let content = RoomMessageEventContent::text_plain(&format!(
-                    "Sorry, I encountered an error processing your request: {}",
+                    "Sorry, I encountered an error processing your dumb request: {}",
                     e
                 ));
                 println!("Sending error message to room");
@@ -409,7 +388,6 @@ impl Clone for Bot {
             mqtt_client: self.mqtt_client.clone(),
             pending_confirmations: self.pending_confirmations.clone(),
             config: self.config.clone(),
-            processed_events: self.processed_events.clone(),
         }
     }
 }

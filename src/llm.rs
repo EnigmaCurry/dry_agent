@@ -23,115 +23,115 @@ impl LlmClient {
         println!("Sending request to LLM API: {}", self.api_url);
 
         // Define the JSON Schema for the response
-        let bot_message_schema = json!({
-            "type": "object",
-            "properties": {
-                "message_type": {
-                    "type": "string",
-                    "enum": ["chat", "action", "confirmation"],
-                    "description": "The type of message being sent"
-                },
-                "content": {
-                    "type": "object",
-                    "oneOf": [
-                        {
-                            "type": "object",
-                            "properties": {
-                                "text": {
-                                    "type": "string",
-                                    "description": "The chat message text"
-                                }
-                            },
-                            "required": ["text"],
-                            "additionalProperties": false,
-                            "if": {
-                                "properties": {
-                                    "message_type": { "enum": ["chat"] }
-                                }
-                            }
-                        },
-                        {
-                            "type": "object",
-                            "properties": {
-                                "action_type": {
-                                    "type": "string",
-                                    "enum": ["status", "start", "stop", "restart", "start_with_timeout", "configure"],
-                                    "description": "The type of action to perform"
-                                },
-                                "services": {
-                                    "type": "array",
-                                    "items": {
-                                        "type": "string"
-                                    },
-                                    "description": "List of service names to act upon"
-                                },
-                                "parameters": {
-                                    "type": "object",
-                                    "description": "Action-specific parameters"
-                                },
-                                "confirmation_required": {
-                                    "type": "boolean",
-                                    "description": "Whether this action requires confirmation"
-                                }
-                            },
-                            "required": ["action_type", "services", "parameters", "confirmation_required"],
-                            "additionalProperties": false,
-                            "if": {
-                                "properties": {
-                                    "message_type": { "enum": ["action"] }
-                                }
-                            }
-                        },
-                        {
-                            "type": "object",
-                            "properties": {
-                                "action_id": {
-                                    "type": "string",
-                                    "description": "Unique identifier for the action"
-                                },
-                                "description": {
-                                    "type": "string",
-                                    "description": "Description of the action requiring confirmation"
-                                },
-                                "action_details": {
-                                    "type": "object",
-                                    "properties": {
-                                        "action_type": {
-                                            "type": "string",
-                                            "enum": ["status", "start", "stop", "restart", "start_with_timeout", "configure"]
-                                        },
-                                        "services": {
-                                            "type": "array",
-                                            "items": {
-                                                "type": "string"
-                                            }
-                                        },
-                                        "parameters": {
-                                            "type": "object"
-                                        }
-                                    },
-                                    "required": ["action_type", "services", "parameters"],
-                                    "additionalProperties": false
-                                }
-                            },
-                            "required": ["action_id", "description", "action_details"],
-                            "additionalProperties": false,
-                            "if": {
-                                "properties": {
-                                    "message_type": { "enum": ["confirmation"] }
-                                }
-                            }
-                        }
-                    ]
-                },
-                "conversation_id": {
-                    "type": "string",
-                    "description": "Unique identifier for the conversation"
-                }
-            },
-            "required": ["message_type", "content", "conversation_id"],
-            "additionalProperties": false
-        });
+        // let bot_message_schema = json!({
+        //     "type": "object",
+        //     "properties": {
+        //         "message_type": {
+        //             "type": "string",
+        //             "enum": ["chat", "action", "confirmation"],
+        //             "description": "The type of message being sent"
+        //         },
+        //         "content": {
+        //             "type": "object",
+        //             "oneOf": [
+        //                 {
+        //                     "type": "object",
+        //                     "properties": {
+        //                         "text": {
+        //                             "type": "string",
+        //                             "description": "The chat message text"
+        //                         }
+        //                     },
+        //                     "required": ["text"],
+        //                     "additionalProperties": false,
+        //                     "if": {
+        //                         "properties": {
+        //                             "message_type": { "enum": ["chat"] }
+        //                         }
+        //                     }
+        //                 },
+        //                 {
+        //                     "type": "object",
+        //                     "properties": {
+        //                         "action_type": {
+        //                             "type": "string",
+        //                             "enum": ["status", "start", "stop", "restart", "start_with_timeout", "configure"],
+        //                             "description": "The type of action to perform"
+        //                         },
+        //                         "services": {
+        //                             "type": "array",
+        //                             "items": {
+        //                                 "type": "string"
+        //                             },
+        //                             "description": "List of service names to act upon"
+        //                         },
+        //                         "parameters": {
+        //                             "type": "object",
+        //                             "description": "Action-specific parameters"
+        //                         },
+        //                         "confirmation_required": {
+        //                             "type": "boolean",
+        //                             "description": "Whether this action requires confirmation"
+        //                         }
+        //                     },
+        //                     "required": ["action_type", "services", "parameters", "confirmation_required"],
+        //                     "additionalProperties": false,
+        //                     "if": {
+        //                         "properties": {
+        //                             "message_type": { "enum": ["action"] }
+        //                         }
+        //                     }
+        //                 },
+        //                 {
+        //                     "type": "object",
+        //                     "properties": {
+        //                         "action_id": {
+        //                             "type": "string",
+        //                             "description": "Unique identifier for the action"
+        //                         },
+        //                         "description": {
+        //                             "type": "string",
+        //                             "description": "Description of the action requiring confirmation"
+        //                         },
+        //                         "action_details": {
+        //                             "type": "object",
+        //                             "properties": {
+        //                                 "action_type": {
+        //                                     "type": "string",
+        //                                     "enum": ["status", "start", "stop", "restart", "start_with_timeout", "configure"]
+        //                                 },
+        //                                 "services": {
+        //                                     "type": "array",
+        //                                     "items": {
+        //                                         "type": "string"
+        //                                     }
+        //                                 },
+        //                                 "parameters": {
+        //                                     "type": "object"
+        //                                 }
+        //                             },
+        //                             "required": ["action_type", "services", "parameters"],
+        //                             "additionalProperties": false
+        //                         }
+        //                     },
+        //                     "required": ["action_id", "description", "action_details"],
+        //                     "additionalProperties": false,
+        //                     "if": {
+        //                         "properties": {
+        //                             "message_type": { "enum": ["confirmation"] }
+        //                         }
+        //                     }
+        //                 }
+        //             ]
+        //         },
+        //         "conversation_id": {
+        //             "type": "string",
+        //             "description": "Unique identifier for the conversation"
+        //         }
+        //     },
+        //     "required": ["message_type", "content", "conversation_id"],
+        //     "additionalProperties": false
+        // });
 
         let prompt = format!(
             r#"You are dry_agent, a ChatOps bot that helps users manage Docker services via Matrix chat. Your responses must be formatted as structured JSON that clearly identifies whether you're providing:
