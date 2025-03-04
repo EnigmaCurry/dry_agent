@@ -5,9 +5,10 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.97"
+dirs = "6.0.0"
 dotenv = "0.15.0"
 env_logger = "0.11.6"
-matrix-sdk = "0.10.0"
+matrix-sdk = { version = "0.10.0", features = ["sqlite"] }
 paho-mqtt = "0.13.1"
 pem = "3.0.5"
 reqwest = { version = "0.12.12", features = ["json"] }

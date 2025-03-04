@@ -32,34 +32,40 @@ impl Bot {
         let homeserver_url =
             reqwest::Url::parse(&config.matrix_homeserver).context("Invalid homeserver URL")?;
 
+        // Ensure the store directory exists
+        if !config.matrix_store_path.exists() {
+            std::fs::create_dir_all(&config.matrix_store_path)?;
+        }
+
+        // Build the client with the store
         let client = Client::builder()
             .homeserver_url(homeserver_url)
+            .sqlite_store(config.matrix_store_path.join("matrix-store.db"), None)
             .build()
             .await?;
 
-        let llm_client = LlmClient::new(config.llm_api_url.clone());
-
-        // Pass certificate and key paths to MqttClient
-        let mqtt_client = MqttClient::new(
-            config.mqtt_broker.clone(),
-            config.mqtt_port,
-            "dry_agent_bot",
-            config.mqtt_topic.clone(),
-            config.mqtt_client_cert.clone(),
-            config.mqtt_client_key.clone(),
-            config.mqtt_ca_cert.clone(),
-        )?;
-
-        Ok(Self {
+        // Create the bot instance
+        let bot = Self {
             client,
-            llm_client,
-            mqtt_client: Arc::new(Mutex::new(mqtt_client)),
+            llm_client: LlmClient::new(config.llm_api_url.clone()),
+            mqtt_client: Arc::new(Mutex::new(MqttClient::new(
+                config.mqtt_broker.clone(),
+                config.mqtt_port,
+                "dry_agent_bot",
+                config.mqtt_topic.clone(),
+                config.mqtt_client_cert.clone(),
+                config.mqtt_client_key.clone(),
+                config.mqtt_ca_cert.clone(),
+            )?)),
             pending_confirmations: Arc::new(Mutex::new(HashMap::new())),
             config,
-        })
+        };
+
+        Ok(bot)
     }
 
     pub async fn login(&self) -> Result<()> {
+        // Simple login without trying to control the device ID
         self.client
             .matrix_auth()
             .login_username(&self.config.matrix_username, &self.config.matrix_password)
@@ -68,6 +74,42 @@ impl Bot {
             .await?;
 
         println!("Logged into matrix as {}", self.config.matrix_username);
+
+        // Display the device ID for verification purposes
+        if let Some(device_id) = self.client.device_id() {
+            println!(
+                "Device ID: {} - You can verify this device in Element",
+                device_id
+            );
+        }
+
+        Ok(())
+    }
+
+    pub async fn display_verification_status(&self) -> Result<()> {
+        if let Some(user_id) = self.client.user_id() {
+            println!("=== Device Verification Status ===");
+            println!("Logged in as: {}", user_id);
+
+            if let Some(device_id) = self.client.device_id() {
+                println!("Current device ID: {}", device_id);
+
+                // Since we can't easily check verification status through the API,
+                // we'll just display information to help with manual verification
+                println!("To verify this device:");
+                println!("1. Log into the bot account in Element");
+                println!("2. Go to Settings > Security & Privacy > Sessions");
+                println!("3. Find the device with ID: {}", device_id);
+                println!("4. Click 'Verify' to verify this device");
+            } else {
+                println!("No device ID available");
+            }
+
+            println!("================================");
+        } else {
+            println!("Not logged in");
+        }
+
         Ok(())
     }
 

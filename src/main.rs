@@ -9,8 +9,7 @@ use std::io::{Error, ErrorKind, Write};
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    // Initialize logging with more verbose output
-    std::env::set_var("RUST_LOG", "info,matrix_sdk=debug,dry_agent=trace");
+    // Initialize logging
     env_logger::init();
 
     // Check for other instances using lock file
@@ -30,13 +29,23 @@ async fn main() -> Result<()> {
     let bot = bot::Bot::new(config).await?;
     bot.login().await?;
 
-    println!("Bot started and logged in, now starting event handlers...");
+    // Display verification status
+    bot.display_verification_status().await?;
 
-    // This will set up the event handlers
-    bot.start().await?;
+    // Start the bot in a background task
+    let bot_clone = bot.clone();
+    let sync_task = tokio::spawn(async move {
+        if let Err(e) = bot_clone.start().await {
+            eprintln!("Bot error: {}", e);
+        }
+    });
 
-    // This part should never be reached as sync() will run forever
-    println!("Sync ended - this message should not appear under normal circumstances");
+    // Wait for Ctrl+C
+    tokio::signal::ctrl_c().await?;
+    println!("Shutting down...");
+
+    // Abort the sync task
+    sync_task.abort();
 
     Ok(())
 }
