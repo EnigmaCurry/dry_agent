@@ -3,14 +3,14 @@
 stderr(){ echo "$@" >/dev/stderr; }
 error(){ stderr "Error: $@"; }
 fault(){ test -n "$1" && error $1; stderr "Exiting."; exit 1; }
+
 prompt_non_empty() {
     local PROMPT_MESSAGE="$1"
     local USER_INPUT=""
-
+    trap 'echo -e "\nAborted."; exit 1' SIGINT
     while [[ -z "$USER_INPUT" ]]; do
         read -p "$PROMPT_MESSAGE" USER_INPUT
     done
-
     echo "$USER_INPUT"
 }
 

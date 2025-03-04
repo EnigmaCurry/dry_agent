@@ -49,32 +49,57 @@ check_deps() {
         exit 1
     fi
 }
+confirm() {
+    local default=$1; local prompt=$2; local question=${3:-". Proceed?"}
+    check_var default prompt question
+    if [[ $default == "y" || $default == "yes" || $default == "true" ]]; then
+        dflt="Y/n"
+    else
+        dflt="y/N"
+    fi
+    read -e -p "${prompt}${question} (${dflt}): " answer
+    answer=${answer:-${default}}
 
+    if [[ ${answer,,} == "y" || ${answer,,} == "yes" || ${answer,,} == "true" ]]; then
+        return 0
+    else
+        fault "Not proceeding."
+    fi
+}
 build() {
     echo "Building the container..."
     check_deps podman
     podman build -t ${CONTAINER} .
 }
 
-shell() {
+run() {
     check_deps podman
     check_var CONTAINER VOLUME
-    podman run --rm -it \
-        --name "${CONTAINER}" \
-        --hostname "${CONTAINER}" \
-        -v "${VOLUME}:/root" \
-        "${CONTAINER}"
-}
-
-config() {
-    check_deps podman
-    check_var CONTAINER VOLUME
+    if [[ -z "$@" ]]; then
+        fault "No command specified to run."
+    fi
     podman run --rm -it \
         --name "${CONTAINER}" \
         --hostname "${CONTAINER}" \
         -v "${VOLUME}:/root" \
         "${CONTAINER}" \
-        reconfigure_d.rymcg.tech
+        $@
+}
+
+
+context() {
+    run reconfigure_d.rymcg.tech
+}
+
+destroy() {
+    echo
+    check_deps podman
+    check_var CONTAINER VOLUME
+    debug_var CONTAINER
+    debug_var VOLUME
+    confirm no "This will destroy the agent container and all of its data"
+    podman rm -f ${CONTAINER}
+    podman volume rm -f ${VOLUME}
 }
 
 help() {
@@ -82,8 +107,10 @@ help() {
     echo
     echo "Commands:"
     echo "  build     Build the container image"
-    echo "  config    Configure d.rymcg.tech"
+    echo "  context   Setup Docker context and d.rymcg.tech"
     echo "  shell     Run the container shell"
+    echo "  destroy   Destroy the agent container"
+    echo "  run       Run an arbitrary command in the agent container"
     echo "  help      Show this help message"
     exit 0
 }
@@ -93,11 +120,18 @@ main() {
         build)
             build
             ;;
-        config)
-            config
+        context)
+            context
             ;;
         shell)
-            shell
+            run bash
+            ;;
+        destroy)
+            destroy
+            ;;
+        run)
+            shift
+            run $@
             ;;
         help|--help|-h)
             help
