@@ -1,0 +1,142 @@
+#!/bin/bash
+
+stderr(){ echo "$@" >/dev/stderr; }
+error(){ stderr "Error: $@"; }
+fault(){ test -n "$1" && error $1; stderr "Exiting."; exit 1; }
+prompt_non_empty() {
+    local PROMPT_MESSAGE="$1"
+    local USER_INPUT=""
+
+    while [[ -z "$USER_INPUT" ]]; do
+        read -p "$PROMPT_MESSAGE" USER_INPUT
+    done
+
+    echo "$USER_INPUT"
+}
+
+# Clone the d.rymcg.tech repo if it does not exist
+if [[ ! -d ~/git/vendor/enigmacurry/d.rymcg.tech ]]; then
+    git clone https://github.com/EnigmaCurry/d.rymcg.tech.git \
+        ~/git/vendor/enigmacurry/d.rymcg.tech
+fi
+echo
+
+# Prompt the user for the Docker context
+CONTEXT=$(prompt_non_empty "Enter the name of the Docker context (the server): ")
+
+# Prompt the user for SSH details
+SSH_HOSTNAME=$(prompt_non_empty "Enter the SSH hostname or IP for '$CONTEXT': ")
+SSH_USER=$(prompt_non_empty "Enter the SSH username for '$CONTEXT' (usually root): ")
+SSH_PORT=$(prompt_non_empty "Enter the SSH port for '$CONTEXT' (usually 22): ")
+
+# Use default port 22 if the user enters nothing
+if [[ -z "$SSH_PORT" ]]; then
+    SSH_PORT=22
+fi
+
+# Define SSH config entry
+SSH_CONFIG_ENTRY=$(cat <<EOF
+Host ${CONTEXT}
+    User ${SSH_USER}
+    Hostname ${SSH_HOSTNAME}
+    Port ${SSH_PORT}
+    ControlMaster auto
+    ControlPersist yes
+    ControlPath /tmp/ssh-%u-%r@%h:%p
+EOF
+)
+
+# Ensure ~/.ssh exists
+mkdir -p ~/.ssh
+chmod 700 ~/.ssh
+
+# Backup existing SSH config
+if [[ -f ~/.ssh/config ]]; then
+    cp ~/.ssh/config ~/.ssh/config.backup
+else
+    touch ~/.ssh/config
+fi
+
+# Ensure ~/.ssh/config has the correct permissions
+chmod 600 ~/.ssh/config
+
+# Check if the context already exists in ~/.ssh/config
+if grep -qE "^Host ${CONTEXT}$" ~/.ssh/config; then
+    # Use awk to safely replace the existing entry without affecting others
+    awk -v context="$CONTEXT" -v entry="$SSH_CONFIG_ENTRY" '
+        $1 == "Host" && $2 == context {
+            in_block = 1
+            print entry
+            next
+        }
+        in_block && /^Host / { in_block = 0 }
+        !in_block
+    ' ~/.ssh/config > ~/.ssh/config.tmp && mv ~/.ssh/config.tmp ~/.ssh/config
+else
+    # Append the new SSH config entry at the end of the file
+    echo "$SSH_CONFIG_ENTRY" >> ~/.ssh/config
+fi
+
+echo "SSH configuration updated successfully for '${CONTEXT}'"
+
+# Fetch SSH host key and add it to known_hosts
+echo "Fetching SSH host key from '${SSH_HOSTNAME}'..."
+mkdir -p ~/.ssh
+touch ~/.ssh/known_hosts
+chmod 600 ~/.ssh/known_hosts
+
+# Try to grab the SSH key and handle failure
+if ! ssh-keyscan -p "$SSH_PORT" "$SSH_HOSTNAME" >> ~/.ssh/known_hosts 2>/dev/null; then
+    echo "❌ ERROR: Failed to retrieve SSH host key for '$SSH_HOSTNAME'. Aborting!"
+    exit 1
+fi
+
+echo "✅ Successfully added '$SSH_HOSTNAME' to known_hosts."
+
+docker context create ${CONTEXT} --docker "host=ssh://${CONTEXT}"
+docker context use ${CONTEXT}
+
+test -f ~/.ssh/id_ed25519 || ssh-keygen -t ed25519 -N "" -f ~/.ssh/id_ed25519
+test -f ~/.ssh/id_ed25519.pub || fault "Missing ~/.ssh/id_ed25519.pub !"
+
+# Define the section markers for bashrc
+START_MARKER="# >>> d.rymcg.tech config >>>"
+END_MARKER="# <<< d.rymcg.tech config <<<"
+
+# Define the new bashrc configuration
+NEW_BASHRC_CONFIG=$(cat <<EOF
+$START_MARKER
+export EDITOR=emacs
+
+## d.rymcg.tech cli tool:
+export PATH=\${PATH}:\${HOME}/git/vendor/enigmacurry/d.rymcg.tech/_scripts/user
+eval "\$(d.rymcg.tech completion bash)"
+__d.rymcg.tech_cli_alias d
+
+## Add d.rymcg.tech alias for each Docker context:
+__d.rymcg.tech_context_alias ${CONTEXT}
+$END_MARKER
+EOF
+)
+
+# Backup existing .bashrc
+cp ~/.bashrc ~/.bashrc.backup
+
+# Check if the config section already exists
+if grep -q "$START_MARKER" ~/.bashrc; then
+    # Update only the existing section
+    sed -i "/$START_MARKER/,/$END_MARKER/d" ~/.bashrc
+fi
+
+# Append the new configuration at the end of the file
+echo "$NEW_BASHRC_CONFIG" >> ~/.bashrc
+
+echo
+echo "Make sure to add your SSH public key to the Docker server's authorized_keys:"
+echo
+echo $(cat ~/.ssh/id_ed25519.pub)
+echo
+
+if [[ $- == *i* ]]; then
+    echo "Close this shell and log back in to load the new config."
+fi
