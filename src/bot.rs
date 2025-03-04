@@ -47,7 +47,7 @@ impl Bot {
         // Create the bot instance
         let bot = Self {
             client,
-            llm_client: LlmClient::new(config.llm_api_url.clone()),
+            llm_client: LlmClient::new(config.llm_api_url.clone(), config.llm_model.clone()),
             mqtt_client: Arc::new(Mutex::new(MqttClient::new(
                 config.mqtt_broker.clone(),
                 config.mqtt_port,
@@ -426,7 +426,10 @@ impl Clone for Bot {
     fn clone(&self) -> Self {
         Self {
             client: self.client.clone(),
-            llm_client: LlmClient::new(self.config.llm_api_url.clone()),
+            llm_client: LlmClient::new(
+                self.config.llm_api_url.clone(),
+                self.config.llm_model.clone(),
+            ),
             mqtt_client: self.mqtt_client.clone(),
             pending_confirmations: self.pending_confirmations.clone(),
             config: self.config.clone(),
