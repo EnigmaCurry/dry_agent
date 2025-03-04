@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "test-structured-output"
+version = "0.1.0"
+description = ""
+authors = ["EnigmaCurry <ryan@enigmacurry.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.13"
+openai = "^1.65.2"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
