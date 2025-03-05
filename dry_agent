@@ -4,6 +4,7 @@ set -e
 
 CONTAINER=dry_agent
 VOLUME=dry_agent
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 stderr(){ echo "$@" >/dev/stderr; }
 error(){ stderr "Error: $@"; }
@@ -70,8 +71,7 @@ confirm() {
 build() {
     echo "Building the container..."
     check_deps podman
-    cd workstation
-    podman build -t ${CONTAINER} .
+    podman build -t ${CONTAINER} ${SCRIPT_DIR}/workstation
 }
 
 run() {
@@ -104,7 +104,7 @@ destroy() {
 }
 
 help() {
-    echo "Usage: $0 <command>"
+    echo "Usage: dry_agent <command>"
     echo
     echo "Commands:"
     echo "  build     Build the container image"
