@@ -14,127 +14,49 @@ Stretch goals include:
  * "Configure a new postgres database." and answer followup questions
    posed by the bot.
  
-The chat bot may run on any machine where it has access to an LLM,
-used to build a [structured JSON
-message](https://lmstudio.ai/docs/api/structured-output) based on
-information provided by the user. Once the user confirms the action,
-it posts the message to an MQTT server that the agent receives from.
+## Install
 
-The agent must run on a secure workstation that has access to an
-unlocked SSH key that controls your Docker server, and receives its
-instructions via MQTT, which may include starting and stopping
-services as well as status requests.
+The agent can be run on any Linux machine. You will need the following:
 
-## Structured Responses
+ * Podman (to run the agent)
+ * Access to an LLM API (LM studio, ChatGPT, etc.)
+ * A remote Docker server with SSH access (running on a different machine)
 
-```
-{
-  "message_type": "string",  // "chat", "action", or "confirmation"
-  "content": {},             // Content varies based on message_type
-  "conversation_id": "string" // To track multi-turn interactions
-}
-```
+### Deploy dry_agent container
 
-### General chat responses (no Docker action)
+Use the included `dry_agent` script:
+
+#### Build podman container
 
 ```
-{
-  "message_type": "chat",
-  "content": {
-    "text": "I'm your Docker management assistant. I can help you start, stop, and check the status of your containers."
-  },
-  "conversation_id": "abc123"
-}
+./dry_agent build
 ```
 
-### Docker actions
+#### Setup SSH context to your Docker server
 
 ```
-{
-  "message_type": "action",
-  "content": {
-    "action_type": "string",  // "status", "start", "stop", "restart", "configure"
-    "services": ["service1", "service2"],  // Array of service names
-    "parameters": {  // Optional parameters specific to action_type
-      "timeout": 45,  // Minutes
-      "schedule": "2023-11-15T14:30:00Z"  // ISO 8601 timestamp
-    },
-    "confirmation_required": true  // Whether user confirmation is needed
-  },
-  "conversation_id": "abc123"
-}
+./dry_agent context
 ```
 
-### Confirmations
+Follow the prompts to setup the connection to your Docker SSH server.
+
+#### Setup d.rymcg.tech
 
 ```
-{
-  "message_type": "confirmation",
-  "content": {
-    "action_id": "action123",
-    "description": "I'm about to start whoami and immich containers, then stop them after 45 minutes. Is this correct?",
-    "action_details": {
-      // Original action content copied here for reference
-    }
-  },
-  "conversation_id": "abc123"
-}
+./dry_agent run d.rymcg.tech config
 ```
 
-## Examples
+Follow the prompts to configure d.rymcg.tech. This creates
+`/root/git/vendor/enigmacurry/d.rymcg.tech/.env_{CONTEXT}` /inside/
+the container volume.
 
-"Which services are running?"
-
-```
-{
-  "message_type": "action",
-  "content": {
-    "action_type": "status",
-    "services": ["whoami", "immich"],
-    "parameters": {},
-    "confirmation_required": false
-  },
-  "conversation_id": "abc123"
-}
-```
-
-
-"Start whoami and immich and then turn them off after 45 minutes."
+ * Choose the default options for most answers.
+ * `ROOT_DOMAIN` this should be the base domain for your Docker services.
+ 
+#### Configure Traefik
 
 ```
-{
-  "message_type": "confirmation",
-  "content": {
-    "action_id": "action456",
-    "description": "I'll start the whoami and immich containers, and automatically stop them after 45 minutes. Would you like me to proceed?",
-    "action_details": {
-      "action_type": "start_with_timeout",
-      "services": ["whoami", "immich"],
-      "parameters": {
-        "timeout": 45
-      }
-    }
-  },
-  "conversation_id": "abc123"
-}
+./dry_agent run d.rymcg.tech make traefik config
 ```
 
-
-"Configure a new postgres database."
-
-```
-{
-  "message_type": "action",
-  "content": {
-    "action_type": "configure",
-    "services": ["postgres"],
-    "parameters": {
-      "configuration_type": "new_database",
-      "needs_additional_info": true,
-      "required_parameters": ["hostname", "user", "password"]
-    },
-    "confirmation_required": true
-  },
-  "conversation_id": "abc123"
-}
-```
+TODO: document the traefik config

@@ -66,26 +66,27 @@ confirm() {
         fault "Not proceeding."
     fi
 }
+
 build() {
     echo "Building the container..."
     check_deps podman
+    cd workstation
     podman build -t ${CONTAINER} .
 }
 
 run() {
     check_deps podman
     check_var CONTAINER VOLUME
-    if [[ -z "$@" ]]; then
+    if [[ $# -eq 0 ]]; then
         fault "No command specified to run."
     fi
     podman run --rm -it \
         --name "${CONTAINER}" \
         --hostname "${CONTAINER}" \
-        -v "${VOLUME}:/root" \
+        -v "${VOLUME}:/root:Z" \
         "${CONTAINER}" \
-        $@
+        bash -c "source ~/.bashrc && exec \"\$@\"" -- "$@"
 }
-
 
 context() {
     run reconfigure_d.rymcg.tech
@@ -137,7 +138,7 @@ main() {
             help
             ;;
         *)
-            echo "Error: Unknown command '$1'"
+            test -n "$1" && echo "Error: Unknown command '$1'"
             help
             ;;
     esac

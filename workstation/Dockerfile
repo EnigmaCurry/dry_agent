@@ -5,6 +5,7 @@ RUN apt-get update && \
         apache2-utils \
         apt-utils \
         bash \
+        bsdmainutils \
         build-essential \
         ca-certificates \
         curl \
