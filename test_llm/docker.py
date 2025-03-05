@@ -9,7 +9,6 @@ from enum import Enum
 
 logging.basicConfig(level=logging.WARNING, format="%(asctime)s - %(levelname)s - %(message)s")
 
-# Read config
 USE_LLAMA = os.getenv("LLAMA", "true").lower() == "true"
 LLAMA_MODEL = os.getenv("LLAMA_MODEL", "stable-code-3b.Q5_K_S.gguf")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
@@ -19,15 +18,7 @@ RETRY = int(os.getenv("RETRY", 3))
 
 SYSTEM_PROMPT = (
     "You are an assistant that extracts Docker service actions from user instructions. "
-    "Each action must be correctly identified as 'start' or 'stop' based on the user's intent.\n\n"
-    "Please return valid JSON with a top-level 'docker_actions' key, e.g:\n"
-    "{\n"
-    "  \"docker_actions\": [\n"
-    "    {\"service_name\": \"immich\", \"action\": \"stop\"},\n"
-    "    {\"service_name\": \"postgres\", \"action\": \"stop\"},\n"
-    "    {\"service_name\": \"piwigo\", \"action\": \"start\"}\n"
-    "  ]\n"
-    "}\n"
+    "Each action must be correctly identified as 'start', 'stop', or 'restart' based on the user's intent."
 )
 USER_PROMPT = "Stop immich and postgres. Turn on piwigo."
 
@@ -35,8 +26,6 @@ class ActionType(str, Enum):
     START = "start"
     STOP = "stop"
     RESTART = "restart"
-    PAUSE = "pause"
-    UNPAUSE = "unpause"
 
 class DockerAction(BaseModel):
     service: str = Field(..., alias="service_name")
@@ -46,35 +35,36 @@ class DockerAction(BaseModel):
 class DockerActionSchema(BaseModel):
     docker_actions: List[DockerAction]
 
-# Utility: Build an OpenAI function schema if you want to do function-calling
+def pydantic_schema_to_openai_parameters(pydantic_schema: dict) -> dict:
+    """Recursively expand any $ref references from Pydantic JSON schema into a single dict."""
+    definitions = pydantic_schema.pop("definitions", {})
+
+    def expand_refs(obj):
+        if isinstance(obj, dict):
+            if "$ref" in obj:
+                ref_name = obj["$ref"].split("/")[-1]
+                sub_schema = definitions.get(ref_name, {})
+                return expand_refs(sub_schema)
+            else:
+                return {k: expand_refs(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [expand_refs(item) for item in obj]
+        else:
+            return obj
+
+    return expand_refs(pydantic_schema)
+
 def pydantic_model_to_openai_function(model: BaseModel, name: str, description: str) -> dict:
-    # Just a quick example – or you can skip function-calling if you prefer
+    """Build an OpenAI function schema from a Pydantic model."""
+    raw_schema = model.model_json_schema()
+    raw_schema.pop("title", None)
+    parameters_schema = pydantic_schema_to_openai_parameters(raw_schema)
     return {
         "name": name,
         "description": description,
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "docker_actions": {
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "properties": {
-                            "service_name": {"type": "string"},
-                            "action": {
-                                "type": "string",
-                                "enum": ["start","stop","restart","pause","unpause"]
-                            },
-                        },
-                        "required": ["service_name", "action"]
-                    }
-                }
-            },
-            "required": ["docker_actions"]
-        },
+        "parameters": parameters_schema,
     }
 
-# Initialize either LLaMA or OpenAI
 if USE_LLAMA:
     import llama_cpp
     from llama_cpp.llama_speculative import LlamaPromptLookupDecoding
@@ -117,13 +107,10 @@ def get_docker_actions_with_retry(**kwargs) -> DockerActionSchema:
     """
     for attempt in range(1, RETRY + 1):
         try:
-            # 1) LLaMA path – pass response_model
             if USE_LLAMA:
                 response = create(response_model=DockerActionSchema, **kwargs)
                 return response  # Already a DockerActionSchema
 
-            # 2) OpenAI path – no response_model
-            #    We'll parse the function_call ourselves:
             else:
                 response = create(**kwargs)
                 # function_call approach
@@ -146,7 +133,6 @@ def get_docker_actions_with_retry(**kwargs) -> DockerActionSchema:
                 logging.error("Max retry attempts reached. Reraising exception.")
                 raise
 
-# Build params
 params = {
     "messages": [
         {"role": "system", "content": SYSTEM_PROMPT},
@@ -154,9 +140,7 @@ params = {
     ]
 }
 
-# Optionally add function calling for OpenAI
 if not USE_LLAMA:
-    # Example function for openai function-calling
     docker_actions_fn = pydantic_model_to_openai_function(
         DockerActionSchema,
         "get_docker_actions",
@@ -166,14 +150,7 @@ if not USE_LLAMA:
     params["function_call"] = {"name": "get_docker_actions"}
     params["model"] = OPENAI_MODEL
 else:
-    # If using LLaMA, set the llama model in params
     params["model"] = LLAMA_MODEL
-
-# Or if you'd prefer not to do function-calling for OpenAI, skip that
-# and rely on the prompt to produce direct JSON.
-
-# If you *didn't* want function calling, you'd remove those lines and
-# parse the normal text from `choice.message.content` as JSON.
 
 try:
     docker_actions = get_docker_actions_with_retry(**params)
