@@ -1,16 +1,21 @@
-import instructor
 import os
 import json
 import logging
 import time
-from pydantic import BaseModel, Field, ValidationError, ConfigDict
-from typing import List
 from enum import Enum
+from typing import List
+
+import llama_cpp
+from llama_cpp.llama_speculative import LlamaPromptLookupDecoding
+import click
+import instructor
+from openai import OpenAI
+from pydantic import BaseModel, Field, ValidationError, ConfigDict
 
 logging.basicConfig(level=logging.WARNING, format="%(asctime)s - %(levelname)s - %(message)s")
 
 USE_LLAMA = os.getenv("LLAMA", "true").lower() == "true"
-LLAMA_MODEL = os.getenv("LLAMA_MODEL", "stable-code-3b.Q5_K_S.gguf")
+LLAMA_MODEL = os.getenv("LLAMA_MODEL", "Mistral-0.3-7B-Instruct-Q4_K_M.gguf")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4")
 OPENAI_ENDPOINT = os.getenv("OPENAI_ENDPOINT", "https://api.openai.com/v1")
@@ -18,9 +23,8 @@ RETRY = int(os.getenv("RETRY", 3))
 
 SYSTEM_PROMPT = (
     "You are an assistant that extracts Docker service actions from user instructions. "
-    "Each action must be correctly identified as 'start', 'stop', or 'restart' based on the user's intent."
+    "Each action must be correctly identified as 'start', 'stop', or 'restart' based on the user's intent. 'turn on' means the same thing as 'start' and 'turn off' means the same thing as 'stop'."
 )
-USER_PROMPT = "Stop immich and postgres. Turn on piwigo."
 
 class ActionType(str, Enum):
     START = "start"
@@ -66,9 +70,6 @@ def pydantic_model_to_openai_function(model: BaseModel, name: str, description: 
     }
 
 if USE_LLAMA:
-    import llama_cpp
-    from llama_cpp.llama_speculative import LlamaPromptLookupDecoding
-
     llama = llama_cpp.Llama(
         model_path=f"/models/{LLAMA_MODEL}",
         n_gpu_layers=-1,
@@ -85,8 +86,6 @@ if USE_LLAMA:
     )
 
 else:
-    from openai import OpenAI
-
     if not OPENAI_API_KEY:
         raise RuntimeError("OPENAI_API_KEY is not provided")
 
@@ -133,28 +132,38 @@ def get_docker_actions_with_retry(**kwargs) -> DockerActionSchema:
                 logging.error("Max retry attempts reached. Reraising exception.")
                 raise
 
-params = {
-    "messages": [
-        {"role": "system", "content": SYSTEM_PROMPT},
-        {"role": "user", "content": USER_PROMPT},
-    ]
-}
+@click.command()
+@click.argument("user_prompt")
+def main(user_prompt: str):
+    """
+    Simple CLI to parse user instructions about Docker services.
+    The user_prompt is a required positional argument.
+    """
+    params = {
+        "messages": [
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": user_prompt},
+        ]
+    }
 
-if not USE_LLAMA:
-    docker_actions_fn = pydantic_model_to_openai_function(
-        DockerActionSchema,
-        "get_docker_actions",
-        "Extract Docker service actions from user instructions"
-    )
-    params["functions"] = [docker_actions_fn]
-    params["function_call"] = {"name": "get_docker_actions"}
-    params["model"] = OPENAI_MODEL
-else:
-    params["model"] = LLAMA_MODEL
+    if not USE_LLAMA:
+        docker_actions_fn = pydantic_model_to_openai_function(
+            DockerActionSchema,
+            "get_docker_actions",
+            "Extract Docker service actions from user instructions"
+        )
+        params["functions"] = [docker_actions_fn]
+        params["function_call"] = {"name": "get_docker_actions"}
+        params["model"] = OPENAI_MODEL
+    else:
+        params["model"] = LLAMA_MODEL
 
-try:
-    docker_actions = get_docker_actions_with_retry(**params)
-    print("Parsed Docker Actions:")
-    print(docker_actions.model_dump_json(indent=2))
-except Exception as e:
-    logging.error(f"Failed after {RETRY} attempts: {e}")
+    try:
+        docker_actions = get_docker_actions_with_retry(**params)
+        print("Parsed Docker Actions:")
+        print(docker_actions.model_dump_json(indent=2))
+    except Exception as e:
+        logging.error(f"Failed after {RETRY} attempts: {e}")
+
+if __name__ == "__main__":
+    main()
