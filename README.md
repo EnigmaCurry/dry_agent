@@ -1,25 +1,12 @@
 # dry_agent
 
-dry_agent is a ChatOps bot and agent for d.rymcg.tech. The bot sits in
-a Matrix room which you can chat with to manage your Docker server.
+TODO - finish this doc
 
-The user is able to ask questions and perform the following
-tasks:
-
- * "Which services are running?"
- * "Start whoami and immich and then turn them off after 45 minutes."
- 
-Stretch goals include:
- 
- * "Configure a new postgres database." and answer followup questions
-   posed by the bot.
- 
 ## Install
 
 The agent can be run on any Linux machine. You will need the following:
 
  * Podman (to run the agent)
- * Access to an LLM API (LM studio, ChatGPT, etc.)
  * A remote Docker server with SSH access (running on a different machine)
 
 ### Deploy dry_agent container
