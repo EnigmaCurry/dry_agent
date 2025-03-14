@@ -69,15 +69,14 @@ a:hover {
   background-color: #771c1c;
 }
 
-pre.box {
-    background-color: #2a2a2a;
-    color: #e0e0e0;
-    border: none;
-}
-
 .command-output {
     border-radius: 5px;
-    background-color: #90e6c9;
+    color: #281a1a !important;
+    background-color: #bedbd1 !important;
+    font-weight: bold;
+    font-size: 1.1em;
+    padding: 1em;
+    outline: 5px solid white;
 }
 
 /* Fade-in effect */
@@ -88,4 +87,22 @@ pre.box {
 
 .command-output.fade-in {
   animation: fadeIn 0.3s ease-in;
+}
+
+.has-text-link {
+    color: #0800ff !important;
+    font-weight: bold;
+}
+button.has-text-link {
+    outline: 3px solid #00ff9f;
+    background-color: #ffb5b5 !important;
+}
+button.has-text-link:hover {
+    background-color: #f98282 !important;
+}
+
+pre.box {
+    background-color: #2a2a2a;
+    color: #e0e0e0;
+    border: none;
 }

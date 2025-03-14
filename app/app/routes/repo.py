@@ -20,17 +20,18 @@ async def repo_page(request: Request):
 
 @router.post("/pull", response_class=PlainTextResponse)
 async def pull_repo():
+    command = ["git", "-C", GIT_REPO, "pull"]
     try:
         result = subprocess.run(
-            ["git", "-C", GIT_REPO, "pull"],
+            command,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
             check=True
         )
-        return result.stdout
+        return f"## {' '.join(command)}\n\n" + result.stdout
     except subprocess.CalledProcessError as e:
         return PlainTextResponse(
-            content=f"❌ Git pull failed:\n{e.output}",
+            content=f"❌ Command failed: {' '.join(command)}\n\n{e.output}",
             status_code=500
         )
