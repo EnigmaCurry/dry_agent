@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from app.routes import repo
+from app.routes import repo, services, env_dist
 from fastapi.responses import HTMLResponse, FileResponse
 
 app = FastAPI()
@@ -19,3 +19,5 @@ async def index(request: Request):
 
 # Include your sub-routes
 app.include_router(repo.router, prefix="/app/repo")
+app.include_router(services.router, prefix="/app/services")
+app.include_router(env_dist.router, prefix="/app/env-dist")
