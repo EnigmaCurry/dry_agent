@@ -2,3 +2,5 @@
 target
 /*.crt
 /*.key
+secret.yaml
+
