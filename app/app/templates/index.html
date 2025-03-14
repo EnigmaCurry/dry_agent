@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>FastAPI + htmx</title>
+  <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+</head>
+<body>
+  <h1>Hello from FastAPI + htmx!</h1>
+  <button hx-get="/message" hx-target="#output">Click me</button>
+  <div id="output"></div>
+</body>
+</html>

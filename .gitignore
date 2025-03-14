@@ -2,5 +2,6 @@
 target
 /*.crt
 /*.key
+deployment.yaml
 secret.yaml
-
+/.hushcrumbs

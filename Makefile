@@ -30,7 +30,7 @@ config: deps
 		exit 1; \
 	fi
 	@if [ -f .env ]; then \
-		echo "⚠️  .env already exists. Skipping creation. Run 'make clean' if you wish to delete it."; \
+		echo "⚠️  .env already exists. Skipping creation. Run 'make clean' if you wish to delete the config."; \
 	else \
 		echo "🛠️  Creating .env interactively from .env-dist..."; \
 		touch .env; \
@@ -56,14 +56,20 @@ config: deps
 		echo -e "\n✅ .env file created successfully."; \
 	fi
 
-secret.yaml: deps secret.template.yaml config
+secret.yaml:
 	@echo "Generating secret.yaml from template..."
 	@set -a; \
 	source .env; \
 	envsubst < secret.template.yaml > secret.yaml
 
+deployment.yaml:
+	@echo "Generating deployment.yaml from template..."
+	@set -a; \
+	source .env; \
+	envsubst < deployment.template.yaml > deployment.yaml
+
 .PHONY: install # Install the pod
-install: deps secret.yaml expect-images
+install: deps config secret.yaml deployment.yaml expect-images
 	podman play kube secret.yaml
 	podman play kube deployment.yaml
 	@${MAKE} --no-print-directory status
@@ -72,6 +78,21 @@ install: deps secret.yaml expect-images
 uninstall:
 	podman pod rm -f dry-agent
 	podman play kube --down secret.yaml
+
+.PHONY: reinstall # Rebuild images and restart pod with new containers
+reinstall: build
+	@podname=dry-agent; \
+	echo "🔄 Reinstalling pod $$podname..."; \
+	if podman pod exists $$podname; then \
+		echo "⏹️  Bringing down existing pod..."; \
+		podman play kube --down deployment.yaml || true; \
+		sleep 1; \
+	fi; \
+	if podman pod exists $$podname; then \
+		echo "❗ Pod $$podname still exists — removing manually..."; \
+		podman pod rm -f $$podname; \
+	fi;
+	@${MAKE} --no-print-directory install
 
 .PHONY: destroy # Remove the pod AND delete its volumes
 destroy: deps uninstall
@@ -86,12 +107,18 @@ destroy: deps uninstall
 	fi
 
 clean:
-	rm -f secret.yaml .env
+	rm -f secret.yaml deployment.yaml .env
 
 .PHONY: build
 build: deps
-	podman build -t localhost/enigmacurry/hushcrumbs https://github.com/enigmacurry/hushcrumbs.git
-	podman build -t localhost/enigmacurry/workstation workstation
+	if [ ! -d .hushcrumbs ]; then \
+		git clone https://github.com/enigmacurry/hushcrumbs.git .hushcrumbs; \
+	else \
+		cd .hushcrumbs && git pull; \
+	fi
+	podman build -t localhost/dry-agent/hushcrumbs .hushcrumbs
+	podman build -t localhost/dry-agent/workstation workstation
+	podman build -t localhost/dry-agent/app app
 
 expect-images:
 	@missing=0; \
