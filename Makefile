@@ -23,8 +23,8 @@ deps:
 		echo "🎉 All dependencies are satisfied."; \
 	fi
 
-.PHONY: .env # Interactively generate the .env file from .env-dist
-.env: deps
+.PHONY: config # Interactively generate the .env file from .env-dist
+config: deps
 	@if [ ! -f .env-dist ]; then \
 		echo "❌ Missing .env-dist template file."; \
 		exit 1; \
@@ -56,14 +56,14 @@ deps:
 		echo -e "\n✅ .env file created successfully."; \
 	fi
 
-secret.yaml: deps secret.template.yaml .env
+secret.yaml: deps secret.template.yaml config
 	@echo "Generating secret.yaml from template..."
 	@set -a; \
 	source .env; \
 	envsubst < secret.template.yaml > secret.yaml
 
 .PHONY: install # Install the pod
-install: deps secret.yaml
+install: deps secret.yaml expect-images
 	podman play kube secret.yaml
 	podman play kube deployment.yaml
 	@${MAKE} --no-print-directory status
@@ -91,6 +91,24 @@ clean:
 .PHONY: build
 build: deps
 	podman build -t localhost/enigmacurry/hushcrumbs https://github.com/enigmacurry/hushcrumbs.git
+	podman build -t localhost/enigmacurry/workstation workstation
+
+expect-images:
+	@missing=0; \
+	for img in localhost/enigmacurry/hushcrumbs localhost/enigmacurry/workstation; do \
+		if ! podman image exists $$img; then \
+			echo "❌ Missing image: $$img"; \
+			missing=1; \
+		else \
+			echo "✅ Found image: $$img"; \
+		fi; \
+	done; \
+	if [ $$missing -eq 1 ]; then \
+		echo "💥 One or more required images are missing."; \
+		echo "👉️ You need to run: make build"; \
+		exit 1; \
+	fi
+
 
 .PHONY: status # Show the status of the pod
 status:
