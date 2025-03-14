@@ -1,32 +1,37 @@
 # --------------------
 # Builder stage
 # --------------------
-FROM python:3.13-slim AS builder
+FROM debian:bookworm-slim AS builder
 
 WORKDIR /build
 
-# Install system deps & poetry
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install Python 3.11+ and dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl build-essential gcc \
-    && pip install poetry \
+    curl build-essential gcc python3 python3-dev python3-pip python3-venv \
+    && pip3 install --upgrade pip --break-system-packages \
+    && pip3 install poetry --break-system-packages \
     && rm -rf /var/lib/apt/lists/*
 
-# Only copy dependency files first
+# Only copy dependency files
 COPY pyproject.toml poetry.lock ./
 
 # Prevent poetry from using a venv
 RUN poetry config virtualenvs.create false
 
-# Ensure README exists (some tools require it)
+# Dummy README to satisfy tools
 RUN touch README.md
 
-# Install dependencies only (no dev deps, no local package)
+# Install dependencies (without dev or local package)
 RUN poetry install --without dev --no-root
 
 # --------------------
 # Runtime stage
 # --------------------
-FROM python:3.13-slim
+FROM localhost/dry-agent/workstation
+
+ARG PYTHON_VERSION=3.11
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONPATH=/app \
@@ -34,8 +39,17 @@ ENV PYTHONUNBUFFERED=1 \
 
 WORKDIR /app
 
-# Copy installed dependencies from builder
-COPY --from=builder /usr/local/lib/python3.13/site-packages /usr/local/lib/python3.13/site-packages
+# Install runtime Python and pip
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 python3-pip \
+    && rm -rf /var/lib/apt/lists/*
+
+# Use python3/pip3 as default
+RUN ln -s /usr/bin/python3 /usr/local/bin/python && \
+    ln -s /usr/bin/pip3 /usr/local/bin/pip
+
+# Copy installed site-packages from builder
+COPY --from=builder /usr/local/lib/python${PYTHON_VERSION}/dist-packages /usr/local/lib/python${PYTHON_VERSION}/dist-packages
 
 # Copy app code and entrypoint
 COPY . .

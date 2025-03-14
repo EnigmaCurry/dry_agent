@@ -1,0 +1,25 @@
+<div class="command-widget">
+  <div class="buttons">
+    <button
+      class="button is-light has-text-link command-btn"
+      hx-post="{{ endpoint }}"
+      hx-target="#{{ output_id }}"
+      hx-swap="innerHTML"
+      data-output-id="{{ output_id }}"
+    >
+      {{ label }}
+    </button>
+
+    <button
+      class="button is-light clear-btn is-hidden"
+      data-output-id="{{ output_id }}"
+    >
+      Clear
+    </button>
+  </div>
+
+  <pre id="{{ output_id }}"
+       class="box mt-4 is-hidden command-output"
+       style="white-space: pre-wrap;">
+  </pre>
+</div>

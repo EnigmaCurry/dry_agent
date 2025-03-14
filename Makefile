@@ -8,7 +8,7 @@ help:
 deps:
 	@echo "🔍 Checking for required tools..."
 	@missing=0; \
-	for cmd in podman envsubst sed awk expand yq; do \
+	for cmd in podman envsubst sed awk expand yq xdg-open; do \
 		if command -v $$cmd >/dev/null 2>&1; then \
 			echo "✅ $$cmd is installed"; \
 		else \
@@ -197,3 +197,11 @@ up:
 	done; \
 	trap 'echo -e "\n⏹️  Stopping pod $$podname..."; podman pod stop $$podname' INT; \
 	wait $$pids
+
+.PHONY: open # Open the web app
+open:
+	xdg-open http://localhost:8123
+
+.PHONY: shell # Exec into the workstation container
+shell:
+	podman exec -it -w /root/git/vendor/enigmacurry/d.rymcg.tech dry-agent-app /bin/bash

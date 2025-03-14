@@ -1,0 +1,13 @@
+<div class="command-widget">
+  <button
+    class="command-btn"
+    hx-post="{{ endpoint }}"
+    hx-target="#{{ output_id }}"
+    hx-swap="innerHTML"
+    data-output-id="{{ output_id }}"
+  >
+    {{ label }}
+  </button>
+
+  <pre id="{{ output_id }}" class="command-output" style="white-space: pre-wrap; border: 1px solid #ccc; padding: 1em; margin-top: 1em;"></pre>
+</div>

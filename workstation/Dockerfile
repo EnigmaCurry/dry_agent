@@ -33,7 +33,9 @@ RUN cd $(mktemp -d) && \
     dpkg -i step-cli.deb && \
     rm -f step-cli.deb
 
-VOLUME /root
 WORKDIR /root
 
-ADD _config/reconfigure_d.rymcg.tech /usr/local/bin/
+RUN git clone https://github.com/EnigmaCurry/d.rymcg.tech.git \
+    ~/git/vendor/enigmacurry/d.rymcg.tech
+
+VOLUME /root
