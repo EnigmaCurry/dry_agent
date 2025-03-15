@@ -1,13 +1,14 @@
+import os
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from app.routes import repo, services, env_dist
 from fastapi.responses import HTMLResponse, FileResponse
+from app.dependencies import templates
+from app.routes import repo, apps, env_dist
 
 app = FastAPI()
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
-templates = Jinja2Templates(directory="app/templates")
 
 @app.get("/favicon.ico")
 async def favicon():
@@ -17,7 +18,7 @@ async def favicon():
 async def index(request: Request):
     return templates.TemplateResponse("index.html", { "request": request })
 
-# Include your sub-routes
-app.include_router(repo.router, prefix="/app/repo")
-app.include_router(services.router, prefix="/app/services")
-app.include_router(env_dist.router, prefix="/app/env-dist")
+# Routes:
+app.include_router(repo.router)
+app.include_router(apps.router)
+app.include_router(env_dist.router)

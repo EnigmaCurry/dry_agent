@@ -19,54 +19,82 @@ body {
 .subtitle,
 h1, h2, h3, h4, h5, h6,
 p, span, label {
-  color: #ffffff !important;
+    color: #ffffff !important;
 }
 
 a {
-  color: #ffffff;
+    color: #ffffff;
 }
 a:hover {
-  color: #dddddd;
+    color: #dddddd;
 }
 
 /* Ensure Bulma section fills remaining space */
 .section {
     min-height: 100vh;
-    padding-bottom: 3rem; /* adjust if needed */
+    padding-bottom: 3rem;
 }
 
 .navbar-brand {
     font-size: 1.5em;
 }
 .navbar.is-deep-red {
-    background-color: #7b1c1c; /* deep red */
+    background-color: #7b1c1c;
 }
-
 .navbar.is-deep-red .navbar-item,
 .navbar.is-deep-red .navbar-item:visited,
 .navbar.is-deep-red .navbar-link {
     color: #fff;
 }
-
-.navbar.is-deep-red .navbar-item:hover {
+.navbar.is-deep-red .navbar-item:hover,
+.navbar.is-deep-red .navbar-item:focus {
     background-color: #992222;
 }
-
 .navbar.is-deep-red .navbar-burger span {
-  background-color: #ffffff;
+    background-color: #ffffff;
 }
 /* Make the expanded menu background a darker red */
 .navbar.is-deep-red .navbar-menu {
-  background-color: #5e1515;
+    background-color: #5e1515;
 }
-
-/* Optional: make navbar items white */
 .navbar.is-deep-red .navbar-item {
-  color: #ffffff;
+    color: #ffffff;
+}
+.navbar.is-deep-red .navbar-item:hover,
+.navbar.is-deep-red .navbar-item:focus {
+    background-color: #771c1c;
+}
+/* Override the white dropdown background */
+.navbar.is-deep-red .navbar-dropdown {
+    background-color: #5e1515; /* match or slightly darker than navbar */
+    border-top: 1px solid #771c1c; /* optional visual separator */
 }
 
-.navbar.is-deep-red .navbar-item:hover {
-  background-color: #771c1c;
+/* Make dropdown items white */
+.navbar.is-deep-red .navbar-dropdown .navbar-item {
+    color: #ffffff;
+}
+
+/* Hover state for dropdown items */
+.navbar.is-deep-red .navbar-dropdown .navbar-item:hover,
+.navbar.is-deep-red .navbar-dropdown .navbar-item:focus {
+    background-color: #771c1c;
+    color: #ffffff;
+}
+/* Fix "More" link background when hovered or active */
+.navbar.is-deep-red .navbar-link,
+.navbar.is-deep-red .navbar-link:focus,
+.navbar.is-deep-red .navbar-link.is-active {
+    background-color: #5e1515;
+    color: #ffffff;
+}
+.navbar.is-deep-red .navbar-link:hover {
+    background-color: #771c1c;
+}
+/* Keep "More" link background dark, even when a dropdown item is hovered */
+.navbar.is-deep-red .navbar-item.has-dropdown:hover .navbar-link {
+    background-color: #5e1515 !important;
+    color: #ffffff !important;
 }
 
 .command-output {
@@ -81,19 +109,17 @@ a:hover {
 
 /* Fade-in effect */
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+    from { opacity: 0; }
+    to   { opacity: 1; }
 }
 
 .command-output.fade-in {
-  animation: fadeIn 0.3s ease-in;
+    animation: fadeIn 0.3s ease-in;
 }
 
-.has-text-link {
+button.has-text-link {
     color: #0800ff !important;
     font-weight: bold;
-}
-button.has-text-link {
     outline: 3px solid #00ff9f;
     background-color: #ffb5b5 !important;
 }
@@ -105,4 +131,52 @@ pre.box {
     background-color: #2a2a2a;
     color: #e0e0e0;
     border: none;
+}
+
+ul.bulma-list li::before {
+    content: "●";
+    font-size: 1rem;
+    margin-right: 8px;
+}
+/* Dark theme for table */
+.table {
+    background-color: #2a2a2a;  /* Dark background */
+    color: #ffffff;  /* White text */
+}
+
+/* Header Styling */
+.table th {
+    background-color: #3a3a3a;  /* Darker header */
+    color: #ffffff !important;
+}
+
+/* Default table row styling */
+.table td,
+.table td strong {
+    color: #ffffff !important;
+    font-weight: bold;
+}
+
+/* Alternate row styling */
+.table.is-striped tbody tr:nth-child(odd) {
+    background-color: #1b1b1b !important;
+}
+
+.table.is-striped tbody tr:nth-child(even) {
+    background-color: #252525 !important;
+}
+
+/* Hover effect: Make row slightly lighter */
+.table.is-hoverable tbody tr:hover {
+    background-color: #444444 !important;
+}
+
+table td a.has-text-link,
+table td a.has-text-link:focus
+{
+    color: #80c48d !important;
+}
+table td a.has-text-link:hover
+{
+    color: #ffc48d !important;
 }

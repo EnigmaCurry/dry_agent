@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block title %}Available Apps{% endblock %}
+
+{% block content %}
+  <h1 class="title is-3">Available Apps</h1>
+
+  <div
+    id="apps-list"
+    hx-get="/api/apps/available"
+    hx-trigger="load"
+    hx-target="#apps-list"
+    hx-swap="innerHTML"
+  >
+    <p>🔄 Loading available apps...</p>
+  </div>
+{% endblock %}

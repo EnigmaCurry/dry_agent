@@ -1,24 +1,18 @@
-# app/routes/repo.py
-
-import subprocess
-from fastapi import APIRouter, HTTPException, status, Request
-from fastapi.responses import PlainTextResponse, HTMLResponse
-from fastapi.templating import Jinja2Templates
-from . import DRY_PATH
+from app.routes import *
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
 
-@router.get("", response_class=HTMLResponse)
+@router.get("/app/repo/pull", response_class=HTMLResponse)
 async def repo_page(request: Request):
-    return templates.TemplateResponse("repo_page.html", {
+    return templates.TemplateResponse("repo_pull.html", {
         "request": request,
-        "label": "pull d.rymcg.tech",
-        "endpoint": "/app/repo/pull",
+        "label": "Pull d.rymcg.tech",
+        "endpoint": "/api/repo/pull",
         "output_id": "git-output"
     })
 
-@router.post("/pull", response_class=PlainTextResponse)
+@router.post("/api/repo/pull", response_class=PlainTextResponse)
 async def pull_repo():
     command = ["git", "-C", DRY_PATH, "pull"]
     try:

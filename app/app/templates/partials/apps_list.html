@@ -1,0 +1,25 @@
+<!-- templates/partials/apps_list.html -->
+<table class="table is-striped is-hoverable is-fullwidth">
+  <thead>
+    <tr>
+      <th>App Name</th>
+      <th>README</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for app in apps %}
+      <tr>
+        <td><strong>{{ app.name }}</strong></td>
+        <td>
+          <a href="https://github.com/EnigmaCurry/d.rymcg.tech/blob/master/{{ app.name }}#readme"
+             target="_blank"
+             class="has-text-link">
+            README
+          </a>
+        </td>
+        <td>{{ app.description }}</td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>

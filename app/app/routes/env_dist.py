@@ -1,8 +1,4 @@
-import os
-from fastapi import APIRouter, HTTPException
-from fastapi.responses import JSONResponse
-from typing import Tuple, Dict
-from . import DRY_PATH
+from app.routes import *
 
 router = APIRouter()
 
