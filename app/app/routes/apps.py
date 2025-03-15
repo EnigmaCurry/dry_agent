@@ -1,6 +1,10 @@
 from app.routes import *
 from app.dependencies import templates
 from app.routes.env_dist import get_env_dist_data
+import traceback
+import logging
+
+logger = logging.getLogger("uvicorn.error")
 
 router = APIRouter()
 
@@ -13,6 +17,7 @@ async def apps_page(request: Request):
 @router.get("/api/apps/available", response_class=HTMLResponse)
 async def apps_available(request: Request):
     command = [DRY_COMMAND, "list"]
+
     try:
         result = subprocess.run(
             command,
@@ -28,20 +33,33 @@ async def apps_available(request: Request):
         for line in service_lines:
             apps.extend(line.strip().split())
 
-        # Get descriptions from README.md
         descriptions = parse_readme_descriptions()
+        app_data = []
 
-        # Combine app names with descriptions
-        app_data = [{"name": app, "description": descriptions.get(app, "No description available")} for app in sorted(apps)]
+        for app in sorted(apps):
+            try:
+                # Only include if instantiable
+                await get_env_dist_data(app)
+                app_data.append({
+                    "name": app,
+                    "description": descriptions.get(app, "No description available")
+                })
+            except HTTPException as e:
+                if e.status_code == 404:
+                    continue  # skip non-instantiable
+                else:
+                    raise
 
         return templates.TemplateResponse("partials/apps_list.html", {
             "request": request,
             "apps": app_data,
         })
 
-    except subprocess.CalledProcessError as e:
+    except Exception as e:
+        logger.error("Failed to load available apps:\n%s", traceback.format_exc())
+
         return HTMLResponse(
-            content=f"<p class='has-text-danger'>❌ Command failed:<br><pre>{e.output}</pre></p>",
+            content=f"<p class='has-text-danger'>❌ Internal Server Error:<br><pre>{e}</pre></p>",
             status_code=500
         )
 

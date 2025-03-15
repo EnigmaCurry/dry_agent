@@ -77,6 +77,13 @@ async def get_env_dist_data(app: str) -> dict:
             env_meta = dict(env_meta)  # Ensure it's mutable
             env_meta.setdefault("PREFIX", app.replace("-", "_").upper())
 
+            # If INSTANTIABLE is anything but "true", abort early
+            if env_meta.get("INSTANTIABLE", "true").strip().lower() != "true":
+                raise HTTPException(status_code=404, detail=f"App '{app}' is not instantiable")
+
+            # Remove INSTANTIABLE from the results
+            env_meta.pop("INSTANTIABLE", None)
+
             return {
                 "env": {
                     key: {
@@ -84,10 +91,13 @@ async def get_env_dist_data(app: str) -> dict:
                         "comments": env_comments.get(key, "")
                     }
                     for key in env_dict
+                    if key not in env_meta  # optional: ignore meta vars from env
                 },
                 "meta": env_meta
             }
 
+    except HTTPException:
+        raise  # re-raise original HTTPException untouched
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
