@@ -2,9 +2,9 @@ import os
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse
 from typing import Tuple, Dict
+from . import DRY_PATH
 
 router = APIRouter()
-REPO_PATH = "/root/git/vendor/enigmacurry/d.rymcg.tech"
 
 def parse_env_file_contents(contents: str) -> Tuple[Dict[str, str], Dict[str, str]]:
     """
@@ -39,7 +39,7 @@ def parse_env_file_contents(contents: str) -> Tuple[Dict[str, str], Dict[str, st
 
 @router.get("/")
 async def get_env_dist(service: str):
-    env_path = os.path.join(REPO_PATH, service, ".env-dist")
+    env_path = os.path.join(DRY_PATH, service, ".env-dist")
     if not os.path.isfile(env_path):
         raise HTTPException(status_code=404, detail=f".env-dist file not found for service '{service}'")
 
@@ -47,9 +47,13 @@ async def get_env_dist(service: str):
         with open(env_path, "r") as f:
             contents = f.read()
             env_dict, env_comments = parse_env_file_contents(contents)
-            return JSONResponse({
-                "env_dict": env_dict,
-                "env_comments": env_comments
-            })
+            combined_dict = {
+                key: {
+                    "default_value": env_dict[key],
+                    "comments": env_comments.get(key, "")
+                }
+                for key in env_dict
+            }
+            return JSONResponse(combined_dict)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

@@ -4,10 +4,10 @@ import subprocess
 from fastapi import APIRouter, HTTPException, status, Request
 from fastapi.responses import PlainTextResponse, HTMLResponse
 from fastapi.templating import Jinja2Templates
+from . import DRY_PATH
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
-GIT_REPO = "/root/git/vendor/enigmacurry/d.rymcg.tech"
 
 @router.get("", response_class=HTMLResponse)
 async def repo_page(request: Request):
@@ -20,7 +20,7 @@ async def repo_page(request: Request):
 
 @router.post("/pull", response_class=PlainTextResponse)
 async def pull_repo():
-    command = ["git", "-C", GIT_REPO, "pull"]
+    command = ["git", "-C", DRY_PATH, "pull"]
     try:
         result = subprocess.run(
             command,

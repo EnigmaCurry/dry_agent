@@ -1,15 +1,12 @@
-# app/routes/services.py
-
 import subprocess
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse
 
 router = APIRouter()
-LIST_SCRIPT = "/root/git/vendor/enigmacurry/d.rymcg.tech/_scripts/d.rymcg.tech"
 
 @router.get("/available")
 async def services_available():
-    command = [LIST_SCRIPT, "list"]
+    command = [DRY_COMMAND, "list"]
     try:
         result = subprocess.run(
             command,
