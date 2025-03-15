@@ -1,8 +1,6 @@
 from app.routes import *
 from app.dependencies import templates
 from app.routes.env_dist import get_env_dist_data
-import traceback
-import logging
 
 logger = logging.getLogger("uvicorn.error")
 
@@ -78,7 +76,50 @@ async def apps_config_page(request: Request, app: str):
         "env": env,
         "meta": meta,
         "instances": instances,
+        "contexts": ["default - TODO"]
     })
+
+@router.post("/api/apps/config")
+async def save_app_config(request: Request):
+    form = await request.form()
+    app = form.get("app")
+    context = form.get("context")
+
+    if not app or not context:
+        raise HTTPException(status_code=400, detail="Missing 'app' or 'context'")
+
+    # Load prefix from .env-dist so we can detect instance key
+    from app.routes.env_dist import get_env_dist_data  # or your real import
+    data = await get_env_dist_data(app)
+    prefix = data["meta"]["PREFIX"]
+
+    # Get the instance name from the prefix-derived field
+    instance_key = f"{prefix}_INSTANCE"
+    instance = form.get(instance_key, "default").strip()
+
+    # Prepare output path
+    env_filename = f".env_{context}_{instance}"
+    env_path = os.path.join(DRY_PATH, app, env_filename)
+
+    # Gather environment variable fields from the form
+    env_lines = []
+    for key, value in form.items():
+        if key.startswith("env_"):
+            env_var = key[len("env_"):]
+            env_lines.append(f"{env_var}={value}")
+
+    # Add the instance field too
+    env_lines.append(f"{instance_key}={instance}")
+
+    try:
+        with open(env_path, "w") as f:
+            f.write("\n".join(env_lines) + "\n")
+
+        return RedirectResponse(url=f"/app/apps/config?app={app}&context={context}", status_code=303)
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to write .env file: {e}")
+
 
 def parse_readme_descriptions():
     readme_path = os.path.join(DRY_PATH, "README.md")

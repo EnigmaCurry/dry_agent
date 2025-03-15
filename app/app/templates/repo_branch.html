@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}Switch d.rymcg.tech git branch{% endblock %}
+
+{% block content %}
+  <h1 class="title is-4">Switch d.rymcg.tech git branch</h1>
+
+  <form id="branch-switch-form">
+    <div class="field">
+      <span id="current-branch-label">Current branch: {{ current_branch }}</span>
+      <hr/>
+      <label class="label has-text-white">Select a branch</label>
+      <div class="control">
+        <div class="select">
+          <select id="branch-select" name="branch">
+            {% for branch in branches %}
+              <option value="{{ branch }}" {% if branch == current_branch %}selected{% endif %}>
+                {{ branch }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Command Button Widget -->
+    <div class="command-widget mt-4">
+      <div class="buttons">
+        <button
+          class="button is-light is-small command-btn"
+          type="button"
+          hx-post="/api/repo/checkout"
+          hx-vals='js:{ "branch": document.getElementById("branch-select").value }'
+          hx-target="#checkout-output"
+          hx-swap="innerHTML"
+          data-output-id="checkout-output"
+        >
+          Switch Branch
+        </button>
+
+        <button
+          class="button is-light is-small clear-btn is-hidden"
+          type="button"
+          data-output-id="checkout-output"
+        >
+          Clear
+        </button>
+      </div>
+
+      <pre id="checkout-output" class="box mt-4 is-hidden command-output" style="white-space: pre-wrap;"></pre>
+    </div>
+  </form>
+  <script>
+    document.body.addEventListener('htmx:afterRequest', function (evt) {
+        const btn = evt.target.closest('.command-btn');
+        if (btn) {
+            btn.disabled = false;
+
+            // 🌱 Update current branch label if switching branches
+            if (btn.innerText.includes("Switch Branch")) {
+                const branchSelect = document.getElementById("branch-select");
+                const selectedBranch = branchSelect?.value;
+                const label = document.getElementById("current-branch-label");
+                if (label && selectedBranch) {
+                    label.textContent = `Current branch: ${selectedBranch}`;
+                }
+            }
+        }
+    });
+  </script>
+{% endblock %}

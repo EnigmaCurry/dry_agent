@@ -1,15 +1,35 @@
 {% extends "base.html" %}
 
-{% block title %}Configure {{ app }}{% endblock %}
+{% block title %}Configure {{ app }} instance{% endblock %}
 
 {% block content %}
   {% set instance_var = meta['PREFIX'] + "_INSTANCE" %}
-  <h1 class="title is-4">Configure {{ app }}</h1>
+  <h1 class="title is-4">Configure new {{ app }} instance</h1>
 
   <form method="POST" action="/api/apps/config">
 
     <!-- Include the app name -->
     <input type="hidden" name="app" value="{{ app }}">
+
+    <!-- Context Dropdown -->
+    <div class="field">
+      <label class="label has-text-white">Docker Context</label>
+
+      <div class="control">
+        <div class="select">
+          <select id="context-select">
+            {% for ctx in contexts %}
+            <option value="{{ ctx }}" {% if loop.first %}selected{% endif %}>{{ ctx }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <!-- Hidden input to submit selected context -->
+      <input type="hidden" name="context" id="context-hidden-input" value="{{ contexts[0] }}">
+    </div>
+
+    <hr/>
 
     <!-- Instance Field -->
     <div class="field">
@@ -78,13 +98,19 @@
 
   </form>
 
-<script>
+  <script>
   document.addEventListener('DOMContentLoaded', function () {
     const dropdown = document.getElementById('instance-select');
     const newInput = document.getElementById('new-instance-input');
     const hiddenField = document.getElementById('instance-hidden-input');
     const form = document.querySelector('form');
+    const contextDropdown = document.getElementById('context-select');
+    const contextHidden = document.getElementById('context-hidden-input');
     let allowSubmit = false;
+
+    contextDropdown.addEventListener('change', function () {
+        contextHidden.value = contextDropdown.value;
+    });
 
     function updateHiddenInstance() {
       const newVal = newInput.value.trim();
