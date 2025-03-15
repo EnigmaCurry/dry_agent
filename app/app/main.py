@@ -10,10 +10,6 @@ app = FastAPI()
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
-@app.get("/favicon.ico")
-async def favicon():
-    return FileResponse("app/static/favicon.ico")
-
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
     return templates.TemplateResponse("index.html", { "request": request })

@@ -36,7 +36,10 @@ a:hover {
 }
 
 .navbar-brand {
-    font-size: 1.5em;
+    font-size: 2em;
+}
+.navbar-burger {
+    scale: 2;
 }
 .navbar.is-deep-red {
     background-color: #7b1c1c;
