@@ -1,5 +1,6 @@
 from app.routes import *
 from app.dependencies import templates
+from app.routes.env_dist import get_env_dist_data
 
 router = APIRouter()
 
@@ -43,6 +44,23 @@ async def apps_available(request: Request):
             content=f"<p class='has-text-danger'>❌ Command failed:<br><pre>{e.output}</pre></p>",
             status_code=500
         )
+
+@router.get("/app/apps/config", response_class=HTMLResponse)
+async def apps_config_page(request: Request, app: str):
+    data = await get_env_dist_data(app)
+    env = data['env']
+    meta = data['meta']
+
+    # You can fetch real instances from disk or database
+    instances = ["default"]  # Placeholder
+
+    return templates.TemplateResponse("apps_config.html", {
+        "request": request,
+        "app": app,
+        "env": env,
+        "meta": meta,
+        "instances": instances,
+    })
 
 def parse_readme_descriptions():
     readme_path = os.path.join(DRY_PATH, "README.md")
@@ -88,10 +106,10 @@ def parse_readme_descriptions():
                 # ✅ If the last app was missing a description, check this line
                 if current_app and expecting_description and line.startswith("*"):
                     apps_with_descriptions[current_app] = line.lstrip("*- ").strip()
-                    current_app = None  # Stop capturing
+                    current_app = None
                     expecting_description = False
 
-        print("Extracted Descriptions:", apps_with_descriptions)  # Debugging output
+        #print("Extracted Descriptions:", apps_with_descriptions)
 
     except Exception as e:
         print(f"Error reading README.md: {e}")

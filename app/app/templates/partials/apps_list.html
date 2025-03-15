@@ -2,7 +2,7 @@
 <table class="table is-striped is-hoverable is-fullwidth">
   <thead>
     <tr>
-      <th>App Name</th>
+      <th>Configure App</th>
       <th>README</th>
       <th>Description</th>
     </tr>
@@ -10,7 +10,14 @@
   <tbody>
     {% for app in apps %}
       <tr>
-        <td><strong>{{ app.name }}</strong></td>
+        <td>
+          <a
+            href="/app/apps/config?app={{ app.name }}"
+            class="button is-small is-light has-text-weight-bold"
+          >
+            {{ app.name }}
+          </a>
+        </td>
         <td>
           <a href="https://github.com/EnigmaCurry/d.rymcg.tech/blob/master/{{ app.name }}#readme"
              target="_blank"

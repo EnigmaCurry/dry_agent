@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block title %}Configure {{ app }}{% endblock %}
+
+{% block content %}
+  {% set instance_var = meta['PREFIX'] + "_INSTANCE" %}
+  <h1 class="title is-4">Configure {{ app }}</h1>
+
+  <form method="POST" action="/api/apps/config">
+
+    <!-- Include the app name -->
+    <input type="hidden" name="app" value="{{ app }}">
+
+    <!-- Instance Field -->
+    <div class="field">
+      <label class="label has-text-white">{{instance_var}}</label>
+
+      <div class="control">
+        <!-- Dropdown -->
+        <div class="select mb-2">
+          <select id="instance-select">
+            <option value="default">default</option>
+            {% if instances %}
+              {% for inst in instances %}
+                {% if inst != "default" %}
+                  <option value="{{ inst }}">{{ inst }}</option>
+                {% endif %}
+              {% endfor %}
+            {% endif %}
+          </select>
+        </div>
+
+        <!-- New instance text input -->
+        <input
+          class="input"
+          type="text"
+          id="new-instance-input"
+          placeholder="Or type a new instance name..."
+        >
+
+        <!-- Hidden input that is actually submitted -->
+        <input
+          type="hidden"
+          name="{{ instance_var }}"
+          id="instance-hidden-input"
+          value="default"
+        >
+      </div>
+
+      <p class="help has-text-grey-light">
+        Select an existing instance or enter a new one.
+      </p>
+    </div>
+
+    <hr>
+
+    <!-- Environment variable fields -->
+    {% for key, item in env.items() %}
+      {% if key != instance_var %}
+        <div class="field">
+          <label class="label has-text-white">{{ key }}</label>
+          {% if item.comments %}
+            <p class="help has-text-grey-light" style="white-space: pre-wrap;">{{ item.comments }}</p>
+          {% endif %}
+          <div class="control">
+            <input class="input" type="text" name="env_{{ key }}" value="{{ item.default_value }}">
+          </div>
+        </div>
+      {% endif %}
+    {% endfor %}
+
+    <!-- Submit -->
+    <div class="field mt-4">
+      <div class="control">
+        <button class="button is-link" type="submit">Save Configuration</button>
+      </div>
+    </div>
+
+  </form>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const dropdown = document.getElementById('instance-select');
+    const newInput = document.getElementById('new-instance-input');
+    const hiddenField = document.getElementById('instance-hidden-input');
+    const form = document.querySelector('form');
+    let allowSubmit = false;
+
+    function updateHiddenInstance() {
+      const newVal = newInput.value.trim();
+
+      if (newVal !== "") {
+        dropdown.disabled = true;
+        dropdown.value = "";         // ✅ Clear the dropdown's selected value
+        hiddenField.value = newVal;
+      } else {
+        dropdown.disabled = false;
+        dropdown.value = dropdown.querySelector('option').value || "default"; // fallback to first option
+        hiddenField.value = dropdown.value;
+      }
+    }
+
+    // Run on load in case of autofill
+    updateHiddenInstance();
+
+    dropdown.addEventListener('change', updateHiddenInstance);
+    newInput.addEventListener('input', updateHiddenInstance);
+
+    // Prevent form submission via Enter key
+    form.addEventListener('keydown', function (event) {
+      if (event.key === 'Enter') {
+        const isTextArea = event.target.tagName === 'TEXTAREA';
+        const isSubmit = event.target.type === 'submit';
+        if (!isTextArea && !isSubmit) {
+          event.preventDefault();
+        }
+      }
+    });
+
+    // Allow submit only if button is clicked
+    form.addEventListener('submit', function (event) {
+      if (!allowSubmit) {
+        event.preventDefault();
+      }
+    });
+
+    form.querySelector('button[type="submit"]').addEventListener('click', function () {
+      allowSubmit = true;
+    });
+  });
+</script>
+{% endblock %}
