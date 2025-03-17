@@ -200,15 +200,17 @@ up:
 	trap 'echo -e "\n⏹️  Stopping pod $$podname..."; podman pod stop $$podname' INT; \
 	wait $$pids
 
-.PHONY: open # Open the web app
-open:
-	xdg-open http://localhost:8123
-
-.PHONY: shell # Exec into the workstation container
-shell:
-	podman exec -it -w /root/git/vendor/enigmacurry/d.rymcg.tech dry-agent-app /bin/bash
-
 .PHONY: get-token # Get the webapp authentication token
 get-token:
 	@podman exec -it dry-agent-app python app/get_token.py
 	@echo
+
+.PHONY: open # Open the web app
+open:
+	@token_url=$$(podman exec -it dry-agent-app python app/get_token.py | grep '^http'); \
+	xdg-open $$token_url
+
+
+.PHONY: shell # Exec into the workstation container
+shell:
+	podman exec -it -w /root/git/vendor/enigmacurry/d.rymcg.tech dry-agent-app /bin/bash

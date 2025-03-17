@@ -3,6 +3,7 @@
 {% block title %}Configure {{ app }} instance{% endblock %}
 
 {% block content %}
+  {% set prefix = meta['PREFIX'] %}
   {% set instance_var = meta['PREFIX'] + "_INSTANCE" %}
   <h1 class="title is-4">Configure new {{ app }} instance</h1>
 
@@ -76,17 +77,29 @@
 
     <!-- Environment variable fields -->
     {% for key, item in env.items() %}
-      {% if key != instance_var %}
-        <div class="field">
-          <label class="label has-text-white">{{ key }}</label>
-          {% if item.comments %}
-            <p class="help has-text-grey-light" style="white-space: pre-wrap;">{{ item.comments }}</p>
-          {% endif %}
-          <div class="control">
-            <input class="input" type="text" name="env_{{ key }}" value="{{ item.default_value }}">
-          </div>
-        </div>
+    {% if key != instance_var %}
+    <div class="field">
+      <label class="label has-text-white">{{ key }}</label>
+      {% if item.comments %}
+      <p class="help has-text-grey-light" style="white-space: pre-wrap;">{{ item.comments }}</p>
       {% endif %}
+      <div class="control">
+        {% set value_lower = item.default_value|lower %}
+        {% if value_lower in ['true', 'false'] %}
+        <label class="radio">
+          <input type="radio" name="env_{{ key }}" value="true" {% if value_lower == 'true' %}checked{% endif %}>
+          True
+        </label>
+        <label class="radio">
+          <input type="radio" name="env_{{ key }}" value="false" {% if value_lower == 'false' %}checked{% endif %}>
+          False
+        </label>
+        {% else %}
+        <input class="input" type="text" name="env_{{ key }}" value="{{ item.default_value }}">
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
     {% endfor %}
 
     <!-- Submit -->
