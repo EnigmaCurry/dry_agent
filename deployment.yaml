@@ -37,7 +37,13 @@ spec:
       ports:
         - containerPort: 80
           hostPort: 8123
+      volumeMounts:
+        - name: workstation-data
+          mountPath: /root
   volumes:
     - name: hushcrumbs-data
       persistentVolumeClaim:
         claimName: hushcrumbs-pvc
+    - name: workstation-data
+      persistentVolumeClaim:
+        claimName: workstation-pvc
