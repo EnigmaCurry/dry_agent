@@ -6,12 +6,13 @@ FROM debian:bookworm-slim AS builder
 WORKDIR /build
 
 ENV DEBIAN_FRONTEND=noninteractive
+ENV PIP_BREAK_SYSTEM_PACKAGES=1
 
 # Install Python 3.11+ and dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl build-essential gcc python3 python3-dev python3-pip python3-venv \
-    && pip3 install --upgrade pip --break-system-packages \
-    && pip3 install poetry --break-system-packages \
+    && pip3 install --upgrade pip \
+    && pip3 install poetry \
     && rm -rf /var/lib/apt/lists/*
 
 # Only copy dependency files

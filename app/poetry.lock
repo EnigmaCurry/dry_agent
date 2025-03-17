@@ -58,6 +58,17 @@ files = [
 ]
 
 [[package]]
+name = "dicewarepy"
+version = "1.0.3"
+description = "Minimalist Python library designed for the random selection of words from cryptographic wordlists, utilizing the Diceware method."
+optional = false
+python-versions = "*"
+files = [
+    {file = "dicewarepy-1.0.3-py3-none-any.whl", hash = "sha256:16b9a588973072f41e6ca0c1310f7cdc837cb5c33b2c6d11b8ea395f9dccf5f6"},
+    {file = "dicewarepy-1.0.3.tar.gz", hash = "sha256:82f9ba2161fd74bf01906d6ec386dcbe2631b9b34dd83c1884f83c561b4afbbc"},
+]
+
+[[package]]
 name = "fastapi"
 version = "0.115.11"
 description = "FastAPI framework, high performance, easy to learn, fast to code, ready for production"
@@ -392,4 +403,4 @@ standard = ["colorama (>=0.4)", "httptools (>=0.6.3)", "python-dotenv (>=0.13)",
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "a9d50cc8aa0dd8ef52cbf4905ae3f50dc3bb6e525c15b650fe48c3d3a85fc1c1"
+content-hash = "99a8fda7332b914bde7a19f6fdfb7e580abb83a37f9e38d01320383e1085d6c6"

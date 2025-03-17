@@ -30,6 +30,10 @@ spec:
             secretKeyRef:
               name: hushcrumbs-secret
               key: API_TOKEN
+        - name: APP_HOST
+          value: localhost
+        - name: APP_PORT
+          value: ${APP_PORT}
       ports:
         - containerPort: 80
           hostPort: ${APP_PORT}

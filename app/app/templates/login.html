@@ -1,0 +1,49 @@
+<!-- app/templates/login.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login - dry_agent</title>
+    <link rel="stylesheet" href="/static/bulma.min.css">
+</head>
+<body>
+    <section class="section">
+        <div class="container">
+            <h1 class="title">Login</h1>
+            {% if error %}
+                <div class="notification is-danger">{{ error }}</div>
+            {% endif %}
+            <form id="login-form" method="post" action="/login" autocomplete="off">
+                <!-- Dummy password field to prevent password manager prompts -->
+                <input type="password" style="opacity:0; height:0; position:absolute; top:-9999px;" autocomplete="off" tabindex="-1">
+                <div class="field">
+                    <label class="label">Enter Preshared Token</label>
+                    <div class="control">
+                        <input id="token-input" class="input" type="text" name="token" placeholder="Token" required autocomplete="new-password">
+                    </div>
+                </div>
+                <!-- Hidden CSRF field populated from the template context -->
+                <input type="hidden" name="csrf" value="{{ csrf_token }}">
+                <div class="field">
+                    <div class="control">
+                        <button class="button is-link" type="submit">Login</button>
+                    </div>
+                </div>
+            </form>
+            <script>
+              // Check if the URL has a fragment (after "#")
+              const hash = window.location.hash;
+              if (hash && hash.length > 1) {
+                  const tokenFromHash = hash.substring(1); // Remove '#' character.
+                  // Pre-populate the token field
+                  document.getElementById('token-input').value = tokenFromHash;
+                  // Remove the hash from the URL (so it won't be stored in history)
+                  history.replaceState(null, document.title, window.location.pathname + window.location.search);
+                  // Auto-submit the form so the server can exchange this preshared token
+                  document.getElementById('login-form').submit();
+              }
+            </script>
+        </div>
+    </section>
+</body>
+</html>

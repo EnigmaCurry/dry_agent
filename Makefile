@@ -56,12 +56,14 @@ config: deps
 		echo -e "\n✅ .env file created successfully."; \
 	fi
 
+.PHONY: secret.yaml
 secret.yaml:
 	@echo "Generating secret.yaml from template..."
 	@set -a; \
 	source .env; \
 	envsubst < secret.template.yaml > secret.yaml
 
+.PHONY: deployment.yaml
 deployment.yaml:
 	@echo "Generating deployment.yaml from template..."
 	@set -a; \
@@ -122,7 +124,7 @@ build: deps
 
 expect-images:
 	@missing=0; \
-	for img in localhost/enigmacurry/hushcrumbs localhost/enigmacurry/workstation; do \
+	for img in localhost/dry-agent/hushcrumbs localhost/dry-agent/workstation; do \
 		if ! podman image exists $$img; then \
 			echo "❌ Missing image: $$img"; \
 			missing=1; \
@@ -205,3 +207,8 @@ open:
 .PHONY: shell # Exec into the workstation container
 shell:
 	podman exec -it -w /root/git/vendor/enigmacurry/d.rymcg.tech dry-agent-app /bin/bash
+
+.PHONY: get-token # Get the webapp authentication token
+get-token:
+	@podman exec -it dry-agent-app python app/get_token.py
+	@echo
