@@ -4,7 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, FileResponse
 from app.dependencies import templates
-from app.routes import repo, apps, env_dist
+from app.routes import repo, apps, env_dist, docker_context
 from .middleware.auth import add_auth_middleware, login_get, login_post, logout, admin_generate_auth_token
 
 app = FastAPI()
@@ -25,3 +25,5 @@ async def index(request: Request):
 app.include_router(repo.router)
 app.include_router(apps.router)
 app.include_router(env_dist.router)
+app.include_router(docker_context.router)
+

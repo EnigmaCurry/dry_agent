@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block title %}Docker Context Management{% endblock %}
+
+{% block content %}
+  <h1 class="title is-4">Docker Context Management</h1>
+  <hr/>
+
+  <!-- Default Context Section (only if there are existing contexts) -->
+  {% if contexts %}
+    <h2 class="subtitle">Select Default Docker Context</h2>
+    <form method="post" action="/app/docker/context/default"
+          hx-post="/app/docker/context/default"
+          hx-target="#default-docker-context-log"
+          hx-swap="innerHTML"
+          hx-trigger="change from:select[name=default_context]">
+      <div class="field">
+        <div class="control">
+          <div class="select">
+            <select name="default_context">
+              {% for ctx in contexts %}
+              <option value="{{ ctx }}" {% if ctx == current_context %}selected{% endif %}>{{ ctx }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+      </div>
+    </form>
+    <div id="default-docker-context-log" class="mt-4"></div>
+  {% else %}
+    <p>No Docker contexts exist. Create a new remote Docker context using the form below.</p>
+  {% endif %}
+  <hr/>
+
+  <!-- SSH Public Key Display -->
+  <h2 class="subtitle">dry_agent's Workstation SSH Public Key</h2>
+  <pre class="box" style="white-space: pre-wrap;">{{ ssh_pubkey }}</pre>
+  <span>(Add this public key to the remote Docker server's authorized_keys file.)</span>
+  <hr/>
+
+  <!-- Create New Docker Context (SSH) Form -->
+  <h2 class="subtitle">Create New Docker Context (SSH)</h2>
+  <form method="post" action="/app/docker/context"
+        hx-post="/app/docker/context"
+        hx-target="#docker-context-log"
+        hx-swap="innerHTML">
+    <div class="field">
+      <label class="label">Context Name</label>
+      <div class="control">
+        <input class="input" type="text" name="context_name" placeholder="Enter context name (e.g., d.example.com)" required>
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="label">Host (Hostname or IP)</label>
+      <div class="control">
+        <input class="input" type="text" name="host" placeholder="Enter host" required>
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="label">User</label>
+      <div class="control">
+        <input class="input" type="text" name="user" placeholder="Enter SSH username" value="root" required>
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="label">Port</label>
+      <div class="control">
+        <input class="input" type="text" name="port" placeholder="Enter SSH port (default 22)" value="22" required>
+      </div>
+    </div>
+
+    <div class="field mt-4">
+      <div class="control">
+        <button class="button is-link" type="submit">Create Docker Context</button>
+      </div>
+    </div>
+  </form>
+
+  <div id="docker-context-log" class="mt-4"></div>
+
+  <script>
+    // If an error occurs in either endpoint, show its response in the proper log element.
+    document.body.addEventListener("htmx:responseError", function(evt) {
+        if (evt.detail.xhr.responseURL.endsWith("/app/docker/context") ||
+            evt.detail.xhr.responseURL.endsWith("/app/docker/context/default")) {
+            const targetId = evt.detail.xhr.responseURL.endsWith("/default")
+                             ? "default-docker-context-log"
+                             : "docker-context-log";
+            document.getElementById(targetId).innerHTML = evt.detail.xhr.responseText;
+        }
+    });
+
+    // Listen for HX-Redirect header after a swap; if found, force a full page refresh.
+    document.body.addEventListener("htmx:afterSwap", function(evt) {
+        var redirect = evt.detail.xhr.getResponseHeader("HX-Redirect");
+        if (redirect) {
+            window.location.href = redirect;
+        }
+    });
+  </script>
+{% endblock %}
