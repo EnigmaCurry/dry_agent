@@ -2,39 +2,55 @@
 {% block title %}Terminal{% endblock %}
 
 {% block content %}
-  <div id="terminal-container" style="height: 500px; background: black;"></div>
-  <script>
-    document.addEventListener("DOMContentLoaded", () => {
-  const term = new Terminal();
-  const fitAddon = new FitAddon.FitAddon();
-
-  term.loadAddon(fitAddon);
-  term.open(document.getElementById("terminal-container"));
-  fitAddon.fit(); // ✅ auto-resize terminal to container
-
-  window.addEventListener("resize", () => fitAddon.fit());
-
-  const socket = new WebSocket(`${window.location.origin.replace(/^http/, 'ws')}/ws/terminal`);
-  term.onData(data => socket.send(data));
-  socket.onmessage = event => term.write(event.data);
-});
-
-  </script>
-  <style>
-    body {
-        overflow: hidden;
-    }
-    .section {
-        padding: 1rem 0 0 0 !important;
-    }
-    #terminal-container {
-        position: absolute;
-        top: 0;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        height: calc(100% - 3.25rem);
-        overflow: hidden;
-    }
-  </style>
+<div id="terminal-container"></div>
+<div id="restart-overlay" style="display: none;">
+  <button class="button is-large is-danger" onclick="location.reload()">🔁 Restart Terminal</button>
+</div>
+<div id="terminal-dimmer" style="display: none;"></div>
+<script src="/static/terminal.js"></script>
+<style>
+  html, body {
+      overflow: hidden !important;
+  }
+  .section {
+      padding: 1rem 0 0 0 !important;
+  }
+  .container {
+      position: relative;
+      max-width: 100% !important;
+  }
+  #terminal-container {
+      background-color: #000;
+      position: fixed;
+      top: 4rem;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      overflow: hidden;
+  }
+  #restart-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(20, 20, 20, 0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 999;
+  }
+  #restart-overlay {
+      position: absolute;
+      top: 4rem;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(20, 20, 20, 0.9);
+      z-index: 10;
+  }
+</style>
 {% endblock %}

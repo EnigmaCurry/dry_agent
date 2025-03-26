@@ -413,6 +413,16 @@ files = [
 ]
 
 [[package]]
+name = "python-prctl"
+version = "1.8.1"
+description = "Python(ic) interface to the linux prctl syscall"
+optional = false
+python-versions = "*"
+files = [
+    {file = "python-prctl-1.8.1.tar.gz", hash = "sha256:b4ca9a25a7d4f1ace4fffd1f3a2e64ef5208fe05f929f3edd5e27081ca7e67ce"},
+]
+
+[[package]]
 name = "pyyaml"
 version = "6.0.2"
 description = "YAML parser and emitter for Python"
@@ -753,4 +763,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "4a25912d82a59da2c033160fe7b4abcd82ba8bbd0d3144920e69c514afd3a88b"
+content-hash = "7107c0be245ff30bb32bbdc748a180d2d2fecf2614b06d662b3e1cb038f03089"
