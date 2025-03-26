@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Terminal{% endblock %}
+
+{% block content %}
+  <div id="terminal-container" style="height: 500px; background: black;"></div>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+  const term = new Terminal();
+  const fitAddon = new FitAddon.FitAddon();
+
+  term.loadAddon(fitAddon);
+  term.open(document.getElementById("terminal-container"));
+  fitAddon.fit(); // ✅ auto-resize terminal to container
+
+  window.addEventListener("resize", () => fitAddon.fit());
+
+  const socket = new WebSocket(`${window.location.origin.replace(/^http/, 'ws')}/ws/terminal`);
+  term.onData(data => socket.send(data));
+  socket.onmessage = event => term.write(event.data);
+});
+
+  </script>
+  <style>
+    body {
+        overflow: hidden;
+    }
+    .section {
+        padding: 1rem 0 0 0 !important;
+    }
+    #terminal-container {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: calc(100% - 3.25rem);
+        overflow: hidden;
+    }
+  </style>
+{% endblock %}
