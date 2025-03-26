@@ -11,7 +11,6 @@ import termios
 import struct
 import json
 import signal
-import prctl
 import errno
 
 router = APIRouter()
@@ -31,7 +30,6 @@ async def terminal_ws(websocket: WebSocket):
 
     if pid == 0:
         os.setsid()
-        prctl.set_pdeathsig(signal.SIGTERM)
         os.dup2(slave_fd, 0)
         os.dup2(slave_fd, 1)
         os.dup2(slave_fd, 2)
@@ -47,7 +45,9 @@ async def terminal_ws(websocket: WebSocket):
         os.execve("/bin/bash", ["/bin/bash"], env)
 
     else:
-        reaper_task = asyncio.create_task(reap_children())
+        if not hasattr(terminal_ws, "_reaper_started"):
+            terminal_ws._reaper_started = True
+            asyncio.create_task(reap_children())
 
         def set_pty_size(fd, cols, rows):
             size = struct.pack("HHHH", rows, cols, 0, 0)
@@ -107,22 +107,21 @@ async def terminal_ws(websocket: WebSocket):
             except Exception:
                 pass
             await asyncio.gather(pty_task, wait_task, return_exceptions=True)
-            reaper_task.cancel()
-            await asyncio.gather(reaper_task, return_exceptions=True)
 
 
 async def reap_children():
     while True:
         try:
-            # Wait for ANY child process (bash or its children)
             pid, _ = await asyncio.to_thread(os.waitpid, -1, os.WNOHANG)
             if pid == 0:
                 await asyncio.sleep(0.1)
             else:
                 print(f"🧼 Reaped zombie child: PID {pid}")
         except ChildProcessError:
-            break  # no more children
+            # No children to wait for *right now*, just wait and try again later
+            await asyncio.sleep(0.5)
         except OSError as e:
             if e.errno == errno.ECHILD:
-                break  # no child processes remain
-            raise
+                await asyncio.sleep(0.5)
+            else:
+                raise
