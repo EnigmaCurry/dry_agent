@@ -1,0 +1,53 @@
+<div id="inline-terminal-container" style="width:100%; height:300px; border: 1px solid #ccc;">
+  <!-- The terminal will be rendered inside this div -->
+</div>
+<script>
+  // Initialize a new xterm.js terminal instance in a non-fullscreen container.
+  const inlineTerm = new Terminal({
+      fontSize: 14,
+      fontFamily: 'monospace',
+      lineHeight: 1.0,
+  });
+  const inlineFitAddon = new FitAddon.FitAddon();
+  inlineTerm.loadAddon(inlineFitAddon);
+  inlineTerm.open(document.getElementById("inline-terminal-container"));
+  inlineFitAddon.fit();
+
+  // Connect to the websocket endpoint for the custom command.
+  const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+  // Adjust the URL path to your new websocket endpoint.
+  const socket = new WebSocket(`${protocol}://${window.location.host}/app/inline_terminal/ws`);
+
+  socket.onopen = () => {
+      inlineTerm.focus();
+      // Optionally, send an initial resize message if needed.
+      sendResize();
+  };
+
+  function sendResize() {
+      const { cols, rows } = inlineTerm;
+      socket.send(JSON.stringify({ type: "resize", cols, rows }));
+  }
+
+  window.addEventListener("resize", () => {
+      inlineFitAddon.fit();
+      sendResize();
+  });
+
+  inlineTerm.onData(data => socket.send(data));
+
+  socket.onmessage = event => {
+      if (event.data === "__exit__") {
+          inlineTerm.writeln("");
+          inlineTerm.writeln("🛑 Command execution completed");
+          socket.close();
+          return;
+      }
+      inlineTerm.write(event.data);
+  };
+
+  socket.onclose = () => {
+      // You can display a small overlay or message if the connection is closed.
+      inlineTerm.writeln("\nConnection closed.");
+  };
+</script>

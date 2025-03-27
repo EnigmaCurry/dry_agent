@@ -14,37 +14,64 @@ document.addEventListener("DOMContentLoaded", () => {
         term.focus();
     });
     window.addEventListener("resize", () => fitAddon.fit());
+
     const protocol = window.location.protocol === "https:" ? "wss" : "ws";
     const socket = new WebSocket(`${protocol}://${window.location.host}/app/terminal/ws`);
+
     socket.onopen = () => {
+        console.log("WebSocket connected; sending initial command.");
+        // Send the initial command.
+        socket.send(JSON.stringify({ command: "/bin/bash" }));
         fitAddon.fit();
         sendResize();
         term.focus();
     };
+
+    // Attach error handler if needed.
+    socket.onerror = (error) => {
+        console.error("WebSocket error:", error);
+    };
+
     window.addEventListener("resize", () => {
         fitAddon.fit();
         sendResize();
     });
+
     function sendResize() {
         const { cols, rows } = term;
         socket.send(JSON.stringify({ type: "resize", cols, rows }));
     }
-    term.onData(data => socket.send(data));
+
+    // When user types, wrap it in an "input" JSON message.
+    term.onData(data => {
+        socket.send(JSON.stringify({ type: "input", data }));
+    });
+
     socket.onmessage = event => {
-        if (event.data === "__exit__") {
-            term.writeln("");
-            term.writeln("");
-            term.writeln("🛑 Terminal Exited");
-            showRestartOverlay();
-            return;
+        try {
+            const message = JSON.parse(event.data);
+            switch (message.type) {
+                case "data":
+                    term.write(message.data);
+                    break;
+                case "exit":
+                    term.writeln("");
+                    term.writeln("🛑 Terminal Exited");
+                    showRestartOverlay();
+                    break;
+                default:
+                    console.warn("Unhandled message type:", message);
+            }
+        } catch (err) {
+            console.error("Error parsing message:", err);
         }
-        term.write(event.data);
     };
 
     socket.onclose = () => {
         showRestartOverlay();
     };
 });
+
 function showRestartOverlay() {
-  document.getElementById("restart-overlay").style.display = "flex";
+    document.getElementById("restart-overlay").style.display = "flex";
 }
