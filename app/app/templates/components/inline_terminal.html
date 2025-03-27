@@ -1,53 +1,94 @@
-<div id="inline-terminal-container" style="width:100%; height:300px; border: 1px solid #ccc;">
-  <!-- The terminal will be rendered inside this div -->
+<div id="inline-terminal-container" style="width: 100%; height: 300px; border: 1px solid #ccc; margin: 1em 0;">
+  <!-- The inline terminal will be rendered inside this container -->
 </div>
+
+{% if show_restart_overlay %}
+<div id="restart-overlay" style="display: none; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(20,20,20,0.9); color: #fff; align-items: center; justify-content: center; z-index: 10;">
+  <button class="button" onclick="location.reload()">Restart Terminal</button>
+</div>
+{% endif %}
+
 <script>
-  // Initialize a new xterm.js terminal instance in a non-fullscreen container.
-  const inlineTerm = new Terminal({
+  (function() {
+    // Read the command from the template variable using tojson.
+    // This will output something like: "/bin/bash" (with quotes).
+    const command = {{ command|default('/bin/bash')|tojson }};
+
+    // Instantiate the terminal.
+    const term = new Terminal({
       fontSize: 14,
       fontFamily: 'monospace',
       lineHeight: 1.0,
-  });
-  const inlineFitAddon = new FitAddon.FitAddon();
-  inlineTerm.loadAddon(inlineFitAddon);
-  inlineTerm.open(document.getElementById("inline-terminal-container"));
-  inlineFitAddon.fit();
+    });
+    const fitAddon = new FitAddon.FitAddon();
+    term.loadAddon(fitAddon);
+    term.open(document.getElementById("inline-terminal-container"));
+    fitAddon.fit();
+    term.focus();
 
-  // Connect to the websocket endpoint for the custom command.
-  const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-  // Adjust the URL path to your new websocket endpoint.
-  const socket = new WebSocket(`${protocol}://${window.location.host}/app/inline_terminal/ws`);
+    // Ensure the terminal container gets focus on click.
+    document.getElementById("inline-terminal-container").addEventListener("click", () => {
+      term.focus();
+    });
 
-  socket.onopen = () => {
-      inlineTerm.focus();
-      // Optionally, send an initial resize message if needed.
+    // Construct the WebSocket URL.
+    const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+    const socket = new WebSocket(`${protocol}://${window.location.host}/app/terminal/ws`);
+
+    socket.onopen = () => {
+      console.log("Inline terminal WebSocket connected.");
+      // Send the initial command prop.
+      socket.send(JSON.stringify({ command }));
       sendResize();
-  };
+      term.focus();
+    };
 
-  function sendResize() {
-      const { cols, rows } = inlineTerm;
+    socket.onerror = (error) => {
+      console.error("WebSocket error:", error);
+    };
+
+    window.addEventListener("resize", () => {
+      fitAddon.fit();
+      sendResize();
+    });
+
+    function sendResize() {
+      const { cols, rows } = term;
       socket.send(JSON.stringify({ type: "resize", cols, rows }));
-  }
+    }
 
-  window.addEventListener("resize", () => {
-      inlineFitAddon.fit();
-      sendResize();
-  });
+    // When the user types, send input as JSON.
+    term.onData(data => {
+      socket.send(JSON.stringify({ type: "input", data }));
+    });
 
-  inlineTerm.onData(data => socket.send(data));
-
-  socket.onmessage = event => {
-      if (event.data === "__exit__") {
-          inlineTerm.writeln("");
-          inlineTerm.writeln("🛑 Command execution completed");
-          socket.close();
-          return;
+    // Process incoming messages.
+    socket.onmessage = event => {
+      try {
+        const message = JSON.parse(event.data);
+        switch (message.type) {
+          case "data":
+            term.write(message.data);
+            break;
+          case "exit":
+            term.writeln("");
+            term.writeln("🛑 Process Finished.");
+            showInlineRestartOverlay();
+            break;
+          default:
+            console.warn("Unhandled message type:", message);
+        }
+      } catch (err) {
+        console.error("Error parsing message:", err);
       }
-      inlineTerm.write(event.data);
-  };
+    };
 
-  socket.onclose = () => {
-      // You can display a small overlay or message if the connection is closed.
-      inlineTerm.writeln("\nConnection closed.");
-  };
+    socket.onclose = () => {
+      showInlineRestartOverlay();
+    };
+
+    function showInlineRestartOverlay() {
+      document.getElementById("inline-restart-overlay").style.display = "flex";
+    }
+  })();
 </script>

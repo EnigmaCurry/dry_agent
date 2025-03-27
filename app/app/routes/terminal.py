@@ -21,6 +21,11 @@ async def terminal_page(request: Request):
     return templates.TemplateResponse("terminal.html", {"request": request})
 
 
+@router.get("/app/terminal_inline_test", response_class=HTMLResponse)
+async def terminal_page(request: Request):
+    return templates.TemplateResponse("terminal_inline_test.html", {"request": request})
+
+
 @router.websocket("/app/terminal/ws")
 async def terminal_ws(websocket: WebSocket):
     await websocket.accept()
@@ -59,13 +64,11 @@ async def terminal_ws(websocket: WebSocket):
             "PATH": "/usr/bin:/bin",
             "HOME": os.environ.get("HOME", "/tmp"),
         }
-        args = command.split()
-        os.execvp(args[0], args)
+        os.execvp("/bin/bash", ["-i", "-c", command])
     else:
         if not hasattr(terminal_ws, "_reaper_started"):
             terminal_ws._reaper_started = True
             asyncio.create_task(reap_children())
-
 
         async def wait_for_exit():
             try:

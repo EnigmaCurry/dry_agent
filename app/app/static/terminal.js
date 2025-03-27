@@ -56,7 +56,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     break;
                 case "exit":
                     term.writeln("");
-                    term.writeln("🛑 Terminal Exited");
+                    term.writeln("🛑 Process Finished.");
                     showRestartOverlay();
                     break;
                 default:

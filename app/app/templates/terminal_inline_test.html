@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Terminal{% endblock %}
+
+{% block content %}
+<p>This is some introductory text before the terminal.</p>
+
+{% set command = "/bin/bash -i -c 'top'" %}
+{% set show_restart_overlay = false %}
+{% include "components/inline_terminal.html" %}
+
+<p>This is some concluding text after the terminal.</p>
+{% endblock %}
