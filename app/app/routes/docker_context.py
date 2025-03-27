@@ -38,14 +38,14 @@ async def docker_context_page(request: Request):
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
-            check=True
+            check=True,
         )
         all_contexts = result.stdout.strip().splitlines()
         dropdown_contexts = [ctx for ctx in all_contexts if ctx != "default"]
     except Exception as e:
         dropdown_contexts = []
         all_contexts = []
-    
+
     # Get current default context.
     try:
         current_context_result = subprocess.run(
@@ -53,25 +53,28 @@ async def docker_context_page(request: Request):
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
-            check=True
+            check=True,
         )
         current_context = current_context_result.stdout.strip()
     except Exception as e:
         current_context = "default"
-    
+
     # Read SSH public key from ~/.ssh/id_ed25519.pub.
     try:
         with open(os.path.expanduser("~/.ssh/id_ed25519.pub"), "r") as f:
             ssh_pubkey = f.read().strip()
     except Exception as e:
         ssh_pubkey = f"Error reading SSH public key: {e}"
-    
-    return templates.TemplateResponse("docker_context.html", {
-        "request": request,
-        "contexts": dropdown_contexts,
-        "current_context": current_context,
-        "ssh_pubkey": ssh_pubkey
-    })
+
+    return templates.TemplateResponse(
+        "docker_context.html",
+        {
+            "request": request,
+            "contexts": dropdown_contexts,
+            "current_context": current_context,
+            "ssh_pubkey": ssh_pubkey,
+        },
+    )
 
 
 @router.post("/app/docker/context", response_class=HTMLResponse)
@@ -80,13 +83,13 @@ async def create_docker_context(
     context_name: str = Form(...),
     host: str = Form(...),
     user: str = Form(...),
-    port: str = Form(...)
+    port: str = Form(...),
 ):
     log = []
     ssh_config_path = os.path.expanduser("~/.ssh/config")
     ssh_known_hosts_path = os.path.expanduser("~/.ssh/known_hosts")
     host_alias = f"ssh.{context_name}"
-    
+
     # Determine current default context before making changes.
     try:
         current_context_result = subprocess.run(
@@ -94,19 +97,19 @@ async def create_docker_context(
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
-            check=True
+            check=True,
         )
         current_default = current_context_result.stdout.strip()
     except Exception:
         current_default = "default"
-    
+
     # Ensure SSH config file exists.
     if not os.path.exists(ssh_config_path):
         open(ssh_config_path, "w").close()
-    
+
     with open(ssh_config_path, "r") as f:
         config_content = f.read()
-    
+
     # Check for duplicate SSH config entry.
     if host_alias in config_content:
         log.append(f"Error: SSH config entry for {host_alias} already exists.")
@@ -120,19 +123,19 @@ async def create_docker_context(
         except Exception as e:
             log.append(f"Error writing SSH config: {e}")
             return HTMLResponse(content="<br>".join(log), status_code=500)
-    
+
     # Test SSH connection and update known_hosts.
     try:
         result = subprocess.run(
             ["ssh-keyscan", "-p", port, host],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            text=True
+            text=True,
         )
         if result.returncode != 0 or not result.stdout.strip():
             raise Exception(result.stderr or "No output from ssh-keyscan")
         host_key = result.stdout.strip()
-        
+
         # Check if host key is already in known_hosts.
         known_hosts_exists = False
         if os.path.exists(ssh_known_hosts_path):
@@ -142,20 +145,20 @@ async def create_docker_context(
                 known_hosts_exists = True
         else:
             open(ssh_known_hosts_path, "w").close()
-        
+
         if not known_hosts_exists:
             with open(ssh_known_hosts_path, "a") as f:
                 f.write(host_key + "\n")
             log.append("Added host key to known_hosts.")
         else:
             log.append("Host key already exists in known_hosts.")
-        
+
         # Test SSH connection (non-interactively using BatchMode).
         ssh_test = subprocess.run(
             ["ssh", "-o", "BatchMode=yes", host_alias, "echo", "SSH_OK"],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            text=True
+            text=True,
         )
         if "SSH_OK" not in ssh_test.stdout:
             raise Exception(f"SSH test failed: {ssh_test.stderr}")
@@ -165,7 +168,7 @@ async def create_docker_context(
         # Roll back by removing the just-added SSH config entry.
         remove_ssh_config_entry(ssh_config_path, host_alias)
         return HTMLResponse(content="<br>".join(log), status_code=500)
-    
+
     # Create Docker context if it doesn't already exist.
     try:
         result = subprocess.run(
@@ -173,20 +176,33 @@ async def create_docker_context(
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
-            check=True
+            check=True,
         )
         existing_contexts = result.stdout.strip().splitlines()
         if context_name in existing_contexts:
             log.append(f"Docker context '{context_name}' already exists.")
         else:
-            cmd = ["docker", "context", "create", context_name, "--docker", f"host=ssh://{host_alias}"]
-            subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True)
+            cmd = [
+                "docker",
+                "context",
+                "create",
+                context_name,
+                "--docker",
+                f"host=ssh://{host_alias}",
+            ]
+            subprocess.run(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                check=True,
+            )
             log.append(f"Created Docker context '{context_name}'.")
     except Exception as e:
         log.append(f"Error creating Docker context: {e}")
         remove_ssh_config_entry(ssh_config_path, host_alias)
         return HTMLResponse(content="<br>".join(log), status_code=500)
-    
+
     # Test Docker connection with the new context.
     try:
         subprocess.run(
@@ -194,13 +210,13 @@ async def create_docker_context(
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
-            check=True
+            check=True,
         )
         log.append("Docker connection successful.")
     except Exception as e:
         log.append(f"Error testing Docker connection: {e}")
         return HTMLResponse(content="<br>".join(log), status_code=500)
-    
+
     # Only auto-switch if the current default is exactly "default".
     if current_default.strip() == "default":
         try:
@@ -209,17 +225,18 @@ async def create_docker_context(
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
-                check=True
+                check=True,
             )
             log.append(f"Switched default Docker context to: {context_name}")
         except Exception as e:
             log.append(f"Error switching default Docker context: {e}")
             return HTMLResponse(content="<br>".join(log), status_code=500)
-    
+
     # On success, force a page refresh by sending an HX-Redirect header.
     response = HTMLResponse(content="<br>".join(log), status_code=200)
     response.headers["HX-Redirect"] = "/app/docker/context"
     return response
+
 
 @router.post("/app/docker/context/default", response_class=HTMLResponse)
 async def switch_default_context(request: Request, default_context: str = Form(...)):
@@ -230,13 +247,13 @@ async def switch_default_context(request: Request, default_context: str = Form(.
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
-            check=True
+            check=True,
         )
         log.append(f"Switched default Docker context to: {default_context}")
     except Exception as e:
         log.append(f"Error switching default Docker context: {e}")
         return HTMLResponse(content="<br>".join(log), status_code=500)
-    
+
     response = HTMLResponse(content="<br>".join(log), status_code=200)
     response.headers["HX-Redirect"] = "/app/docker/context"
     return response
