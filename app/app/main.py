@@ -1,8 +1,7 @@
 import os
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
-from fastapi.responses import HTMLResponse, FileResponse
+from fastapi.responses import HTMLResponse
 from app.dependencies import templates
 from app import routes
 from app.routes import api as api_routes

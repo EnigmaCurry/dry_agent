@@ -2,6 +2,7 @@ import os
 from fastapi import APIRouter, Request, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
+from .lib import run_command
 
 router = APIRouter(prefix="/api/ssh_config", tags=["ssh_context"])
 
@@ -185,6 +186,79 @@ async def create_or_update_ssh_config_entry(entry: SSHConfigEntry, request: Requ
         return JSONResponse(
             content={
                 "detail": f"SSH config entry for host '{entry.Host}' created/updated."
+            }
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+def test_ssh_connection(host: str) -> str:
+    """
+    Test SSH connection to the given host alias by verifying that the output of
+    "ssh {host} whoami" matches the configured username in the SSH config file.
+
+    Raises:
+        Exception: If the HOME environment variable is not set.
+        Exception: If the SSH config file doesn't exist or the host config is missing.
+        Exception: If the configured username is not set.
+        Exception: If the SSH connection output does not match the configured username.
+
+    Returns:
+        str: The username returned from the SSH connection command.
+    """
+    home = os.environ.get("HOME")
+    if not home:
+        raise Exception("HOME environment variable not set.")
+    config_path = os.path.join(home, ".ssh", "config")
+
+    # Parse the SSH config file
+    config_entries = parse_ssh_config(config_path)
+
+    # Find the SSH config entry matching the given host alias.
+    found_entry = None
+    for entry in config_entries:
+        host_patterns = entry.get("Host")
+        if host_patterns and isinstance(host_patterns, list):
+            if host in host_patterns:
+                found_entry = entry
+                break
+        elif host_patterns == host:
+            found_entry = entry
+            break
+
+    if not found_entry:
+        raise Exception(f"No SSH config entry found for host '{host}'.")
+
+    expected_user = found_entry.get("User")
+    if not expected_user:
+        raise Exception(f"SSH config for host '{host}' does not specify a username.")
+
+    # Execute the SSH command to test the connection.
+    output = run_command(["ssh", host, "whoami"], timeout=5)
+
+    # Clean the output to remove extra whitespace/newlines.
+    actual_user = output.strip()
+
+    if actual_user != expected_user.strip():
+        raise Exception(
+            f"SSH connection test failed: expected username '{expected_user}', got '{actual_user}'."
+        )
+
+    return actual_user
+
+
+@router.get("/test/{host_alias}", response_class=JSONResponse)
+async def test_ssh_connection_route(host_alias: str, request: Request):
+    """
+    FastAPI route to test an SSH connection for a given host alias.
+    It verifies that the 'whoami' command output matches the configured username.
+    """
+    try:
+        username = test_ssh_connection(host_alias)
+        return JSONResponse(
+            content={
+                "detail": f"SSH connection test successful for host '{host_alias}'.",
+                "username": username,
             }
         )
     except Exception as e:
