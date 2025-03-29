@@ -3,7 +3,7 @@ from fastapi import APIRouter, Request, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
-router = APIRouter(tags=["api"])
+router = APIRouter(prefix="/api/ssh_config", tags=["ssh_context"])
 
 
 class SSHConfigEntry(BaseModel):
@@ -62,7 +62,7 @@ def parse_ssh_config(config_path):
     return hosts
 
 
-@router.get("/api/ssh_config", response_class=JSONResponse)
+@router.get("/", response_class=JSONResponse)
 async def ssh_config(request: Request):
     try:
         home = os.environ.get("HOME")
@@ -116,7 +116,7 @@ def remove_ssh_config_entry(ssh_config_path: str, host_alias: str) -> bool:
     return removed
 
 
-@router.delete("/api/ssh_config/{host_alias}", response_class=JSONResponse)
+@router.delete("/{host_alias}", response_class=JSONResponse)
 async def delete_ssh_config_entry(host_alias: str, request: Request):
     try:
         home = os.environ.get("HOME")
@@ -161,7 +161,7 @@ def upsert_ssh_config_entry(ssh_config_path: str, entry: SSHConfigEntry):
         f.write(f"    Port {entry.Port}\n")
 
 
-@router.post("/api/ssh_config", response_class=JSONResponse)
+@router.post("/", response_class=JSONResponse)
 async def create_or_update_ssh_config_entry(entry: SSHConfigEntry, request: Request):
     try:
         home = os.environ.get("HOME")

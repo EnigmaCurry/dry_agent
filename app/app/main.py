@@ -44,3 +44,4 @@ app.include_router(routes.terminal.router)
 
 # API Routes:
 app.include_router(api_routes.ssh_config.router)
+app.include_router(api_routes.docker_context.router)
