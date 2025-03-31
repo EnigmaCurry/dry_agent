@@ -1,49 +1,120 @@
-<!-- app/templates/login.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Login - dry_agent</title>
-    <link rel="stylesheet" href="/static/bulma.min.css">
+  <meta charset="UTF-8">
+  <title>Login - dry_agent</title>
+  <style>
+    /* Overall page styles */
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #121212;
+      color: #f0f0f0;
+      font-family: Arial, sans-serif;
+      overflow: hidden;
+    }
+    /* Center the section vertically and horizontally */
+    .section {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+    /* Container styling for the login box */
+    .container {
+      background-color: #1e1e1e;
+      padding: 2rem;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+      width: 360px; /* Container width */
+    }
+    /* Title styling */
+    h1.title {
+      text-align: center;
+      margin-bottom: 1.5rem;
+      font-size: 1.8rem;
+    }
+    /* Input field styling (with extra horizontal padding and box-sizing fix) */
+    input[type="text"],
+    input[type="password"] {
+      width: 100%;
+      padding: 0.75rem 1rem; /* Symmetrical horizontal padding */
+      margin-bottom: 1rem;
+      border: 1px solid #444;
+      border-radius: 4px;
+      background-color: #333;
+      color: #fff;
+      font-size: 1rem;
+      box-sizing: border-box; /* Ensure padding is included in the width */
+    }
+    /* Label styling */
+    label.label {
+      margin-bottom: 0.5rem;
+      display: block;
+    }
+    /* Blue login button styling */
+    button {
+      width: 100%;
+      padding: 1rem;
+      background-color: #007BFF;
+      border: none;
+      border-radius: 4px;
+      font-size: 1.2rem;
+      color: #fff;
+      cursor: pointer;
+      transition: background-color 0.2s ease-in-out;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    /* Notification for error messages */
+    .notification.is-danger {
+      background-color: #ff4d4d;
+      padding: 0.75rem;
+      margin-bottom: 1rem;
+      border-radius: 4px;
+      text-align: center;
+    }
+  </style>
 </head>
 <body>
-    <section class="section">
-        <div class="container">
-            <h1 class="title">Login</h1>
-            {% if error %}
-                <div class="notification is-danger">{{ error }}</div>
-            {% endif %}
-            <form id="login-form" method="post" action="/login" autocomplete="off">
-                <!-- Dummy password field to prevent password manager prompts -->
-                <input type="password" style="opacity:0; height:0; position:absolute; top:-9999px;" autocomplete="off" tabindex="-1">
-                <div class="field">
-                    <label class="label">Enter Preshared Token</label>
-                    <div class="control">
-                        <input id="token-input" class="input" type="text" name="token" placeholder="Token" required autocomplete="new-password">
-                    </div>
-                </div>
-                <!-- Hidden CSRF field populated from the template context -->
-                <input type="hidden" name="csrf" value="{{ csrf_token }}">
-                <div class="field">
-                    <div class="control">
-                        <button class="button is-link" type="submit">Login</button>
-                    </div>
-                </div>
-            </form>
-            <script>
-              // Check if the URL has a fragment (after "#")
-              const hash = window.location.hash;
-              if (hash && hash.length > 1) {
-                  const tokenFromHash = hash.substring(1); // Remove '#' character.
-                  // Pre-populate the token field
-                  document.getElementById('token-input').value = tokenFromHash;
-                  // Remove the hash from the URL (so it won't be stored in history)
-                  history.replaceState(null, document.title, window.location.pathname + window.location.search);
-                  // Auto-submit the form so the server can exchange this preshared token
-                  document.getElementById('login-form').submit();
-              }
-            </script>
+  <section class="section">
+    <div class="container">
+      <h1 class="title">Login</h1>
+      {% if error %}
+        <div class="notification is-danger">{{ error }}</div>
+      {% endif %}
+      <form id="login-form" method="post" action="/login" autocomplete="off">
+        <!-- Dummy password field to prevent password manager prompts -->
+        <input type="password" style="opacity:0; height:0; position:absolute; top:-9999px;" autocomplete="off" tabindex="-1">
+        <div class="field">
+          <label class="label">Enter Preshared Token</label>
+          <div class="control">
+            <input id="token-input" type="text" name="token" placeholder="Token" required autocomplete="new-password">
+          </div>
         </div>
-    </section>
+        <!-- Hidden CSRF field populated from the template context -->
+        <input type="hidden" name="csrf" value="{{ csrf_token }}">
+        <div class="field">
+          <div class="control">
+            <button type="submit">Login</button>
+          </div>
+        </div>
+      </form>
+      <script>
+        // Check if the URL has a fragment (after "#")
+        const hash = window.location.hash;
+        if (hash && hash.length > 1) {
+          const tokenFromHash = hash.substring(1); // Remove '#' character.
+          // Pre-populate the token field
+          document.getElementById('token-input').value = tokenFromHash;
+          // Remove the hash from the URL (so it won't be stored in history)
+          history.replaceState(null, document.title, window.location.pathname + window.location.search);
+          // Auto-submit the form so the server can exchange this preshared token
+          document.getElementById('login-form').submit();
+        }
+      </script>
+    </div>
+  </section>
 </body>
 </html>

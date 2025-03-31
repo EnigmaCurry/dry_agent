@@ -1,5 +1,3 @@
-# auth.py
-import os
 import logging
 import time
 import secrets
