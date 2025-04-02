@@ -9,7 +9,7 @@
 
 <svelte:head>
   <meta charset="UTF-8" />
-  <title>dry_agent - (base)</title>
+  <title>dry_agent</title>
   <link
     rel="icon"
     href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏜️️</text></svg>"
@@ -45,7 +45,7 @@
       <div class="navbar-item has-dropdown is-hoverable">
         <button type="button" class="navbar-link">Docker</button>
         <div class="navbar-dropdown">
-          <a class="navbar-item is-deep-red" href="#">Manage Contexts</a>
+          <a class="navbar-item is-deep-red" href="/context">Manage Contexts</a>
         </div>
       </div>
       <div class="navbar-item has-dropdown is-hoverable">
@@ -68,8 +68,7 @@
   </div>
 </nav>
 
-<!-- Adjust the top margin so that the section isn't hidden behind the fixed navbar -->
-<section class="section" style="margin-top: 3.25rem;">
+<section class="section">
   <div class="container">
     <slot />
   </div>

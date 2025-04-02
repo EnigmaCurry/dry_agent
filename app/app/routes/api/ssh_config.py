@@ -4,7 +4,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from .lib import run_command
 
-router = APIRouter(prefix="/api/ssh_config", tags=["ssh_context"])
+router = APIRouter(prefix="/api/ssh_config", tags=["ssh_config"])
 
 
 class SSHConfigEntry(BaseModel):
