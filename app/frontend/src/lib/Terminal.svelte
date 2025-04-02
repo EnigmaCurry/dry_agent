@@ -14,10 +14,10 @@
       lineHeight: 1.0,
       letterSpacing: 0,
     });
-    //const fitAddon = new FitAddon();
-    //term.loadAddon(fitAddon);
+    const fitAddon = new FitAddon();
+    term.loadAddon(fitAddon);
     term.open(terminalContainer);
-    //fitAddon.fit();
+    fitAddon.fit();
     term.focus();
 
     // Refocus terminal on container click
@@ -27,7 +27,7 @@
 
     // Re-fit terminal on window resize
     window.addEventListener("resize", () => {
-      //fitAddon.fit();
+      fitAddon.fit();
     });
 
     // Establish the WebSocket connection
@@ -39,7 +39,7 @@
     socket.onopen = () => {
       console.log("WebSocket connected; sending initial command.");
       socket.send(JSON.stringify({ command: "/bin/bash" }));
-      //fitAddon.fit();
+      fitAddon.fit();
       sendResize();
       term.focus();
     };
@@ -49,7 +49,7 @@
     };
 
     window.addEventListener("resize", () => {
-      //fitAddon.fit();
+      fitAddon.fit();
       sendResize();
     });
 
