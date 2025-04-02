@@ -15,9 +15,28 @@
   let error = null;
 
   /**
+   * SSH connection statuses.
    * @type {{ [key: string]: "pending" | "success" | "error" }}
    */
   let statuses = {};
+
+  /**
+   * Docker context statuses.
+   * @type {{ [key: string]: "pending" | "success" | "error" }}
+   */
+  let dockerStatuses = {};
+
+  /**
+   * If a Docker test fails, store its error detail.
+   * @type {{ [key: string]: string }}
+   */
+  let dockerDetails = {};
+
+  /**
+   * List of Docker context names.
+   * @type {string[]}
+   */
+  let dockerContexts = [];
 
   // Variables for the "Add SSH Connection" modal and form.
   let showForm = false;
@@ -26,9 +45,67 @@
   let newSSHConfig = {
     Host: "",
     Hostname: "",
-    User: "",
+    User: "root",
     Port: 22,
   };
+
+  // Variable to hold the client key.
+  let clientKey = "";
+  // Variable for the copy button icon.
+  let copyIcon = "📋";
+
+  /**
+   * Fetches the client key from /api/ssh_config/key.
+   */
+  async function loadClientKey() {
+    try {
+      const response = await fetch("/api/ssh_config/key");
+      if (response.ok) {
+        const data = await response.json();
+        clientKey = data.key;
+      } else {
+        clientKey = "Error: Unable to load client key.";
+      }
+    } catch (err) {
+      clientKey = err instanceof Error ? err.message : String(err);
+    }
+  }
+
+  /**
+   * Opens the add form and loads the client key.
+   */
+  async function openAddForm() {
+    showForm = true;
+    await loadClientKey();
+  }
+
+  /**
+   * Copies the client key to the clipboard.
+   * Changes the copy button icon briefly to a checkmark.
+   */
+  async function copyClientKey() {
+    try {
+      await navigator.clipboard.writeText(clientKey);
+      copyIcon = "✅";
+      setTimeout(() => {
+        copyIcon = "📋";
+      }, 2000);
+    } catch (err) {
+      console.error("Failed to copy client key", err);
+    }
+  }
+
+  /**
+   * Selects all text in the clicked pre element.
+   * @param {MouseEvent} event
+   */
+  function selectPre(event) {
+    const range = document.createRange();
+    range.selectNodeContents(event.currentTarget);
+    const selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+  }
 
   /**
    * Fetches the list of SSH configurations and initializes their statuses.
@@ -42,11 +119,16 @@
       sshConfigs = await response.json();
       // Reset statuses
       statuses = {};
+      dockerStatuses = {};
+      dockerDetails = {};
+      await loadDockerContexts();
       if (sshConfigs) {
         sshConfigs.forEach((config) => {
           const hostAlias = config.Host[0];
           statuses[hostAlias] = "pending";
+          dockerStatuses[hostAlias] = "pending";
           testConnection(hostAlias);
+          testDockerContext(hostAlias);
         });
       }
     } catch (err) {
@@ -66,29 +148,106 @@
     } catch (err) {
       statuses[host] = "error";
     }
-    // Reassign to trigger reactivity.
+    // Trigger reactivity.
     statuses = { ...statuses };
   }
 
   /**
+   * Loads the list of Docker contexts.
+   */
+  async function loadDockerContexts() {
+    try {
+      const response = await fetch("/api/docker_context/");
+      if (response.ok) {
+        dockerContexts = await response.json();
+      } else {
+        dockerContexts = [];
+      }
+    } catch (err) {
+      dockerContexts = [];
+    }
+  }
+
+  /**
+   * Tests (or creates then tests) a Docker context for the given host alias.
+   * @param {string} host The host alias to test.
+   */
+  async function testDockerContext(host) {
+    // If the docker context doesn't exist, create it.
+    if (!dockerContexts.includes(host)) {
+      try {
+        // Send the context_name as a query parameter.
+        const response = await fetch(
+          `/api/docker_context/?context_name=${encodeURIComponent(host)}`,
+          { method: "POST" },
+        );
+        if (response.ok) {
+          dockerContexts.push(host);
+        } else {
+          dockerStatuses[host] = "error";
+          dockerDetails[host] = "Failed to create Docker context";
+          dockerStatuses = { ...dockerStatuses };
+          dockerDetails = { ...dockerDetails };
+          return;
+        }
+      } catch (err) {
+        dockerStatuses[host] = "error";
+        dockerDetails[host] = err instanceof Error ? err.message : String(err);
+        dockerStatuses = { ...dockerStatuses };
+        dockerDetails = { ...dockerDetails };
+        return;
+      }
+    }
+    // Now test the docker context.
+    try {
+      const response = await fetch(`/api/docker_context/test/${host}`);
+      if (response.ok) {
+        dockerStatuses[host] = "success";
+        dockerDetails[host] = "";
+      } else {
+        let errorData = await response.json();
+        let detail = errorData.detail || "Docker test failed";
+        dockerStatuses[host] = "error";
+        dockerDetails[host] = detail;
+      }
+    } catch (err) {
+      dockerStatuses[host] = "error";
+      dockerDetails[host] = err instanceof Error ? err.message : String(err);
+    }
+    dockerStatuses = { ...dockerStatuses };
+    dockerDetails = { ...dockerDetails };
+  }
+
+  /**
    * Deletes an SSH connection given a host alias.
+   * Also deletes the corresponding Docker context.
    * @param {string} host The host alias to delete.
    */
   async function deleteSSHConfig(host) {
     try {
-      const response = await fetch(`/api/ssh_config/${host}`, {
+      // First, delete the Docker context.
+      const dockerResponse = await fetch(`/api/docker_context/${host}`, {
         method: "DELETE",
       });
-      if (!response.ok) {
+      if (!dockerResponse.ok) {
+        throw new Error("Failed to delete Docker context");
+      }
+      // Then, delete the SSH configuration.
+      const sshResponse = await fetch(`/api/ssh_config/${host}`, {
+        method: "DELETE",
+      });
+      if (!sshResponse.ok) {
         throw new Error("Failed to delete SSH configuration");
       }
       if (sshConfigs) {
         sshConfigs = sshConfigs.filter((config) => config.Host[0] !== host);
       }
       delete statuses[host];
+      delete dockerStatuses[host];
+      delete dockerDetails[host];
     } catch (err) {
       alert(err instanceof Error ? err.message : String(err));
-      console.error("Error deleting SSH configuration:", err);
+      console.error("Error deleting configuration:", err);
     }
   }
 
@@ -109,7 +268,7 @@
       });
       const data = await response.json();
       if (!response.ok) {
-        // Show error detail from response, or default error message.
+        // Show error detail from response, or a default error message.
         formError =
           data.detail || "An error occurred while adding the SSH connection.";
         return;
@@ -132,9 +291,7 @@
 
 <div class="container">
   {#if error}
-    <div class="notification is-danger">
-      {error}
-    </div>
+    <div class="notification is-danger">{error}</div>
   {:else if sshConfigs === null}
     <div class="notification is-info">Loading SSH connections...</div>
   {:else if sshConfigs.length === 0}
@@ -166,11 +323,30 @@
                   title="Pending check">🕑</span
                 >
               {:else if statuses[config.Host[0]] === "success"}
-                <span
-                  role="img"
-                  aria-label="Connection successful"
-                  title="Connection successful">✅</span
-                >
+                {#if dockerStatuses[config.Host[0]] === "error"}
+                  <!-- If the Docker test fails, replace the checkmark with a quarter moon,
+                       using the error detail in the aria-label and title -->
+                  <span
+                    role="img"
+                    aria-label={dockerDetails[config.Host[0]] ||
+                      "Docker context failed"}
+                    title={dockerDetails[config.Host[0]] ||
+                      "Docker context failed"}>🌓</span
+                  >
+                {:else}
+                  <span
+                    role="img"
+                    aria-label="Connection successful"
+                    title="Connection successful">✅</span
+                  >
+                  {#if dockerStatuses[config.Host[0]] === "success"}
+                    <span
+                      role="img"
+                      aria-label="Docker context successful"
+                      title="Docker context successful">🐋</span
+                    >
+                  {/if}
+                {/if}
               {:else if statuses[config.Host[0]] === "error"}
                 <span
                   role="img"
@@ -193,7 +369,7 @@
     </table>
   {/if}
   <div class="has-text-centered" style="margin-top: 1rem;">
-    <button class="button is-link" on:click={() => (showForm = true)}>
+    <button class="button is-link" on:click={openAddForm}>
       Add new context
     </button>
   </div>
@@ -204,7 +380,7 @@
   <div class="modal-background" on:click={() => (showForm = false)}></div>
   <div class="modal-card">
     <header class="modal-card-head">
-      <p class="modal-card-title">Add SSH Connection</p>
+      <p class="modal-card-title">Add SSH Docker Context</p>
       <button
         class="delete"
         aria-label="close"
@@ -212,76 +388,110 @@
       ></button>
     </header>
     <section class="modal-card-body">
-      <form on:submit|preventDefault={addSSHConfig}>
-        <div class="field">
-          <label for="host" class="label">Host</label>
-          <div class="control">
-            <input
-              name="host"
-              class="input"
-              type="text"
-              bind:value={newSSHConfig.Host}
-              placeholder="Enter host alias"
-              required
-            />
+      <!-- Display the client key with line wrapping, click-to-select and a copy button -->
+      <p>
+        Before creating a new context, copy this SSH key into your Docker
+        server's authorized_keys file (e.g. <code
+          >/root/.ssh/authorized_keys</code
+        >):
+      </p>
+      <div
+        style="display: flex; align-items: flex-start; gap: 0.5rem; margin: 1em 0 1em 0;"
+      >
+        <pre
+          on:click={selectPre}
+          style="background: #371d1d; padding: 1em; border-radius: 4px; flex-grow: 1; font-weight: bold;">{clientKey}</pre>
+        <button class="button is-small" on:click={copyClientKey}>
+          {copyIcon}
+        </button>
+      </div>
+      <!-- Group fields into two rows using Bulma columns -->
+      <div class="columns">
+        <div class="column">
+          <div class="field">
+            <label for="host" class="label">Host</label>
+            <div class="control">
+              <input
+                name="host"
+                class="input"
+                type="text"
+                bind:value={newSSHConfig.Host}
+                placeholder="Enter host alias"
+                required
+              />
+            </div>
           </div>
         </div>
-        <div class="field">
-          <label for="hostname" class="label">Hostname or IP address</label>
-          <div class="control">
-            <input
-              name="hostname"
-              class="input"
-              type="text"
-              bind:value={newSSHConfig.Hostname}
-              placeholder="Enter hostname or IP address"
-              required
-            />
+        <div class="column">
+          <div class="field">
+            <label for="hostname" class="label">Hostname or IP address</label>
+            <div class="control">
+              <input
+                name="hostname"
+                class="input"
+                type="text"
+                bind:value={newSSHConfig.Hostname}
+                placeholder="Enter hostname or IP address"
+                required
+              />
+            </div>
           </div>
         </div>
-        <div class="field">
-          <label for="username" class="label">Username</label>
-          <div class="control">
-            <input
-              name="username"
-              class="input"
-              type="text"
-              bind:value={newSSHConfig.User}
-              placeholder="Enter username"
-              required
-            />
+      </div>
+      <div class="columns">
+        <div class="column">
+          <div class="field">
+            <label for="username" class="label">Username</label>
+            <div class="control">
+              <input
+                name="username"
+                class="input"
+                type="text"
+                bind:value={newSSHConfig.User}
+                placeholder="Enter username"
+                required
+              />
+            </div>
           </div>
         </div>
-        <div class="field">
-          <label for="port" class="label">Port</label>
-          <div class="control">
-            <input
-              name="port"
-              class="input"
-              type="number"
-              bind:value={newSSHConfig.Port}
-              required
-            />
+        <div class="column">
+          <div class="field">
+            <label for="port" class="label">Port</label>
+            <div class="control">
+              <input
+                name="port"
+                class="input"
+                type="number"
+                bind:value={newSSHConfig.Port}
+                required
+              />
+            </div>
           </div>
         </div>
-        {#if formError}
-          <p class="help is-danger">{formError}</p>
-        {/if}
-        <div class="field is-grouped is-grouped-right">
-          <p class="control">
-            <button
-              type="button"
-              class="button"
-              on:click={() => (showForm = false)}
-            >
-              Cancel
-            </button>
-          </p>
-          <p class="control">
-            <button type="submit" class="button is-primary"> Add </button>
-          </p>
-        </div>
-      </form>
+      </div>
+      {#if formError}
+        <p class="help is-danger">{formError}</p>
+      {/if}
+      <div class="field is-grouped is-grouped-right">
+        <p class="control">
+          <button
+            type="button"
+            class="button"
+            on:click={() => (showForm = false)}
+          >
+            Cancel
+          </button>
+        </p>
+        <p class="control">
+          <button
+            type="submit"
+            class="button is-primary"
+            on:click={addSSHConfig}
+          >
+            Add
+          </button>
+        </p>
+      </div>
     </section>
   </div>
 </div>

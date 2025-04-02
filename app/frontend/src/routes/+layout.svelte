@@ -1,9 +1,26 @@
 <script>
   import "bulma/css/bulma.min.css";
   import "../../static/styles.css";
+
   let burgerActive = false;
+  let dockerDropdownActive = false;
+
   function toggleBurger() {
     burgerActive = !burgerActive;
+  }
+
+  function openDockerDropdown() {
+    dockerDropdownActive = true;
+  }
+
+  function closeDockerDropdown() {
+    dockerDropdownActive = false;
+  }
+
+  function handleDockerSubItemClick() {
+    dockerDropdownActive = false;
+    // Optionally close the burger menu on mobile
+    burgerActive = false;
   }
 </script>
 
@@ -42,28 +59,24 @@
 
   <div id="main-navbar" class="navbar-menu" class:is-active={burgerActive}>
     <div class="navbar-start">
-      <div class="navbar-item has-dropdown is-hoverable">
+      <div
+        class="navbar-item has-dropdown"
+        class:is-active={dockerDropdownActive}
+        on:mouseenter={openDockerDropdown}
+        on:mouseleave={closeDockerDropdown}
+      >
         <button type="button" class="navbar-link">Docker</button>
         <div class="navbar-dropdown">
-          <a class="navbar-item is-deep-red" href="/context">Manage Contexts</a>
+          <a
+            class="navbar-item is-deep-red"
+            href="/context"
+            on:click={handleDockerSubItemClick}
+          >
+            Manage Contexts
+          </a>
         </div>
       </div>
-      <div class="navbar-item has-dropdown is-hoverable">
-        <button type="button" class="navbar-link">Apps</button>
-        <div class="navbar-dropdown">
-          <!-- <a class="navbar-item" href="/app/apps/available">Available Apps</a> -->
-          <!-- <a class="navbar-item" href="/app/apps/manage">Manage Apps</a> -->
-        </div>
-      </div>
-      <div class="navbar-item has-dropdown is-hoverable">
-        <button type="button" class="navbar-link">Git Tools</button>
-        <div class="navbar-dropdown">
-          <!-- <a class="navbar-item" href="/app/repo/pull">Pull remote</a> -->
-          <!-- <a class="navbar-item" href="/app/repo/branch">Switch branch</a> -->
-        </div>
-      </div>
-      <!-- <a class="navbar-item" href="/app/terminal">Terminal</a> -->
-      <!-- <a class="navbar-item" href="/logout">Logout</a> -->
+      <!-- Similar adjustments for other dropdowns -->
     </div>
   </div>
 </nav>

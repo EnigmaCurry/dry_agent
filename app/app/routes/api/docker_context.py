@@ -124,6 +124,13 @@ def get_context_from_docker_info_json_for_context(context_name: str) -> str:
             status_code=500, detail="Failed to parse docker info output as JSON."
         )
 
+    server_errors = info.get("ServerErrors", [])
+    if len(server_errors):
+        raise HTTPException(
+            status_code=500,
+            detail=f"ServerErrors: {server_errors}",
+        )
+
     client_info = info.get("ClientInfo", {})
     context = client_info.get("Context")
     if context is None:

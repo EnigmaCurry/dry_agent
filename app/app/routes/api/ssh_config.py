@@ -263,3 +263,20 @@ async def test_ssh_connection_route(host_alias: str, request: Request):
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/key", response_class=JSONResponse)
+async def ssh_key(request: Request):
+    "Get the dry_agent client ssh key"
+    key_path = os.path.expanduser("~/.ssh/id_ed25519.pub")
+    if not os.path.isfile(key_path):
+        raise HTTPException(status_code=404, detail="SSH public key not found")
+    try:
+        with open(key_path, "r") as f:
+            key = f.read().strip()
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail="Error reading SSH public key"
+        ) from e
+
+    return {"key": key}
