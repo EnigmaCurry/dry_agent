@@ -1,5 +1,6 @@
 <script>
   import { onMount } from "svelte";
+  import InlineTerminal from "./InlineTerminal.svelte"; // Adjust path as needed
 
   /**
    * @typedef {Object} SSHConfig
@@ -54,6 +55,11 @@
   // Variable for the copy button icon.
   let copyIcon = "📋";
 
+  // New state variables for the terminal overlay.
+  let showTerminal = false;
+  /** @type {string|null} */
+  let activeHost = null;
+
   /**
    * Fetches the client key from /api/ssh_config/key.
    */
@@ -77,6 +83,15 @@
   async function openAddForm() {
     showForm = true;
     await loadClientKey();
+  }
+
+  /**
+   * Opens the terminal overlay for the given host.
+   * @param {string} host The host alias for which to open the terminal.
+   */
+  function openTerminal(host) {
+    activeHost = host;
+    showTerminal = true;
   }
 
   /**
@@ -362,6 +377,14 @@
               >
                 Delete
               </button>
+              {#if statuses[config.Host[0]] === "success"}
+                <button
+                  class="button is-info is-small"
+                  on:click={() => openTerminal(config.Host[0])}
+                >
+                  Connect
+                </button>
+              {/if}
             </td>
           </tr>
         {/each}
@@ -495,3 +518,23 @@
     </section>
   </div>
 </div>
+
+<!-- Overlay modal for InlineTerminal -->
+{#if showTerminal}
+  <div class="modal is-active">
+    <div class="modal-background" on:click={() => (showTerminal = false)}></div>
+    <div class="modal-card" style="width: 80%; max-width: 80%;">
+      <header class="modal-card-head">
+        <p class="modal-card-title">Terminal for {activeHost}</p>
+        <button
+          class="delete"
+          aria-label="close"
+          on:click={() => (showTerminal = false)}
+        ></button>
+      </header>
+      <section class="modal-card-body">
+        <InlineTerminal restartable="true" command="ssh {activeHost}" />
+      </section>
+    </div>
+  </div>
+{/if}
