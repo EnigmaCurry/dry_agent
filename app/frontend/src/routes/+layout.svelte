@@ -3,25 +3,35 @@
   import "../../static/styles.css";
 
   let burgerActive = false;
-  let dockerDropdownActive = false;
+  let activeDropdown = null;
 
   function toggleBurger() {
     burgerActive = !burgerActive;
   }
 
-  function openDockerDropdown() {
-    dockerDropdownActive = true;
+  function toggleDropdown(name) {
+    activeDropdown = activeDropdown === name ? null : name;
   }
 
-  function closeDockerDropdown() {
-    dockerDropdownActive = false;
-  }
-
-  function handleDockerSubItemClick() {
-    dockerDropdownActive = false;
-    // Optionally close the burger menu on mobile
+  function handleDropdownItemClick() {
+    activeDropdown = null;
     burgerActive = false;
   }
+
+  // Close dropdown when clicking outside
+  function handleClickOutside(event) {
+    const dropdownElements = document.querySelectorAll(
+      ".navbar-item.has-dropdown",
+    );
+    const clickedInside = Array.from(dropdownElements).some((el) =>
+      el.contains(event.target),
+    );
+    if (!clickedInside) {
+      activeDropdown = null;
+    }
+  }
+
+  document.addEventListener("click", handleClickOutside);
 </script>
 
 <svelte:head>
@@ -31,12 +41,6 @@
     rel="icon"
     href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏜️️</text></svg>"
   />
-  <!-- <link rel="stylesheet" href="/static/styles.css"> -->
-  <!-- <script src="/static/htmx.min.js" defer></script> -->
-  <!-- <script src="/static/command-button.js" defer></script> -->
-  <!-- <link rel="stylesheet" href="/static/xterm.min.css"> -->
-  <!-- <script src="/static/xterm.min.js" defer></script> -->
-  <!-- <script src="/static/xterm-addon-fit.min.js" defer></script> -->
 </svelte:head>
 
 <nav class="navbar is-deep-red is-fixed-top" aria-label="main navigation">
@@ -59,24 +63,54 @@
 
   <div id="main-navbar" class="navbar-menu" class:is-active={burgerActive}>
     <div class="navbar-start">
+      <!-- Docker Dropdown -->
       <div
         class="navbar-item has-dropdown"
-        class:is-active={dockerDropdownActive}
-        on:mouseenter={openDockerDropdown}
-        on:mouseleave={closeDockerDropdown}
+        class:is-active={activeDropdown === "docker"}
       >
-        <button type="button" class="navbar-link">Docker</button>
+        <button
+          type="button"
+          class="navbar-link"
+          on:click={() => toggleDropdown("docker")}
+        >
+          Docker
+        </button>
         <div class="navbar-dropdown">
           <a
             class="navbar-item is-deep-red"
             href="/context"
-            on:click={handleDockerSubItemClick}
+            on:click={handleDropdownItemClick}
           >
             Manage Contexts
           </a>
         </div>
       </div>
-      <!-- Similar adjustments for other dropdowns -->
+
+      <!-- Apps Dropdown -->
+      <div
+        class="navbar-item has-dropdown"
+        class:is-active={activeDropdown === "apps"}
+      >
+        <button
+          type="button"
+          class="navbar-link"
+          on:click={() => toggleDropdown("apps")}
+        >
+          Apps
+        </button>
+        <div class="navbar-dropdown">
+          <a
+            class="navbar-item is-deep-red"
+            href="/available-apps"
+            on:click={handleDropdownItemClick}
+          >
+            Available Apps
+          </a>
+        </div>
+      </div>
+
+      <!-- Clickable Terminal Link -->
+      <a class="navbar-item is-deep-red" href="/terminal"> Terminal </a>
     </div>
   </div>
 </nav>
