@@ -60,6 +60,13 @@
   /** @type {string|null} */
   let activeHost = null;
 
+  let showInfoModal = false;
+  /** @type {string|null} */
+  let infoHost = null;
+  /** @type {string|null} */
+  let hostFingerprint = null;
+  let infoError = null;
+
   /**
    * Fetches the client key from /api/ssh_config/key.
    */
@@ -299,6 +306,26 @@
     }
   }
 
+  async function openInfoModal(host) {
+    infoHost = host;
+    showInfoModal = true;
+    hostFingerprint = null;
+    infoError = null;
+
+    try {
+      const response = await fetch(`/api/ssh_config/fingerprint/${host}`);
+      if (response.ok) {
+        const data = await response.json();
+        hostFingerprint = data.fingerprint;
+      } else {
+        const data = await response.json();
+        infoError = data.detail || "Failed to fetch fingerprint.";
+      }
+    } catch (err) {
+      infoError = err instanceof Error ? err.message : String(err);
+    }
+  }
+
   onMount(() => {
     loadConfigs();
   });
@@ -384,6 +411,12 @@
                 >
                   Connect
                 </button>
+                <button
+                  class="button is-light is-small"
+                  on:click={() => openInfoModal(config.Host[0])}
+                >
+                  Info
+                </button>
               {/if}
             </td>
           </tr>
@@ -413,10 +446,8 @@
     <section class="modal-card-body">
       <!-- Display the client key with line wrapping, click-to-select and a copy button -->
       <p>
-        Before creating a new context, copy this SSH key into your Docker
-        server's authorized_keys file (e.g. <code
-          >/root/.ssh/authorized_keys</code
-        >):
+        Before adding a new context, copy this SSH key into your Docker server's
+        authorized_keys file (e.g. <code>/root/.ssh/authorized_keys</code>):
       </p>
       <div
         style="display: flex; align-items: flex-start; gap: 0.5rem; margin: 1em 0 1em 0;"
@@ -432,7 +463,7 @@
       <div class="columns">
         <div class="column">
           <div class="field">
-            <label for="host" class="label">Host</label>
+            <label for="host" class="label">Host Alias</label>
             <div class="control">
               <input
                 name="host"
@@ -533,8 +564,44 @@
         ></button>
       </header>
       <section class="modal-card-body">
-        <InlineTerminal restartable="true" command="ssh {activeHost}" />
+        <InlineTerminal restartable="true" command="ssh -t {activeHost}" />
       </section>
+    </div>
+  </div>
+{/if}
+
+{#if showInfoModal}
+  <div class="modal is-active">
+    <div
+      class="modal-background"
+      on:click={() => (showInfoModal = false)}
+    ></div>
+    <div class="modal-card">
+      <header class="modal-card-head">
+        <p class="modal-card-title">Info for {infoHost}</p>
+        <button
+          class="delete"
+          aria-label="close"
+          on:click={() => (showInfoModal = false)}
+        ></button>
+      </header>
+      <section class="modal-card-body">
+        {#if infoError}
+          <div class="notification is-danger">{infoError}</div>
+        {:else if hostFingerprint === null}
+          <div class="notification is-info">Fetching fingerprint...</div>
+        {:else}
+          <div class="content">
+            <p><strong>SSH Fingerprint:</strong></p>
+            <pre>{hostFingerprint}</pre>
+          </div>
+        {/if}
+      </section>
+      <footer class="modal-card-foot">
+        <button class="button" on:click={() => (showInfoModal = false)}
+          >Close</button
+        >
+      </footer>
     </div>
   </div>
 {/if}

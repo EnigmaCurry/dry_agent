@@ -1,5 +1,6 @@
 # app/routes/terminal.py
 import os
+import sys
 import pty
 import asyncio
 import select
@@ -12,18 +13,10 @@ import struct
 import json
 import signal
 import errno
+import logging
 
+log = logging.getLogger(__name__)
 router = APIRouter()
-
-
-@router.get("/app/terminal", response_class=HTMLResponse)
-async def terminal_page(request: Request):
-    return templates.TemplateResponse("terminal.html", {"request": request})
-
-
-@router.get("/app/terminal_inline_test", response_class=HTMLResponse)
-async def terminal_page(request: Request):
-    return templates.TemplateResponse("terminal_inline_test.html", {"request": request})
 
 
 @router.websocket("/app/terminal/ws")
@@ -42,6 +35,7 @@ async def terminal_ws(websocket: WebSocket):
             if "command" in init_data:
                 command = init_data["command"]
                 initial_command_received = True
+                log.info(f"Teminal command request received: {command}")
             else:
                 continue
     except WebSocketDisconnect:
@@ -64,7 +58,7 @@ async def terminal_ws(websocket: WebSocket):
             "PATH": "/usr/bin:/bin",
             "HOME": os.environ.get("HOME", "/tmp"),
         }
-        os.execvp("/bin/bash", ["-i", "-c", command])
+        os.execvpe("/bin/bash", ["bash", "-i", "-c", command], env)
     else:
         if not hasattr(terminal_ws, "_reaper_started"):
             terminal_ws._reaper_started = True

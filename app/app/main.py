@@ -13,7 +13,9 @@ from .middleware.auth import (
 )
 import logging
 
-logging.basicConfig()
+logging.basicConfig(level=logging.INFO)
+log = logging.getLogger(__name__)
+log.info("Starting up server now.")
 
 app = FastAPI()
 

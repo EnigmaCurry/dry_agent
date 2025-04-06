@@ -236,7 +236,16 @@ def test_ssh_connection(host: str) -> str:
         raise Exception(f"SSH config for host '{host}' does not specify a username.")
 
     # Execute the SSH command to test the connection.
-    output = run_command(["ssh", host, "whoami"], timeout=5)
+    output = run_command(
+        [
+            "ssh",
+            "-o",
+            "StrictHostKeyChecking=accept-new",
+            host,
+            "whoami",
+        ],
+        timeout=5,
+    )
 
     # Clean the output to remove extra whitespace/newlines.
     actual_user = output.strip()
@@ -282,3 +291,54 @@ async def ssh_key(request: Request):
         ) from e
 
     return {"key": key}
+
+
+def get_trusted_fingerprint(host_alias: str) -> str:
+    """
+    Looks up the SSH alias in the config and retrieves the fingerprint
+    using the actual HostName.
+    """
+    home = os.environ.get("HOME")
+    if not home:
+        raise HTTPException(
+            status_code=500, detail="HOME environment variable not set."
+        )
+
+    config_path = os.path.join(home, ".ssh", "config")
+    known_hosts_path = os.path.join(home, ".ssh", "known_hosts")
+    entries = parse_ssh_config(config_path)
+
+    for entry in entries:
+        if host_alias in entry.get("Host", []):
+            real_host = entry.get("HostName")
+            if not real_host:
+                raise HTTPException(
+                    status_code=500, detail="No HostName found in SSH config."
+                )
+            break
+    else:
+        raise HTTPException(
+            status_code=404, detail=f"No SSH config entry found for '{host_alias}'."
+        )
+
+    # Now use the real hostname to look up the fingerprint
+    output = run_command(
+        ["ssh-keygen", "-F", real_host, "-f", known_hosts_path],
+        allow_failure=False,
+    )
+
+    if not output:
+        raise HTTPException(
+            status_code=404, detail=f"No fingerprint found for host '{real_host}'."
+        )
+
+    return output
+
+
+@router.get("/fingerprint/{host_alias}", response_class=JSONResponse)
+async def get_host_fingerprint(host_alias: str, request: Request):
+    try:
+        fingerprint = get_trusted_fingerprint(host_alias)
+        return {"host": host_alias, "fingerprint": fingerprint}
+    except Exception as e:
+        return JSONResponse(status_code=404, content={"error": str(e)})
