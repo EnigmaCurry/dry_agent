@@ -3,7 +3,9 @@ from fastapi import APIRouter, Request, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from .lib import run_command
+import logging
 
+log = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/ssh_config", tags=["ssh_config"])
 
 
@@ -51,7 +53,7 @@ def parse_ssh_config(config_path):
                     if key.lower() == "port":
                         try:
                             value = int(value)
-                        except:
+                        except ValueError:
                             pass
                 # Store configuration parameter
                 current_host[key] = value
@@ -73,7 +75,7 @@ async def ssh_config(request: Request):
         parsed_config = parse_ssh_config(config_path)
         return JSONResponse(content=parsed_config)
     except Exception as e:
-        # In production, log the error details
+        log.error(e)
         raise HTTPException(status_code=500, detail=str(e))
 
 

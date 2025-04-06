@@ -11,6 +11,9 @@ from .middleware.auth import (
     logout,
     admin_generate_auth_token,
 )
+import logging
+
+logging.basicConfig()
 
 app = FastAPI()
 
