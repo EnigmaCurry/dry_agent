@@ -23,6 +23,13 @@ deps:
 		echo "🎉 All dependencies are satisfied."; \
 	fi
 
+.PHONY: expect-config
+expect-config:
+	@if [ ! -f .env ]; then \
+		echo "❌ Missing .env config file. Run 'make config'."; \
+		exit 1; \
+	fi
+
 .PHONY: config # Interactively generate the .env file from .env-dist
 config: deps
 	@if [ ! -f .env-dist ]; then \
@@ -71,18 +78,7 @@ deployment.yaml:
 	envsubst < deployment.template.yaml > deployment.yaml
 
 .PHONY: install # Install the pod
-install: deps config secret.yaml deployment.yaml expect-images
-	podman play kube secret.yaml
-	podman play kube deployment.yaml
-	@${MAKE} --no-print-directory status
-
-.PHONY: uninstall # Remove the pod (but keep the volumes)
-uninstall:
-	podman pod rm -f dry-agent
-	podman play kube --down secret.yaml
-
-.PHONY: reinstall # Rebuild images and restart pod with new containers
-reinstall: build
+install: deps expect-config secret.yaml deployment.yaml build
 	@podname=dry-agent; \
 	echo "🔄 Reinstalling pod $$podname..."; \
 	if podman pod exists $$podname; then \
@@ -94,7 +90,14 @@ reinstall: build
 		echo "❗ Pod $$podname still exists — removing manually..."; \
 		podman pod rm -f $$podname; \
 	fi;
-	@${MAKE} --no-print-directory install
+	podman play kube secret.yaml
+	podman play kube deployment.yaml
+	@${MAKE} --no-print-directory status
+
+.PHONY: uninstall # Remove the pod (but keep the volumes)
+uninstall:
+	podman pod rm -f dry-agent
+	podman play kube --down secret.yaml
 
 .PHONY: destroy # Remove the pod AND delete its volumes
 destroy: deps uninstall
