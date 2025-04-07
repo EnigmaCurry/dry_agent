@@ -109,6 +109,9 @@
         </div>
       </div>
 
+      <!-- Clickable Repository Link -->
+      <a class="navbar-item is-deep-red" href="/repository"> Repository </a>
+
       <!-- Clickable Terminal Link -->
       <a class="navbar-item is-deep-red" href="/terminal"> Terminal </a>
     </div>
