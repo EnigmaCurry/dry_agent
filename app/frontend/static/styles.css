@@ -13,21 +13,6 @@ body {
   padding-top: 3.25rem;
 }
 
-/* Fix Bulma headings (which default to dark gray) */
-.title,
-.subtitle,
-h1,
-h2,
-h3,
-h4,
-h5,
-h6,
-p,
-span,
-label {
-  color: #ffffff !important;
-}
-
 a {
   color: #ffffff;
 }

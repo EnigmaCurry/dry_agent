@@ -1,4 +1,4 @@
-export TERM=xterm
+export TERM=xterm-256color
 export PATH=${PATH}:${HOME}/git/vendor/enigmacurry/d.rymcg.tech/_scripts/user
 eval "$(d.rymcg.tech completion bash)"
 __d.rymcg.tech_cli_alias d

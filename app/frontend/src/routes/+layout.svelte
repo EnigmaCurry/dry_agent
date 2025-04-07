@@ -101,7 +101,7 @@
         <div class="navbar-dropdown">
           <a
             class="navbar-item is-deep-red"
-            href="/available-apps"
+            href="/apps"
             on:click={handleDropdownItemClick}
           >
             Available Apps
