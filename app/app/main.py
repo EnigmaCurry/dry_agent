@@ -34,7 +34,6 @@ app.add_api_route(
 # App Routes:
 app.include_router(routes.apps.router)
 app.include_router(routes.env_dist.router)
-app.include_router(routes.docker_context.router)
 
 # API Routes:
 app.include_router(api_routes.ssh_config.router)
