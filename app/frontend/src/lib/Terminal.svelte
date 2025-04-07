@@ -38,7 +38,7 @@
 
     socket.onopen = () => {
       console.log("WebSocket connected; sending initial command.");
-      socket.send(JSON.stringify({ command: "/bin/bash" }));
+      socket.send(JSON.stringify({ command: "cd ~/git/vendor/enigmacurry/d.rymcg.tech && /bin/bash" }));
       fitAddon.fit();
       sendResize();
       term.focus();
