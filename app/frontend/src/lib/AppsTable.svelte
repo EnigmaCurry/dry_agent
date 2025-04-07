@@ -32,31 +32,23 @@
   <table class="table is-striped is-hoverable is-fullwidth">
     <thead>
       <tr>
-        <th>Name</th>
-        <th>Description</th>
-        <th>Actions</th>
+        <th>Configure</th>
+        <th>README</th>
       </tr>
     </thead>
     <tbody>
       {#each apps as app}
         <tr>
           <td><strong>{app.name}</strong></td>
-          <td>{app.description}</td>
           <td>
-            <!-- Future actions go here -->
-            <div class="buttons">
-              <a
-                href={`https://github.com/EnigmaCurry/d.rymcg.tech/blob/master/${app.name}/README.md`}
-                target="_blank"
-                rel="noopener noreferrer"
-                class="button is-link is-small"
-              >
-                README
-              </a>
-              <button class="button is-small is-primary is-light" disabled
-                >Action 2</button
-              >
-            </div>
+            <a
+              href={`https://github.com/EnigmaCurry/d.rymcg.tech/blob/master/${app.name}/README.md`}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="is-link"
+            >
+              {app.description}
+            </a>
           </td>
         </tr>
       {/each}

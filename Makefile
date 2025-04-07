@@ -8,7 +8,7 @@ help:
 deps:
 	@echo "🔍 Checking for required tools..."
 	@missing=0; \
-	for cmd in podman envsubst sed awk expand yq xdg-open; do \
+	for cmd in podman envsubst sed awk expand xdg-open; do \
 		if command -v $$cmd >/dev/null 2>&1; then \
 			echo "✅ $$cmd is installed"; \
 		else \
@@ -103,7 +103,7 @@ uninstall:
 destroy: deps uninstall
 	@read -p "⚠️  This will permanently delete all volumes from dry-agent. Are you sure? [y/N] " confirm; \
 	if [ "$$confirm" = "y" ] || [ "$$confirm" = "Y" ]; then \
-		for vol in $$(yq '.spec.volumes[] | select(.persistentVolumeClaim) | .persistentVolumeClaim.claimName' deployment.yaml); do \
+		for vol in $$(podman run -i --rm docker.io/mikefarah/yq '.spec.volumes[] | select(.persistentVolumeClaim) | .persistentVolumeClaim.claimName' < deployment.yaml); do \
 			echo "🧹 Removing volume $$vol..."; \
 			podman volume rm $$vol || true; \
 		done \
