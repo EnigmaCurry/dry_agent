@@ -67,6 +67,10 @@
   let hostFingerprint = null;
   let infoError = null;
 
+  /** @type {string|null} */
+  let terminalCommand = null;
+  let terminalRestartable = "false";
+
   /**
    * Fetches the client key from /api/ssh_config/key.
    */
@@ -93,11 +97,14 @@
   }
 
   /**
-   * Opens the terminal overlay for the given host.
-   * @param {string} host The host alias for which to open the terminal.
+   * Opens the terminal overlay for the given host and command.
+   * @param {string} host
+   * @param {string} command
    */
-  function openTerminal(host) {
+  function openTerminal(host, command, restartable) {
     activeHost = host;
+    terminalCommand = command;
+    terminalRestartable = restartable;
     showTerminal = true;
   }
 
@@ -138,22 +145,24 @@
       if (!response.ok) {
         throw new Error("Failed to fetch SSH configuration");
       }
-      sshConfigs = await response.json();
+      const data = await response.json();
+      sshConfigs = Array.isArray(data) ? data : [];
+
       // Reset statuses
       statuses = {};
       dockerStatuses = {};
       dockerDetails = {};
       await loadDockerContexts();
-      if (sshConfigs) {
-        sshConfigs.forEach((config) => {
-          const hostAlias = config.Host[0];
-          statuses[hostAlias] = "pending";
-          dockerStatuses[hostAlias] = "pending";
-          testConnection(hostAlias);
-          testDockerContext(hostAlias);
-        });
+
+      for (const config of sshConfigs) {
+        const hostAlias = config.Host[0];
+        statuses[hostAlias] = "pending";
+        dockerStatuses[hostAlias] = "pending";
+        testConnection(hostAlias);
+        testDockerContext(hostAlias);
       }
     } catch (err) {
+      sshConfigs = []; // Prevents UI from getting stuck
       error = err instanceof Error ? err.message : String(err);
       console.error("Error fetching SSH configurations:", err);
     }
@@ -400,23 +409,41 @@
             <td>
               <button
                 class="button is-danger is-small"
-                on:click={() => deleteSSHConfig(config.Host[0])}
+                onclick={() => deleteSSHConfig(config.Host[0])}
               >
                 Delete
               </button>
               {#if statuses[config.Host[0]] === "success"}
                 <button
                   class="button is-info is-small"
-                  on:click={() => openTerminal(config.Host[0])}
+                  onclick={() =>
+                    openTerminal(
+                      config.Host[0],
+                      `ssh -t ${config.Host[0]}`,
+                      "true",
+                    )}
                 >
                   Connect
                 </button>
                 <button
                   class="button is-light is-small"
-                  on:click={() => openInfoModal(config.Host[0])}
+                  onclick={() => openInfoModal(config.Host[0])}
                 >
                   Info
                 </button>
+                {#if dockerStatuses[config.Host[0]] === "error"}
+                  <button
+                    class="button is-warning is-small"
+                    onclick={() =>
+                      openTerminal(
+                        config.Host[0],
+                        `ssh -t ${config.Host[0]} "curl -sSL https://get.docker.com | sh"`,
+                        "false",
+                      )}
+                  >
+                    Install Docker
+                  </button>
+                {/if}
               {/if}
             </td>
           </tr>
@@ -425,7 +452,7 @@
     </table>
   {/if}
   <div class="has-text-centered" style="margin-top: 1rem;">
-    <button class="button is-link" on:click={openAddForm}>
+    <button class="button is-link" onclick={openAddForm}>
       Add new context
     </button>
   </div>
@@ -433,14 +460,14 @@
 
 <!-- Modal for adding a new SSH connection -->
 <div class="modal {showForm ? 'is-active' : ''}">
-  <div class="modal-background" on:click={() => (showForm = false)}></div>
+  <div class="modal-background" onclick={() => (showForm = false)}></div>
   <div class="modal-card">
     <header class="modal-card-head">
       <p class="modal-card-title">Add SSH Docker Context</p>
       <button
         class="delete"
         aria-label="close"
-        on:click={() => (showForm = false)}
+        onclick={() => (showForm = false)}
       ></button>
     </header>
     <section class="modal-card-body">
@@ -453,9 +480,9 @@
         style="display: flex; align-items: flex-start; gap: 0.5rem; margin: 1em 0 1em 0;"
       >
         <pre
-          on:click={selectPre}
+          onclick={selectPre}
           style="background: #371d1d; padding: 1em; border-radius: 4px; flex-grow: 1; font-weight: bold;">{clientKey}</pre>
-        <button class="button is-small" on:click={copyClientKey}>
+        <button class="button is-small" onclick={copyClientKey}>
           {copyIcon}
         </button>
       </div>
@@ -531,7 +558,7 @@
           <button
             type="button"
             class="button"
-            on:click={() => (showForm = false)}
+            onclick={() => (showForm = false)}
           >
             Cancel
           </button>
@@ -540,7 +567,7 @@
           <button
             type="submit"
             class="button is-primary"
-            on:click={addSSHConfig}
+            onclick={addSSHConfig}
           >
             Add
           </button>
@@ -553,18 +580,30 @@
 <!-- Overlay modal for InlineTerminal -->
 {#if showTerminal}
   <div class="modal is-active">
-    <div class="modal-background" on:click={() => (showTerminal = false)}></div>
+    <div
+      class="modal-background"
+      onclick={() => {
+        showTerminal = false;
+        loadConfigs();
+      }}
+    ></div>
     <div class="modal-card" style="width: 80%; max-width: 80%;">
       <header class="modal-card-head">
         <p class="modal-card-title">Terminal for {activeHost}</p>
         <button
           class="delete"
           aria-label="close"
-          on:click={() => (showTerminal = false)}
+          onclick={() => {
+            showTerminal = false;
+            loadConfigs();
+          }}
         ></button>
       </header>
       <section class="modal-card-body">
-        <InlineTerminal restartable="true" command="ssh -t {activeHost}" />
+        <InlineTerminal
+          restartable={terminalRestartable}
+          command={terminalCommand}
+        />
       </section>
     </div>
   </div>
@@ -572,17 +611,14 @@
 
 {#if showInfoModal}
   <div class="modal is-active">
-    <div
-      class="modal-background"
-      on:click={() => (showInfoModal = false)}
-    ></div>
+    <div class="modal-background" onclick={() => (showInfoModal = false)}></div>
     <div class="modal-card">
       <header class="modal-card-head">
         <p class="modal-card-title">Info for {infoHost}</p>
         <button
           class="delete"
           aria-label="close"
-          on:click={() => (showInfoModal = false)}
+          onclick={() => (showInfoModal = false)}
         ></button>
       </header>
       <section class="modal-card-body">
@@ -598,7 +634,7 @@
         {/if}
       </section>
       <footer class="modal-card-foot">
-        <button class="button" on:click={() => (showInfoModal = false)}
+        <button class="button" onclick={() => (showInfoModal = false)}
           >Close</button
         >
       </footer>

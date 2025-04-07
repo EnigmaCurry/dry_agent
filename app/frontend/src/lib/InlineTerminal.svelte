@@ -43,7 +43,7 @@
         id="inline-restart-overlay"
         style="display: flex; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(20,20,20,0.9); color: #fff; align-items: center; justify-content: center; z-index: 10;"
       >
-        <button class="button" on:click={restartTerminal}>
+        <button class="button" onclick={restartTerminal}>
           Restart Terminal
         </button>
       </div>
