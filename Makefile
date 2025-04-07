@@ -123,6 +123,7 @@ build: deps
 	fi
 	podman build -t localhost/dry-agent/hushcrumbs .hushcrumbs
 	podman build -t localhost/dry-agent/workstation workstation
+	podman build -t localhost/dry-agent/traefik traefik
 	podman build -t localhost/dry-agent/app app
 
 expect-images:

@@ -5,8 +5,7 @@ dry\_agent is a webapp GUI for the
 self-hosted Docker platform. Once you install dry\_agent on your
 workstation, you can manage Docker Compose services on any of your
 remote servers and/or VMs. Use dry\_agent via localhost, or open up a
-port/tunnel to access it remotely. Secure authentication is provided
-by a one-time-use login token.
+port/tunnel to access it remotely.
 
 This software is in development and is pre-alpha.
 
@@ -59,3 +58,24 @@ manually copy it instead:
 ```
 make get-token
 ```
+
+## Security
+
+dry_agent binds to `0.0.0.0:8123` by default, meaning it will be
+served on all network interfaces on port 8123. If you wish to restrict
+other machines from accessing dry_agent, be sure to apply appropriate
+system firewall rules. (Unlike docker-compose, `podman play kube` has
+no ability to restrict the network interfaces the application binds
+to, so your firewall must serve this role instead.)
+
+To login, the client is required to provide the one-time-use login
+token. The token is only retrieved via `make open` (to login
+automatically) and/or `make get-token` (to copy the URL manually). To
+login again, you must retrieve a new token. When a new token used,
+client cookies are invalidated and your existing sessions are logged
+out.
+
+dry\_agent serves HTTPS with a self-signed TLS certificate for the
+given APP_HOST domain that you choose during `make config`. The
+/first/ time you access the app you will need to instruct your browser
+to trust the certificate.

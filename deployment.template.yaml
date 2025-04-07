@@ -22,6 +22,7 @@ spec:
       volumeMounts:
         - name: hushcrumbs-data
           mountPath: /data
+
     - name: app
       image: localhost/dry-agent/app
       env:
@@ -31,15 +32,33 @@ spec:
               name: hushcrumbs-secret
               key: API_TOKEN
         - name: APP_HOST
-          value: localhost
+          value: ${APP_HOST}
         - name: APP_PORT
           value: ${APP_PORT}
       ports:
-        - containerPort: 80
-          hostPort: ${APP_PORT}
+        - containerPort: 8001
       volumeMounts:
         - name: workstation-data
           mountPath: /root
+
+    - name: traefik
+      image: localhost/dry-agent/traefik
+      args:
+        - "--configFile=/etc/traefik/traefik.yml"
+      env:
+        - name: TLS_CN
+          value: ${APP_HOST}
+        - name: TLS_EXPIRES
+          value: ${TLS_EXPIRES}
+      ports:
+        - containerPort: ${APP_PORT}
+          hostPort: ${APP_PORT}
+      volumeMounts:
+        - name: traefik-config
+          mountPath: /etc/traefik
+        - name: traefik-certs
+          mountPath: /certs
+
   volumes:
     - name: hushcrumbs-data
       persistentVolumeClaim:
@@ -47,3 +66,46 @@ spec:
     - name: workstation-data
       persistentVolumeClaim:
         claimName: workstation-pvc
+    - name: traefik-config
+      configMap:
+        name: traefik-config
+    - name: traefik-certs
+      persistentVolumeClaim:
+        claimName: traefik-certs-pvc
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: traefik-config
+data:
+  traefik.yml: |
+    entryPoints:
+      websecure:
+        address: ":${APP_PORT}"
+
+    providers:
+      file:
+        filename: /etc/traefik/dynamic.yml
+
+    log:
+      level: DEBUG
+  dynamic.yml: |
+    tls:
+      certificates:
+        - certFile: /certs/self.crt
+          keyFile: /certs/self.key
+
+    http:
+      routers:
+        app-router:
+          rule: "PathPrefix(`/`)"
+          entryPoints: ["websecure"]
+          service: app-service
+          tls: {}
+
+      services:
+        app-service:
+          loadBalancer:
+            servers:
+              - url: "http://app:8001"
