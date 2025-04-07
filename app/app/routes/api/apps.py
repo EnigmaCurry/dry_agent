@@ -1,19 +1,20 @@
 from app.routes import *
-from app.dependencies import templates
-from app.routes.env_dist import get_env_dist_data
+from app.routes import api as api_routes
+import logging
+import os
+import re
+import traceback
+import subprocess
+from fastapi import APIRouter, Request, HTTPException, Form
+from fastapi.responses import JSONResponse
 
 logger = logging.getLogger("uvicorn.error")
 
-router = APIRouter()
+router = APIRouter(prefix="/api/apps", tags=["apps"])
 
-@router.get("/app/apps/available", response_class=HTMLResponse)
-async def apps_page(request: Request):
-    return templates.TemplateResponse("apps_available.html", {
-        "request": request,
-    })
 
-@router.get("/api/apps/available", response_class=HTMLResponse)
-async def apps_available(request: Request):
+@router.get("/available", response_class=JSONResponse)
+async def apps_available():
     command = [DRY_COMMAND, "list"]
 
     try:
@@ -22,7 +23,7 @@ async def apps_available(request: Request):
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
-            check=True
+            check=True,
         )
 
         lines = result.stdout.strip().splitlines()
@@ -37,86 +38,95 @@ async def apps_available(request: Request):
         for app in sorted(apps):
             try:
                 # Only include if instantiable
-                await get_env_dist_data(app)
-                app_data.append({
-                    "name": app,
-                    "description": descriptions.get(app, "No description available")
-                })
+                await api_routes.env_dist.get_env_dist_data(app)
+                app_data.append(
+                    {
+                        "name": app,
+                        "description": descriptions.get(
+                            app, "No description available"
+                        ),
+                    }
+                )
             except HTTPException as e:
                 if e.status_code == 404:
                     continue  # skip non-instantiable
                 else:
                     raise
 
-        return templates.TemplateResponse("partials/apps_list.html", {
-            "request": request,
-            "apps": app_data,
-        })
+        return JSONResponse(content={"apps": app_data})
 
     except Exception as e:
         logger.error("Failed to load available apps:\n%s", traceback.format_exc())
-
-        return HTMLResponse(
-            content=f"<p class='has-text-danger'>❌ Internal Server Error:<br><pre>{e}</pre></p>",
-            status_code=500
+        return JSONResponse(
+            status_code=500,
+            content={"detail": f"Internal Server Error: {str(e)}"},
         )
 
-@router.get("/app/apps/config", response_class=HTMLResponse)
-async def apps_config_page(request: Request, app: str):
-    data = await get_env_dist_data(app)
-    env = data['env']
-    meta = data['meta']
 
-    # You can fetch real instances from disk or database
-    instances = ["default"]  # Placeholder
+@router.get("/config", response_class=JSONResponse)
+async def apps_config_data(app: str):
+    try:
+        data = await get_env_dist_data(app)
+        env = data["env"]
+        meta = data["meta"]
 
-    return templates.TemplateResponse("apps_config.html", {
-        "request": request,
-        "app": app,
-        "env": env,
-        "meta": meta,
-        "instances": instances,
-        "contexts": ["default - TODO"]
-    })
+        instances = ["default"]  # Placeholder
 
-@router.post("/api/apps/config")
-async def save_app_config(request: Request):
+        return JSONResponse(
+            content={
+                "app": app,
+                "env": env,
+                "meta": meta,
+                "instances": instances,
+                "contexts": ["default - TODO"],
+            }
+        )
+    except Exception as e:
+        logger.error("Failed to load config data:\n%s", traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/config", response_class=JSONResponse)
+async def save_app_config(
+    app: str = Form(...),
+    context: str = Form(...),
+    request: Request = None,
+):
     form = await request.form()
-    app = form.get("app")
-    context = form.get("context")
 
     if not app or not context:
         raise HTTPException(status_code=400, detail="Missing 'app' or 'context'")
 
-    # Load prefix from .env-dist so we can detect instance key
-    from app.routes.env_dist import get_env_dist_data  # or your real import
     data = await get_env_dist_data(app)
     prefix = data["meta"]["PREFIX"]
 
-    # Get the instance name from the prefix-derived field
     instance_key = f"{prefix}_INSTANCE"
     instance = form.get(instance_key, "default").strip()
 
-    # Prepare output path
     env_filename = f".env_{context}_{instance}"
     env_path = os.path.join(DRY_PATH, app, env_filename)
 
-    # Gather environment variable fields from the form
     env_lines = []
     for key, value in form.items():
         if key.startswith("env_"):
-            env_var = key[len("env_"):]
+            env_var = key[len("env_") :]
             env_lines.append(f"{env_var}={value}")
-
-    # Add the instance field too
     env_lines.append(f"{instance_key}={instance}")
 
     try:
         with open(env_path, "w") as f:
             f.write("\n".join(env_lines) + "\n")
 
-        return RedirectResponse(url=f"/app/apps/config?app={app}&context={context}", status_code=303)
-
+        return JSONResponse(
+            content={
+                "message": "Configuration saved",
+                "env_file": env_filename,
+                "app": app,
+                "context": context,
+                "instance": instance,
+            },
+            status_code=201,
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to write .env file: {e}")
 
@@ -135,40 +145,40 @@ def parse_readme_descriptions():
 
         inside_section = False
         current_app = None
-        expecting_description = False  # Flag to check if we need to grab the next line
+        expecting_description = False
 
         for line in lines:
             line = line.strip()
 
-            # Detect the start of the "Install" section
-            if "Install these first" in line or "Install these recommended backbone applications next:" in line or "Install these other services" in line:
+            if (
+                "Install these first" in line
+                or "Install these recommended backbone applications next:" in line
+                or "Install these other services" in line
+            ):
                 inside_section = True
                 continue
 
             if inside_section:
-                # Match "* [AppName](link#readme) - Description"
-                match = re.match(r"\*\s+\[(.*?)\]\((.*?)#readme\)\s*(?:-\s*(.*))?", line)
+                match = re.match(
+                    r"\*\s+\[(.*?)\]\((.*?)#readme\)\s*(?:-\s*(.*))?", line
+                )
 
                 if match:
                     display_name, link_name, description = match.groups()
-                    link_name = link_name.strip().lower()  # Normalize for matching
+                    link_name = link_name.strip().lower()
 
                     if description:
                         apps_with_descriptions[link_name] = description.strip()
-                        current_app = None  # Reset
+                        current_app = None
                     else:
-                        # ✅ If no description, flag to capture the next line
                         current_app = link_name
                         expecting_description = True
-                    continue  # Move to the next line
+                    continue
 
-                # ✅ If the last app was missing a description, check this line
                 if current_app and expecting_description and line.startswith("*"):
                     apps_with_descriptions[current_app] = line.lstrip("*- ").strip()
                     current_app = None
                     expecting_description = False
-
-        #print("Extracted Descriptions:", apps_with_descriptions)
 
     except Exception as e:
         print(f"Error reading README.md: {e}")

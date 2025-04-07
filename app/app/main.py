@@ -21,25 +21,30 @@ app = FastAPI()
 
 ## Auth Routes:
 add_auth_middleware(app)
-app.add_api_route("/login", login_get, methods=["GET"], response_class=HTMLResponse)
-app.add_api_route("/login", login_post, methods=["POST"], response_class=HTMLResponse)
-app.add_api_route("/logout", logout, methods=["GET"], response_class=HTMLResponse)
+app.add_api_route(
+    "/login", login_get, methods=["GET"], response_class=HTMLResponse, tags=["auth"]
+)
+app.add_api_route(
+    "/login", login_post, methods=["POST"], response_class=HTMLResponse, tags=["auth"]
+)
+app.add_api_route(
+    "/logout", logout, methods=["GET"], response_class=HTMLResponse, tags=["auth"]
+)
 app.add_api_route(
     "/admin/generate-auth-token",
     admin_generate_auth_token,
     methods=["POST"],
     response_class=HTMLResponse,
+    tags=["admin"],
 )
-
-# App Routes:
-app.include_router(routes.apps.router)
-app.include_router(routes.env_dist.router)
 
 # API Routes:
 app.include_router(api_routes.ssh_config.router)
 app.include_router(api_routes.docker_context.router)
 app.include_router(api_routes.repo.router)
 app.include_router(api_routes.terminal.router)
+app.include_router(api_routes.env_dist.router)
+app.include_router(api_routes.apps.router)
 
 ## Add static frontend route LAST:
 public_path = os.path.join(
