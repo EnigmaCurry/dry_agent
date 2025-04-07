@@ -33,7 +33,7 @@
     // Establish the WebSocket connection
     const protocol = window.location.protocol === "https:" ? "wss" : "ws";
     const socket = new WebSocket(
-      `${protocol}://${window.location.host}/app/terminal/ws`,
+      `${protocol}://${window.location.host}/api/terminal/ws`,
     );
 
     socket.onopen = () => {

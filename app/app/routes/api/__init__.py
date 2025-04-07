@@ -1,1 +1,1 @@
-from . import docker_context, ssh_config, repo
+from . import docker_context, ssh_config, repo, terminal

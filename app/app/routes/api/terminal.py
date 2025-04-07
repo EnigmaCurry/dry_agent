@@ -16,10 +16,10 @@ import errno
 import logging
 
 log = logging.getLogger(__name__)
-router = APIRouter()
+router = APIRouter(prefix="/api/terminal", tags=["terminal"])
 
 
-@router.websocket("/app/terminal/ws")
+@router.websocket("/ws")
 async def terminal_ws(websocket: WebSocket):
     await websocket.accept()
 

@@ -35,12 +35,12 @@ app.add_api_route(
 app.include_router(routes.apps.router)
 app.include_router(routes.env_dist.router)
 app.include_router(routes.docker_context.router)
-app.include_router(routes.terminal.router)
 
 # API Routes:
 app.include_router(api_routes.ssh_config.router)
 app.include_router(api_routes.docker_context.router)
 app.include_router(api_routes.repo.router)
+app.include_router(api_routes.terminal.router)
 
 ## Add static frontend route LAST:
 public_path = os.path.join(
