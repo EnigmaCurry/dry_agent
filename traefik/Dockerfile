@@ -1,4 +1,4 @@
-FROM traefik:v3.3
+FROM docker.io/library/traefik:v3.3
 
 RUN apk add --no-cache openssl
 
