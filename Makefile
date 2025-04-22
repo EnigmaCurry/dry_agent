@@ -218,3 +218,19 @@ open:
 .PHONY: shell # Exec into the workstation container
 shell:
 	podman exec -it -w /root/git/vendor/enigmacurry/d.rymcg.tech dry-agent-app /bin/bash
+
+.PHONY: ssh-authorize # Authorize a SSH public key
+ssh-authorize:
+	@echo "Paste your SSH public key to authorize access to dry_agent:"
+	@read -r sshkey && \
+	if [ -z "$$sshkey" ]; then \
+		echo "Error: No key entered."; exit 1; \
+	else \
+		podman exec -i -w /root/git/vendor/enigmacurry/d.rymcg.tech dry-agent-app sh -c '\
+			mkdir -p $$HOME/.ssh && \
+			touch $$HOME/.ssh/authorized_keys && \
+			chmod 700 $$HOME/.ssh && \
+			chmod 600 $$HOME/.ssh/authorized_keys && \
+			read -r key && grep -qxF "$$key" $$HOME/.ssh/authorized_keys || echo "$$key" >> $$HOME/.ssh/authorized_keys' <<< "$$sshkey"; \
+		echo "✅ SSH key successfully authorized."; \
+	fi

@@ -37,6 +37,7 @@ spec:
           value: ${APP_PORT}
       ports:
         - containerPort: 8001
+        - containerPort: 22
       volumeMounts:
         - name: workstation-data
           mountPath: /root
@@ -53,6 +54,8 @@ spec:
       ports:
         - containerPort: ${APP_PORT}
           hostPort: ${APP_PORT}
+        - containerPort: ${SSH_PORT}
+          hostPort: ${SSH_PORT}
       volumeMounts:
         - name: traefik-config
           mountPath: /etc/traefik
@@ -83,6 +86,8 @@ data:
     entryPoints:
       websecure:
         address: ":${APP_PORT}"
+      ssh:
+        address: ":${SSH_PORT}"
 
     providers:
       file:
@@ -109,3 +114,25 @@ data:
           loadBalancer:
             servers:
               - url: "http://app:8001"
+    tcp:
+      routers:
+        ssh-router:
+          entryPoints:
+            - ssh
+          rule: "HostSNI(`*`)"
+          service: ssh-service
+          middlewares:
+            - ssh-whitelist
+    
+      services:
+        ssh-service:
+          loadBalancer:
+            servers:
+              - address: "app:22"
+    
+      middlewares:
+        ssh-whitelist:
+          ipWhiteList:
+            sourceRange:
+              - "${SSH_IP_SOURCERANGE}"
+

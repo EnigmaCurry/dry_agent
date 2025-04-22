@@ -55,12 +55,11 @@ WORKDIR /app
 
 # Install runtime Python and pip
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3 python3-pip \
-    && rm -rf /var/lib/apt/lists/*
-
-# Use python3/pip3 as default
-RUN ln -s /usr/bin/python3 /usr/local/bin/python && \
-    ln -s /usr/bin/pip3 /usr/local/bin/pip
+    python3 python3-pip openssh-server supervisor \
+    && rm -rf /var/lib/apt/lists/* && \
+    ln -s /usr/bin/python3 /usr/local/bin/python && \
+    ln -s /usr/bin/pip3 /usr/local/bin/pip && \
+    mkdir -p /var/run/sshd
 
 # Copy installed site-packages from builder
 COPY --from=builder /usr/local/lib/python${PYTHON_VERSION}/dist-packages /usr/local/lib/python${PYTHON_VERSION}/dist-packages
@@ -70,10 +69,10 @@ COPY app app
 COPY --from=frontend-builder /app/frontend/build ./public
 
 # Make entrypoint executable
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-EXPOSE 8001
+EXPOSE 8001 22
 
 ENTRYPOINT ["/entrypoint.sh"]
-CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001"]
