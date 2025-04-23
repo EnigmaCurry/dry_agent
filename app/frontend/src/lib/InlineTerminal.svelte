@@ -23,6 +23,9 @@
     if (e.key === "Escape" && hasExited) {
       dispatch("close");
     }
+    if (e.key === "Enter" && hasExited && isRestartable) {
+      restartTerminal();
+    }
   }
 
   function restartTerminal() {
