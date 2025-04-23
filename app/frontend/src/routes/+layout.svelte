@@ -63,29 +63,7 @@
 
   <div id="main-navbar" class="navbar-menu" class:is-active={burgerActive}>
     <div class="navbar-start">
-      <!-- Docker Dropdown -->
-      <div
-        class="navbar-item has-dropdown"
-        class:is-active={activeDropdown === "docker"}
-      >
-        <button
-          type="button"
-          class="navbar-link"
-          on:click={() => toggleDropdown("docker")}
-        >
-          Docker
-        </button>
-        <div class="navbar-dropdown">
-          <a
-            class="navbar-item is-deep-red"
-            href="/context"
-            on:click={handleDropdownItemClick}
-          >
-            Manage Contexts
-          </a>
-        </div>
-      </div>
-
+      <a class="navbar-item is-deep-red" href="/context"> Context </a>
       <a class="navbar-item is-deep-red" href="/traefik"> Traefik </a>
 
       <!-- Apps Dropdown -->
