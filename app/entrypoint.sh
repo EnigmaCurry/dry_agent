@@ -12,6 +12,8 @@ if [[ ! -f ${SSH_KEY} ]]; then
     ssh-keygen -q -N '' -t ed25519 -f ${SSH_KEY}
 fi
 
+touch ${HOME}/.ssh/config
+
 # Authorize the public key ONLY if not already present
 PUBKEY_CONTENT=$(cat "${SSH_KEY}.pub")
 AUTHORIZED_KEYS_FILE="${HOME}/.ssh/authorized_keys"
