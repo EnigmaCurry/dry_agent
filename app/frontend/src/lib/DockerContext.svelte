@@ -58,7 +58,7 @@
   // New state variables for the terminal overlay.
   let showTerminal = false;
   /** @type {string|null} */
-  let activeHost = null;
+  let activeTerminalHost = null;
 
   let showInfoModal = false;
   /** @type {string|null} */
@@ -70,6 +70,9 @@
   /** @type {string|null} */
   let terminalCommand = null;
   let terminalRestartable = "false";
+
+  /** @type {string|null} */
+  let defaultContext = null;
 
   /**
    * Fetches the client key from /api/ssh_config/key.
@@ -102,7 +105,7 @@
    * @param {string} command
    */
   function openTerminal(host, command, restartable) {
-    activeHost = host;
+    activeTerminalHost = host;
     terminalCommand = command;
     terminalRestartable = restartable;
     showTerminal = true;
@@ -153,7 +156,8 @@
       dockerStatuses = {};
       dockerDetails = {};
       await loadDockerContexts();
-
+      await loadDefaultContext();
+      
       for (const config of sshConfigs) {
         const hostAlias = config.Host[0];
         statuses[hostAlias] = "pending";
@@ -335,8 +339,38 @@
     }
   }
 
+  async function loadDefaultContext() {
+    try {
+      const response = await fetch("/api/docker_context/default");
+      if (response.ok) {
+        const data = await response.json();
+        defaultContext = data.default_context;
+      } else {
+        defaultContext = null;
+      }
+    } catch (err) {
+      defaultContext = null;
+    }
+  }
+
+  async function setDefaultContext(host) {
+    try {
+      const response = await fetch(`/api/docker_context/${host}/default`, {
+        method: "PUT",
+      });
+      if (response.ok) {
+        defaultContext = host;
+      } else {
+        alert("Failed to set default Docker context.");
+      }
+    } catch (err) {
+      alert("Error setting default context: " + (err instanceof Error ? err.message : String(err)));
+    }
+  }
+
   onMount(() => {
     loadConfigs();
+    loadDefaultContext();
   });
 </script>
 
@@ -443,6 +477,18 @@
                   >
                     Install Docker
                   </button>
+                {/if}
+                {#if dockerStatuses[config.Host[0]] === "success"}
+                  {#if defaultContext === config.Host[0]}
+                    <span class="tag is-success is-light">🏁 Default</span>
+                  {:else}
+                    <button
+                      class="button is-primary is-small"
+                      onclick={() => setDefaultContext(config.Host[0])}
+                      >
+                      Set Default
+                    </button>
+                  {/if}
                 {/if}
               {/if}
             </td>
@@ -589,7 +635,7 @@
     ></div>
     <div class="modal-card" style="width: 80%; max-width: 80%;">
       <header class="modal-card-head">
-        <p class="modal-card-title">Terminal for {activeHost}</p>
+        <p class="modal-card-title">Terminal for {activeTerminalHost}</p>
         <button
           class="delete"
           aria-label="close"
