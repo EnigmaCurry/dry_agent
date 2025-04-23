@@ -13,7 +13,7 @@ This software is in development and is pre-alpha.
 
  * A Linux workstation with the following packages installed:
    
-   * `podman`
+   * `podman` (v5 or greater).
    * `make`
    * `sed`
    * `gawk`
@@ -26,25 +26,55 @@ This software is in development and is pre-alpha.
 Please notice: The dry_agent workstation does not require Docker. Only
 the remote managed server(s) need Docker.
 
-## Configure
+### Fedora dependencies
 
-On your workstation:
+```
+sudo dnf update
+sudo dnf install -y git make podman sed gawk coreutils gettext xdg-utils bash-completion
+```
+
+### Arch Linux dependencies
+
+```
+sudo pacman -Syu --noconfirm
+sudo pacman -S --noconfirm git make podman sed gawk coreutils gettext xdg-utils bash-completion
+```
+
+### Ubuntu dependencies
+
+```
+sudo apt update
+sudo apt install -y git make podman sed gawk coreutils gettext xdg-utils bash-completion
+```
+
+### Debian dependencies
+
+This does not work on Debian 12 because the podman version is too old.
+On newer versions of Debian, podman may be updated, so you can try the
+same dependencies as Ubuntu above.
+
+## Clone repository
+
+```
+git clone https://github.com/EnigmaCurry/dry_agent
+cd dry_agent
+```
+
+## Configure
 
 ```
 make config
 ```
 
-## Install
+Answer the questions to create the `.env` file.
 
-On your workstation:
+## Install
 
 ```
 make install
 ```
 
 ## Open
-
-On your workstation:
 
 ```
 make open
@@ -75,7 +105,7 @@ login again, you must retrieve a new token. When a new token used,
 client cookies are invalidated and your existing sessions are logged
 out.
 
-dry\_agent serves HTTPS with a self-signed TLS certificate for the
+`dry_agent` serves HTTPS with a self-signed TLS certificate for the
 given APP_HOST domain that you choose during `make config`. The
-/first/ time you access the app you will need to instruct your browser
+_first_ time you access the app you will need to instruct your browser
 to trust the certificate.
