@@ -64,7 +64,7 @@
   <div id="main-navbar" class="navbar-menu" class:is-active={burgerActive}>
     <div class="navbar-start">
       <a class="navbar-item is-deep-red" href="/context"> Context </a>
-      <a class="navbar-item is-deep-red" href="/traefik"> Traefik </a>
+      <a class="navbar-item is-deep-red" href="/config"> Config </a>
 
       <!-- Apps Dropdown -->
       <div

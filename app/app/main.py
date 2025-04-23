@@ -45,6 +45,7 @@ app.include_router(api_routes.repo.router)
 app.include_router(api_routes.terminal.router)
 app.include_router(api_routes.env_dist.router)
 app.include_router(api_routes.apps.router)
+app.include_router(api_routes.d_rymcg_tech.router)
 
 ## Add static frontend route LAST:
 public_path = os.path.join(
