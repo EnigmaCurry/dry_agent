@@ -86,6 +86,8 @@
         </div>
       </div>
 
+      <a class="navbar-item is-deep-red" href="/traefik"> Traefik </a>
+
       <!-- Apps Dropdown -->
       <div
         class="navbar-item has-dropdown"

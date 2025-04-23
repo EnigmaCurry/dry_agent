@@ -64,6 +64,7 @@
         } else if (message.type === "exit") {
           term.writeln("");
           term.writeln("🛑 Process Finished.");
+          term.blur();
           dispatch("exit");
         } else {
           console.warn("Unhandled message type:", message);
@@ -75,6 +76,7 @@
 
     socket.onclose = () => {
       dispatch("exit");
+      term.blur();
     };
   });
 </script>

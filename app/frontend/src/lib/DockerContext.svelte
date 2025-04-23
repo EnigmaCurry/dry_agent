@@ -460,6 +460,17 @@
                   Connect
                 </button>
                 <button
+                  class="button is-link is-small"
+                  onclick={() =>
+                    openTerminal(
+                      config.Host[0],
+                      `DOCKER_CONTEXT=${config.Host[0]} d.rymcg.tech config`,
+                      "false",
+                    )}
+                >
+                  Reconfigure
+                </button>
+                <button
                   class="button is-light is-small"
                   onclick={() => openInfoModal(config.Host[0])}
                 >
@@ -649,6 +660,10 @@
         <InlineTerminal
           restartable={terminalRestartable}
           command={terminalCommand}
+          on:close={() => {
+            showTerminal = false;
+            loadConfigs();
+          }}
         />
       </section>
     </div>
