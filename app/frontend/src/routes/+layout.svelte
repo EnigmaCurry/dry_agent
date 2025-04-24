@@ -67,27 +67,27 @@
       <a class="navbar-item is-deep-red" href="/config"> Config </a>
 
       <!-- Apps Dropdown -->
-      <div
-        class="navbar-item has-dropdown"
-        class:is-active={activeDropdown === "apps"}
-      >
-        <button
-          type="button"
-          class="navbar-link"
-          on:click={() => toggleDropdown("apps")}
-        >
-          Apps
-        </button>
-        <div class="navbar-dropdown">
-          <a
-            class="navbar-item is-deep-red"
-            href="/apps"
-            on:click={handleDropdownItemClick}
-          >
-            Available Apps
-          </a>
-        </div>
-      </div>
+      <!-- <div -->
+      <!--   class="navbar-item has-dropdown" -->
+      <!--   class:is-active={activeDropdown === "apps"} -->
+      <!-- > -->
+      <!--   <button -->
+      <!--     type="button" -->
+      <!--     class="navbar-link" -->
+      <!--     on:click={() => toggleDropdown("apps")} -->
+      <!--   > -->
+      <!--     Apps -->
+      <!--   </button> -->
+      <!--   <div class="navbar-dropdown"> -->
+      <!--     <a -->
+      <!--       class="navbar-item is-deep-red" -->
+      <!--       href="/apps" -->
+      <!--       on:click={handleDropdownItemClick} -->
+      <!--     > -->
+      <!--       Available Apps -->
+      <!--     </a> -->
+      <!--   </div> -->
+      <!-- </div> -->
       <a class="navbar-item is-deep-red" href="/repository"> Repository </a>
       <a class="navbar-item is-deep-red" href="/workstation"> Workstation </a>
     </div>

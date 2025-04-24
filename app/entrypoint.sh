@@ -43,5 +43,6 @@ EOF
 # Ensure SSHD runtime dir exists
 mkdir -p /var/run/sshd
 
-# Start Supervisor
-exec /usr/bin/supervisord -n -c /etc/supervisor/conf.d/supervisord.conf
+/usr/sbin/sshd
+
+exec python -m uvicorn app.main:app --host 0.0.0.0 --port 8001 --log-level info

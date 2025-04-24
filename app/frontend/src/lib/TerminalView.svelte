@@ -1,5 +1,5 @@
 <script>
-  import { onMount, createEventDispatcher } from "svelte";
+  import { onMount, onDestroy, createEventDispatcher } from "svelte";
   import { Terminal } from "@xterm/xterm";
   import { FitAddon } from "@xterm/addon-fit";
   import "@xterm/xterm/css/xterm.css";
@@ -12,11 +12,14 @@
   export let fullscreen = false;
 
   const dispatch = createEventDispatcher();
+  let socket;
+  let resizeHandler;
+  let term;
   let terminalContainer;
 
   onMount(() => {
     console.log("fontSize", fontSize);
-    const term = new Terminal({
+    term = new Terminal({
       fontSize: parseInt(fontSize),
       lineHeight: parseFloat(lineHeight),
       fontFamily,
@@ -30,7 +33,7 @@
     terminalContainer.addEventListener("click", () => term.focus());
 
     const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-    const socket = new WebSocket(
+    socket = new WebSocket(
       `${protocol}://${window.location.host}/api/terminal/ws`,
     );
 
@@ -44,10 +47,12 @@
       console.error("WebSocket error:", error);
     };
 
-    window.addEventListener("resize", () => {
+    resizeHandler = () => {
       fitAddon.fit();
       sendResize();
-    });
+    };
+
+    window.addEventListener("resize", resizeHandler);
 
     function sendResize() {
       const { cols, rows } = term;
@@ -80,6 +85,14 @@
       dispatch("exit");
       term.blur();
     };
+
+  });
+  onDestroy(() => {
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.close(1000, "Component unmounted");
+    }
+    window.removeEventListener("resize", resizeHandler);
+    term.dispose();
   });
 </script>
 

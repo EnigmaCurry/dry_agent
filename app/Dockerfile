@@ -55,7 +55,7 @@ WORKDIR /app
 
 # Install runtime Python and pip
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3 python3-pip openssh-server supervisor \
+    python3 python3-pip openssh-server tini \
     && rm -rf /var/lib/apt/lists/* && \
     ln -s /usr/bin/python3 /usr/local/bin/python && \
     ln -s /usr/bin/pip3 /usr/local/bin/pip && \
@@ -69,10 +69,11 @@ COPY app app
 COPY --from=frontend-builder /app/frontend/build ./public
 
 # Make entrypoint executable
-COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 EXPOSE 8001 22
 
-ENTRYPOINT ["/entrypoint.sh"]
+ENTRYPOINT ["/usr/bin/tini", "--"]
+
+CMD /entrypoint.sh
