@@ -20,6 +20,7 @@ RUN apt-get update && \
         openssl \
         ssh \
         sshfs \
+        tmux \
         w3m \
         wireguard \
         wget \
