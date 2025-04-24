@@ -1,9 +1,47 @@
 <script>
+  import { onMount } from "svelte";
   import "bulma/css/bulma.min.css";
   import "../../static/styles.css";
+  import { currentContext } from "$lib/stores";
+
+  let dockerContexts = $state([]);
+  let showDockerDropdown = false;
 
   let burgerActive = false;
   let activeDropdown = null;
+
+  onMount(async () => {
+    try {
+      const defaultRes = await fetch("/api/docker_context/default");
+      if (defaultRes.ok) {
+        const data = await defaultRes.json();
+        currentContext.set(data.default_context);
+      }
+
+      const res = await fetch("/api/docker_context/");
+      if (res.ok) {
+        dockerContexts = (await res.json()).filter(ctx => ctx !== "default");
+        // fallback in case default context not yet set
+        if (!currentContext && dockerContexts.length > 0) {
+          currentContext.set(dockerContexts[0]);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to fetch docker contexts", err);
+    }
+  });
+
+  async function setDefaultContext(context) {
+    const res = await fetch(`/api/docker_context/${context}/default`, {
+      method: "PUT"
+    });
+    if (res.ok) {
+      currentContext.set(context);
+      showDockerDropdown = false;
+    } else {
+      console.error("Failed to set default Docker context");
+    }
+  }
 
   function toggleBurger() {
     burgerActive = !burgerActive;
@@ -90,6 +128,23 @@
       <!-- </div> -->
       <a class="navbar-item is-deep-red" href="/repository"> Repository </a>
       <a class="navbar-item is-deep-red" href="/workstation"> Workstation </a>
+    </div>
+    <div class="navbar-end">
+      <div class="navbar-item has-dropdown is-hoverable" class:is-active={showDockerDropdown}>
+        <a class="navbar-link" on:click={() => (showDockerDropdown = !showDockerDropdown)}>
+          Context: {$currentContext ?? "Loading..."}
+        </a>
+        <div class="navbar-dropdown is-right">
+          {#each dockerContexts as context}
+            <a
+              class="navbar-item"
+              on:click={() => setDefaultContext(context)}
+              >
+              {context}
+            </a>
+          {/each}
+        </div>
+      </div>
     </div>
   </div>
 </nav>

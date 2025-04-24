@@ -1,6 +1,7 @@
 <script>
   import { onMount } from "svelte";
   import Terminal from "./Terminal.svelte"; // Adjust path as needed
+  import { currentContext } from "$lib/stores";
 
   /**
    * @typedef {Object} SSHConfig
@@ -366,6 +367,7 @@
       });
       if (response.ok) {
         defaultContext = host;
+        currentContext.set(host);
       } else {
         alert("Failed to set default Docker context.");
       }
