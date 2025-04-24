@@ -1,3 +1,12 @@
+# Only do this for interactive SSH sessions (i.e., no remote command passed)
+case "$-" in
+    *i*)  # shell is interactive
+        if [ -n "$SSH_CONNECTION" ] && [ -z "$TMUX" ] && [ -z "$SSH_ORIGINAL_COMMAND" ]; then
+            exec tmux new-session -A -s work
+        fi
+        ;;
+esac
+
 export TERM=xterm-256color
 alias ls='ls --color=auto'
 
@@ -5,3 +14,40 @@ export PATH=${PATH}:${HOME}/git/vendor/enigmacurry/d.rymcg.tech/_scripts/user
 eval "$(d.rymcg.tech completion bash)"
 __d.rymcg.tech_cli_alias d
 __d.rymcg.tech_project_alias traefik
+
+export PS1_HOSTNAME=dry_agent
+## PS1 generator
+## adapted from https://gist.github.com/xenji/2292341
+ps1_generator() {
+    # docker context inspect --format '{{ .Name }}'
+    Time12h="\T"; Time12a="\@"; ShortHost="${PS1_HOSTNAME:-\h}"; Username="\u";
+    PathShort="\W"; PathFull="\w"; NewLine="\n"; Jobs="\j";
+    source ~/.config/git-prompt.sh
+    Color_Off="\[\033[0m\]"; IBlack="\[\033[0;90m\]"; BWhite="\[\033[1;37m\]"; BGreen="\[\033[1;32m\]";
+    BIRed="\[\033[1;91m\]"; BIWhite="\[\033[1;97m\]"; BIPurple="\[\033[1;95m\]"; BIBlue="\[\033[1;94m\]";
+    GIT_PS1='$(git branch &>/dev/null;\
+if [ $? -eq 0 ]; then \
+  echo "$(echo `git status` | grep "nothing to commit" > /dev/null 2>&1; \
+  DIRTY="$?"; \
+  HEADREV=`git log --pretty=%h -n 1`; \
+  echo -n "|G:'${BWhite}'$HEADREV"; \
+  if [ "$DIRTY" -eq "0" ]; then \
+    # @4 - Clean repository - nothing to commit
+    echo "@'${BGreen}'"$(__git_ps1 "(%s)"); \
+  else \
+    # @5 - Changes to working tree
+    echo "'${BIBlue}'@'${BIRed}'"$(__git_ps1 "{%s}"); \
+  fi)'${Color_Off}'"; \
+else \
+  # @2 - Prompt when not in GIT repo
+  echo ""; \
+fi)'
+    if docker context inspect >/dev/null 2>&1; then
+        DOCKER_PS1='|D:'${BIBlue}'$(docker context inspect --format "{{ .Name }}")'
+    fi
+    USER_PS1=${BIPurple}${Username}'@'${ShortHost}${Color_Off}
+    PATH_PS1='|'${BWhite}${PathShort}${Color_Off}
+    export PS1='['${USER_PS1}${GIT_PS1}${DOCKER_PS1}${PATH_PS1}']\n$ '
+}
+ps1_generator
+unset -f ps1_generator

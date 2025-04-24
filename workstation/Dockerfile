@@ -2,30 +2,37 @@ FROM debian:12
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-        apache2-utils \
-        apt-utils \
-        bash \
-        bsdmainutils \
-        build-essential \
-        ca-certificates \
-        curl \
-        emacs-nox \
-        gettext \
-        git \
-        gpg \
-        inotify-tools \
-        jq \
-        less \
-        moreutils \
-        openssl \
-        ssh \
-        sshfs \
-        tmux \
-        w3m \
-        wireguard \
-        wget \
-        xdg-utils && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
+    apache2-utils \
+    apt-utils \
+    bash \
+    bsdmainutils \
+    build-essential \
+    ca-certificates \
+    curl \
+    dnsutils \
+    emacs-nox \
+    gettext \
+    git \
+    gpg \
+    inotify-tools \
+    iputils-ping \
+    iproute2 \
+    jq \
+    less \
+    moreutils \
+    netcat-openbsd \
+    nmap \
+    openssl \
+    ssh \
+    sshfs \
+    tmux \
+    w3m \
+    wireguard \
+    wget \
+    whois \
+    xdg-utils && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 RUN curl -sSL https://get.docker.com | sh
 RUN cd $(mktemp -d) && \
@@ -36,10 +43,12 @@ RUN cd $(mktemp -d) && \
 
 WORKDIR /root
 
-RUN git clone https://github.com/EnigmaCurry/d.rymcg.tech.git \
+RUN mkdir -p /root/.config && \
+    git clone https://github.com/EnigmaCurry/d.rymcg.tech.git \
     ~/git/vendor/enigmacurry/d.rymcg.tech
 RUN YES=yes ~/git/vendor/enigmacurry/d.rymcg.tech/_scripts/install_script-wizard
 
+ADD https://raw.github.com/git/git/master/contrib/completion/git-prompt.sh /root/.config/git-prompt.sh
 COPY bashrc /root/.bashrc
 COPY tmux.conf /root/.tmux.conf
 
