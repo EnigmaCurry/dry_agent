@@ -307,7 +307,7 @@
         return;
       }
 
-      newSSHConfig = { Host: "", Hostname: "", User: "", Port: 22 };
+      newSSHConfig = { Host: "", Hostname: "", User: "root", Port: 22 };
       showForm = false;
 
       await loadConfigs();
@@ -315,6 +315,7 @@
       // 🔽 Set as default if this is the only SSH context
       if (sshConfigs.length === 1) {
         const firstHost = sshConfigs[0].Host[0];
+        await testDockerContext(firstHost);
         await setDefaultContext(firstHost);
       }
 
