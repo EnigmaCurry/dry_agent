@@ -41,4 +41,6 @@ RUN git clone https://github.com/EnigmaCurry/d.rymcg.tech.git \
 RUN YES=yes ~/git/vendor/enigmacurry/d.rymcg.tech/_scripts/install_script-wizard
 
 COPY bashrc /root/.bashrc
+COPY tmux.conf /root/.tmux.conf
+
 VOLUME /root
