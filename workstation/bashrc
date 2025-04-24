@@ -8,6 +8,7 @@ case "$-" in
 esac
 
 export TERM=xterm-256color
+export LANG=en_US.UTF-8
 alias ls='ls --color=auto'
 
 export PATH=${PATH}:${HOME}/git/vendor/enigmacurry/d.rymcg.tech/_scripts/user
@@ -51,3 +52,6 @@ fi)'
 }
 ps1_generator
 unset -f ps1_generator
+
+#neofetch --disable resolution --disable uptime
+

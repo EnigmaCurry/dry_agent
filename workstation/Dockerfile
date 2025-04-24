@@ -5,6 +5,7 @@ RUN apt-get update && \
     apache2-utils \
     apt-utils \
     bash \
+    bash-completion \
     bsdmainutils \
     build-essential \
     ca-certificates \
@@ -20,8 +21,10 @@ RUN apt-get update && \
     jq \
     less \
     moreutils \
+    neofetch \
     netcat-openbsd \
     nmap \
+    locales \
     openssl \
     ssh \
     sshfs \
@@ -30,9 +33,7 @@ RUN apt-get update && \
     wireguard \
     wget \
     whois \
-    xdg-utils && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+    xdg-utils
 
 RUN curl -sSL https://get.docker.com | sh
 RUN cd $(mktemp -d) && \

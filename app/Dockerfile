@@ -25,8 +25,7 @@ ENV PIP_BREAK_SYSTEM_PACKAGES=1
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl build-essential gcc python3 python3-dev python3-pip python3-venv \
     && pip3 install --upgrade pip \
-    && pip3 install poetry \
-    && rm -rf /var/lib/apt/lists/*
+    && pip3 install poetry
 
 # Only copy dependency files
 COPY pyproject.toml poetry.lock ./
@@ -55,8 +54,7 @@ WORKDIR /app
 
 # Install runtime Python and pip
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3 python3-pip openssh-server tini \
-    && rm -rf /var/lib/apt/lists/* && \
+    python3 python3-pip openssh-server tini && \
     ln -s /usr/bin/python3 /usr/local/bin/python && \
     ln -s /usr/bin/pip3 /usr/local/bin/pip && \
     mkdir -p /var/run/sshd
@@ -71,6 +69,8 @@ COPY --from=frontend-builder /app/frontend/build ./public
 # Make entrypoint executable
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
+
+RUN locale-gen en_US.UTF-8
 
 EXPOSE 8001 22
 
