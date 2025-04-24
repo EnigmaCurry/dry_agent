@@ -11,7 +11,7 @@ export TERM=xterm-256color
 export LANG=en_US.UTF-8
 alias ls='ls --color=auto'
 
-export PATH=${PATH}:${HOME}/git/vendor/enigmacurry/d.rymcg.tech/_scripts/user
+export PATH=${PATH}:${HOME}/git/vendor/enigmacurry/d.rymcg.tech/_scripts/user:${HOME}/.local/bin
 eval "$(d.rymcg.tech completion bash)"
 __d.rymcg.tech_cli_alias d
 __d.rymcg.tech_project_alias traefik
