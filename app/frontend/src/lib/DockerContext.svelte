@@ -1,6 +1,6 @@
 <script>
   import { onMount } from "svelte";
-  import InlineTerminal from "./InlineTerminal.svelte"; // Adjust path as needed
+  import Terminal from "./Terminal.svelte"; // Adjust path as needed
 
   /**
    * @typedef {Object} SSHConfig
@@ -634,7 +634,7 @@
   </div>
 </div>
 
-<!-- Overlay modal for InlineTerminal -->
+<!-- Overlay modal for Terminal -->
 {#if showTerminal}
   <div class="modal is-active">
     <div
@@ -657,7 +657,7 @@
         ></button>
       </header>
       <section class="modal-card-body">
-        <InlineTerminal
+        <Terminal
           restartable={terminalRestartable}
           command={terminalCommand}
           on:close={() => {

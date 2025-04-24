@@ -1,9 +1,9 @@
 <script>
-  import Terminal from "$lib/Terminal.svelte";
+  import Terminal from "../../lib/Terminal.svelte";
 </script>
 
 <svelte:head>
   <title>dry_agent - Terminal</title>
 </svelte:head>
 
-<Terminal />
+<Terminal fullscreen=true fontSize=20 restartable=true command="cd ~/git/vendor/enigmacurry/d.rymcg.tech && /bin/bash"/>

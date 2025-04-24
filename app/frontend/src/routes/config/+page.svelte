@@ -1,6 +1,6 @@
 <script>
   import { onMount } from "svelte";
-  import InlineTerminal from "$lib/InlineTerminal.svelte";
+  import Terminal from "$lib/Terminal.svelte";
 
   let instanceId = 0;
 </script>
@@ -9,7 +9,7 @@
   <title>dry_agent - Config</title>
 </svelte:head>
 
-<InlineTerminal
+<Terminal
   restartable="true"
   fullscreen=true
   fontSize=20

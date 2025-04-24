@@ -1,5 +1,5 @@
 <script>
-  import InlineTerminal from "$lib/InlineTerminal.svelte";
+  import Terminal from "$lib/Terminal.svelte";
 </script>
 
 <svelte:head>
@@ -8,6 +8,6 @@
 
 <p>Hello!</p>
 
-<InlineTerminal command="/bin/bash" fontSize="12" height="300px" />
+<Terminal command="/bin/bash" fontSize="12" height="300px" />
 
 <p>L8R</p>
