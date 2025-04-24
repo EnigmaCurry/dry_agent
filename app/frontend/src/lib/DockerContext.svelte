@@ -303,16 +303,21 @@
       });
       const data = await response.json();
       if (!response.ok) {
-        // Show error detail from response, or a default error message.
-        formError =
-          data.detail || "An error occurred while adding the SSH connection.";
+        formError = data.detail || "An error occurred while adding the SSH connection.";
         return;
       }
-      // Clear the form and close the dialog.
+
       newSSHConfig = { Host: "", Hostname: "", User: "", Port: 22 };
       showForm = false;
-      // Refresh the table.
-      loadConfigs();
+
+      await loadConfigs();
+
+      // 🔽 Set as default if this is the only SSH context
+      if (sshConfigs.length === 1) {
+        const firstHost = sshConfigs[0].Host[0];
+        await setDefaultContext(firstHost);
+      }
+
     } catch (err) {
       formError = err instanceof Error ? err.message : String(err);
       console.error("Error adding SSH configuration:", err);
