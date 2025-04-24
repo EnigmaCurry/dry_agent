@@ -4,20 +4,18 @@
 
   const dispatch = createEventDispatcher();
 
-  let {
-    command = "/bin/bash",
-    restartable = "false",
-    fontSize = 14,
-    height = "300px",
-    fontFamily = "monospace",
-    lineHeight = 1.0,
-  } = $props();
+  export let command = "/bin/bash";
+  export let restartable = "false";
+  export let fontSize = 14;
+  export let height = "300px";
+  export let fontFamily = "monospace";
+  export let lineHeight = 1.0;
+  export let fullscreen = false;
 
-  let isRestartable = $derived(restartable === "true" || restartable === true);
-
-  let terminalKey = $state(Date.now());
-  let showRestart = $state(false);
-  let hasExited = $state(false);
+  let isRestartable = restartable === "true" || restartable === true;
+  let terminalKey = Date.now();
+  let showRestart = false;
+  let hasExited = false;
 
   function handleKeydown(e) {
     if (e.key === "Escape" && hasExited) {
@@ -44,13 +42,14 @@
 </script>
 
 {#key terminalKey}
-  <div style="position: relative;">
+  <div class={fullscreen ? 'inline-terminal-fullscreen' : 'inline-terminal-wrapper'}>
     <TerminalView
       {command}
       {fontSize}
-      {height}
+      height={fullscreen ? "100%" : height}
       {fontFamily}
       {lineHeight}
+      {fullscreen}
       on:exit={() => {
         if (isRestartable) {
           showRestart = true;
@@ -60,17 +59,47 @@
       }}
     />
     {#if showRestart}
-      <div
-        id="inline-restart-overlay"
-        style="display: flex; flex-direction: column; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(20,20,20,0.9); color: #fff; align-items: center; justify-content: center; z-index: 10;"
-        >
-        <button class="button is-primary" onclick={restartTerminal}>
+      <div id="inline-restart-overlay">
+        <button class="button is-primary" on:click={restartTerminal}>
           Restart Terminal?
         </button>
-        <p style="margin-top: 1em;">
-          Press ESC to close.
-        </p>
+        <p>Press ESC to close.</p>
       </div>
     {/if}
   </div>
 {/key}
+
+<style>
+  .inline-terminal-wrapper {
+    position: relative;
+  }
+
+  .inline-terminal-fullscreen {
+    position: fixed;
+    top: 4rem;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 5;
+    background: black;
+  }
+
+  #inline-restart-overlay {
+    display: flex;
+    flex-direction: column;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(20, 20, 20, 0.9);
+    color: #fff;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+  }
+
+  #inline-restart-overlay p {
+    margin-top: 1em;
+  }
+</style>

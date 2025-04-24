@@ -9,11 +9,13 @@
   export let height = "300px";
   export let fontFamily = "monospace";
   export let lineHeight = 1.0;
+  export let fullscreen = false;
 
   const dispatch = createEventDispatcher();
   let terminalContainer;
 
   onMount(() => {
+    console.log("fontSize", fontSize);
     const term = new Terminal({
       fontSize: parseInt(fontSize),
       lineHeight: parseFloat(lineHeight),
@@ -84,5 +86,16 @@
 <div
   id="inline-terminal-container"
   bind:this={terminalContainer}
-  style="width: 100%; height: {height}; border: 1px solid #ccc; margin: 1em 0; position: relative;"
+  class:inline-terminal-default-style={!fullscreen}
+  style={fullscreen ? "width: 100%; height: 100%;" : ""}
 ></div>
+
+<style>
+  .inline-terminal-default-style {
+    width: 100%;
+    height: var(--terminal-height, 300px); /* Fallback for inline use */
+    border: 1px solid #ccc;
+    margin: 1em 0;
+    position: relative;
+  }
+</style>
