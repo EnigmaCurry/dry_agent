@@ -84,6 +84,22 @@ copy it:
 make get-url
 ```
 
+## Authorize SSH service
+
+As an alternative to using the webapp, you may wish to connect
+directly to the `dry_agent` workstation via SSH:
+
+Authorize your SSH key:
+
+```
+make ssh-authorize
+```
+
+Paste your SSH public key into the prompt.
+
+You can SSH into the container as the user `root` on port `2225`
+(`PUBLIC_SSH_PORT`).
+
 ## Security
 
 The default configuration ([.env-dist](.env-dist)) only allows to
@@ -91,7 +107,12 @@ connect via localhost. This is accomplished by the setting
 `PUBLIC_SUBNET=127.0.0.1/32`. If you want to allow other hosts to
 connect, you can put your desired subnet CIDR here. To allow all
 networks, set `PUBLIC_SUBNET=0.0.0.0/0`. The default port is set by
-`PUBLIC_PORT=8123`.
+`PUBLIC_PORT=8123`. 
+
+The app is technically available to localhost at port
+`APP_LOCALHOST_PORT` (35123), however this port should not be used
+directly, except by Traefik. Traefik proxies the local server to
+`PUBLIC_SUBNET` on port `PUBLIC_PORT` (8123).
 
 The TLS certificate is self-signed, and by default is certified for a
 period of 10 years (`TLS_EXPIRES=3560` [days]). The CN for the
@@ -110,3 +131,7 @@ so you will stay logged in indefinitely. To login with a new browser,
 you must retrieve a new token. When a new token used, client cookies
 are invalidated and your existing sessions are logged out.
 
+There is an SSH server built in which is an alternative to using the
+webapp. The SSH server listens on localhost at `SSH_LOCALHOST_PORT`
+(35222) and Traefik proxies this port to `PUBLIC_SUBNET` on port
+`PUBLIC_SSH_PORT` (2225).

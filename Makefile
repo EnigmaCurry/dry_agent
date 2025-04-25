@@ -69,7 +69,7 @@ config: deps
 
 .PHONY: install # Install the containers
 install: deps expect-config build uninstall
-	@setct -a; \
+	@set -a; \
 	source .env; \
 	podman run --name dry-agent-app --label project=dry-agent -d \
            -v dry-agent-workstation-data:/root \
@@ -185,6 +185,6 @@ ssh-authorize:
 			touch $$HOME/.ssh/authorized_keys && \
 			chmod 700 $$HOME/.ssh && \
 			chmod 600 $$HOME/.ssh/authorized_keys && \
-			read -r key && grep -qxF "$$key" $$HOME/.ssh/authorized_keys || echo "$$key" >> $$HOME/.ssh/authorized_keys' <<< "$$sshkey"; \
+			read -r key && grep -qxF "$$key" $$HOME/.ssh/authorized_keys || echo "$$key" >> $$HOME/.ssh/authorized_keys' <<< "$$sshkey" && \
 		echo "✅ SSH key successfully authorized."; \
 	fi
