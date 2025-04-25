@@ -22,8 +22,19 @@ This software is in development and is pre-alpha.
    
  * One or more remote Docker servers (or VMs) for dry_agent to manage.
 
-Please notice: The dry_agent workstation does not require Docker. Only
-the remote managed server(s) need Docker.
+## Features
+
+ * `dry_agent` is a Podman containerized workstation, designed to
+   manage _remote_ Docker hosts. It does not require Docker itself.
+
+ * `dry_agent` uses Podman rootless, it does not require root access.
+ 
+ * `dry_agent` offers a web application with embedded terminal _and_
+   an SSH service.
+
+ * `dry_agent` has minimal host dependencies, with a
+   [Makefile](Makefile) to wrap all configuration and management
+   functions.
 
 ### Fedora dependencies
 
