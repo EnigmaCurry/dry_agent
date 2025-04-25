@@ -1,0 +1,48 @@
+tls:
+  certificates:
+    - certFile: /certs/self.crt
+      keyFile: /certs/self.key
+
+http:
+  routers:
+    app-router:
+      rule: "PathPrefix(`/`)"
+      entryPoints: ["websecure"]
+      service: app-service
+      tls: {}
+      middlewares:
+        - app-allowlist
+
+  services:
+    app-service:
+      loadBalancer:
+        servers:
+          - url: "http://127.0.0.1:${APP_LOCALHOST_PORT}"
+
+  middlewares:
+    app-allowlist:
+      ipAllowList:
+        sourceRange:
+          - "${PUBLIC_SUBNET}"
+
+tcp:
+  routers:
+    ssh-router:
+      entryPoints:
+        - ssh
+      rule: "HostSNI(`*`)"
+      service: ssh-service
+      middlewares:
+        - ssh-allowlist
+
+  services:
+    ssh-service:
+      loadBalancer:
+        servers:
+          - address: "127.0.0.1:${SSH_LOCALHOST_PORT}"
+
+  middlewares:
+    ssh-allowlist:
+      ipAllowList:
+        sourceRange:
+          - "${PUBLIC_SUBNET}"

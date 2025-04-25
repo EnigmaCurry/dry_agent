@@ -30,89 +30,80 @@ expect-config:
 		exit 1; \
 	fi
 
-.PHONY: config # Interactively generate the .env file from .env-dist
+.PHONY: config
 config: deps
 	@if [ ! -f .env-dist ]; then \
 		echo "❌ Missing .env-dist template file."; \
 		exit 1; \
-	fi
-	@if [ -f .env ]; then \
-		echo "⚠️  .env already exists. Skipping creation. Run 'make clean' if you wish to delete the config."; \
-	else \
-		echo "🛠️  Creating .env interactively from .env-dist..."; \
-		touch .env; \
-		awk ' \
-			BEGIN { comment = "" } \
-			/^\s*#/ { \
-				comment = (comment ? comment ORS : "") $$0; \
-				next; \
-			} \
-			/^\s*$$/ { comment = ""; next } \
-			/^[A-Za-z_][A-Za-z0-9_]*=/ { \
-				split($$0, parts, "="); \
-				var=parts[1]; \
-				def=substr($$0, index($$0, "=") + 1); \
-				if (comment) print "\n" comment; \
-				printf "> %s [%s]: ", var, def; \
-				getline input < "/dev/tty"; \
-				if (input == "") input = def; \
-				print var "=" input >> ".env"; \
-				comment = ""; \
-			} \
-		' .env-dist; \
-		echo -e "\n✅ .env file created successfully."; \
-	fi
-
-.PHONY: secret.yaml
-secret.yaml:
-	@echo "Generating secret.yaml from template..."
-	@set -a; \
-	source .env; \
-	envsubst < secret.template.yaml > secret.yaml
-
-.PHONY: deployment.yaml
-deployment.yaml:
-	@echo "Generating deployment.yaml from template..."
-	@set -a; \
-	source .env; \
-	envsubst < deployment.template.yaml > deployment.yaml
-
-.PHONY: install # Install the pod
-install: deps expect-config secret.yaml deployment.yaml build
-	@podname=dry-agent; \
-	echo "🔄 Reinstalling pod $$podname..."; \
-	if podman pod exists $$podname; then \
-		echo "⏹️  Bringing down existing pod..."; \
-		podman play kube --down deployment.yaml || true; \
-		sleep 1; \
 	fi; \
-	if podman pod exists $$podname; then \
-		echo "❗ Pod $$podname still exists — removing manually..."; \
-		podman pod rm -f $$podname; \
-	fi;
-	podman play kube secret.yaml
-	podman play kube deployment.yaml
-	@${MAKE} --no-print-directory status
+	[ -f .env ] && cp .env .env.bak || touch .env.bak; \
+	echo "🛠️  Generating .env interactively (using existing values as defaults if present)..."; \
+	touch .env; \
+	awk ' \
+		BEGIN { \
+			comment = ""; \
+			while ((getline line < ".env.bak") > 0) { \
+				if (line ~ /^[A-Za-z_][A-Za-z0-9_]*=/) { \
+					split(line, kv, "="); \
+					existing[kv[1]] = substr(line, index(line, "=") + 1); \
+				} \
+			} \
+		} \
+		/^\s*#/ { comment = (comment ? comment ORS : "") $$0; next } \
+		/^\s*$$/ { comment = ""; next } \
+		/^[A-Za-z_][A-Za-z0-9_]*=/ { \
+			split($$0, parts, "="); \
+			var=parts[1]; \
+			def=substr($$0, index($$0, "=") + 1); \
+			if (var in existing) def = existing[var]; \
+			if (comment) print "\n" comment; \
+			printf "> %s [%s]: ", var, def; \
+			getline input < "/dev/tty"; \
+			if (input == "") input = def; \
+			print var "=" input >> ".env"; \
+			comment = ""; \
+		} \
+	' .env-dist; \
+	rm -f .env.bak; \
+	echo -e "\n✅ .env file configured successfully."
+
+.PHONY: install # Install the containers
+install: deps expect-config build uninstall
+	@setct -a; \
+	source .env; \
+	podman run --name dry-agent-app --label project=dry-agent -d \
+           -v dry-agent-workstation-data:/root \
+           -e PUBLIC_HOST=$${PUBLIC_HOST} -e PUBLIC_PORT=$${PUBLIC_PORT}  \
+           -p 127.0.0.1:$${APP_LOCALHOST_PORT}:8001 \
+	       -p 127.0.0.1:$${SSH_LOCALHOST_PORT}:22 \
+	       localhost/dry-agent/app; \
+	podman run --name dry-agent-proxy --label project=dry-agent -d \
+	       -v dry-agent-traefik-certs:/certs \
+	       -e PUBLIC_SUBNET=$${PUBLIC_SUBNET} \
+	       -e PUBLIC_HOST=$${PUBLIC_HOST} \
+	       -e PUBLIC_PORT=$${PUBLIC_PORT} \
+	       -e PUBLIC_SSH_PORT=$${PUBLIC_SSH_PORT} \
+	       -e APP_LOCALHOST_PORT=$${APP_LOCALHOST_PORT} \
+	       -e SSH_LOCALHOST_PORT=$${SSH_LOCALHOST_PORT} \
+	       -e TLS_EXPIRES=$${TLS_EXPIRES} \
+	       --network host \
+	       localhost/dry-agent/traefik;
+	@echo
+	@podman ps --filter "label=project=dry-agent"
 
 .PHONY: uninstall # Remove the pod (but keep the volumes)
 uninstall:
-	podman pod rm -f dry-agent
-	podman play kube --down secret.yaml
+	podman rm -f dry-agent-app
+	podman rm -f dry-agent-proxy
 
 .PHONY: destroy # Remove the pod AND delete its volumes
 destroy: deps uninstall
-	@read -p "⚠️  This will permanently delete all volumes from dry-agent. Are you sure? [y/N] " confirm; \
-	if [ "$$confirm" = "y" ] || [ "$$confirm" = "Y" ]; then \
-		for vol in $$(podman run -i --rm docker.io/mikefarah/yq '.spec.volumes[] | select(.persistentVolumeClaim) | .persistentVolumeClaim.claimName' < deployment.yaml); do \
-			echo "🧹 Removing volume $$vol..."; \
-			podman volume rm $$vol || true; \
-		done \
-	else \
-		echo "❌ Aborted."; \
-	fi
+	podman volume rm -f dry-agent-workstation-data
+	podman volume rm -f dry-agent-hushcrumbs-data
+	podman volume rm -f dry-agent-traefik-certs
 
 clean:
-	rm -f secret.yaml deployment.yaml .env
+	rm -f .env
 
 .PHONY: build
 build: deps
@@ -147,18 +138,14 @@ expect-images:
 status:
 	podman pod ps --filter name=dry-agent
 
-.PHONY: logs # Stream logs from the pod (press CTRL+C to stop)
+
+.PHONY: logs # Show the app logs
 logs:
-	@podname=dry-agent; \
-	infra_id=$$(podman pod inspect $$podname --format '{{.InfraContainerID}}'); \
-	for c in $$(podman pod inspect $$podname --format '{{range .Containers}}{{.ID}}{{"\n"}}{{end}}'); do \
-		if [ "$$c" != "$$infra_id" ]; then \
-			name=$$(podman inspect --format '{{.Name}}' $$c | sed 's|/||'); \
-			echo "▶ Streaming logs for $$name..."; \
-			podman logs -f $$c | sed "s/^/[$$name] /" & \
-		fi; \
-	done; \
-	wait
+	podman logs -f dry-agent-app
+
+.PHONY: traefik-logs # Show the traefik logs
+traefik-logs:
+	podman logs -f dry-agent-proxy
 
 .PHONY: start # Start the pod (must be installed already)
 start:
@@ -204,8 +191,8 @@ up:
 	trap 'echo -e "\n⏹️  Stopping pod $$podname..."; podman pod stop $$podname' INT; \
 	wait $$pids
 
-.PHONY: get-token # Get the webapp authentication token
-get-token:
+.PHONY: get-url # Get the webapp authentication URL
+get-url:
 	@podman exec -it dry-agent-app python app/get_token.py
 	@echo
 
@@ -214,10 +201,13 @@ open:
 	@token_url=$$(podman exec -it dry-agent-app python app/get_token.py | grep '^http'); \
 	xdg-open $$token_url
 
-
 .PHONY: shell # Exec into the workstation container
 shell:
 	podman exec -it -w /root/git/vendor/enigmacurry/d.rymcg.tech dry-agent-app /bin/bash
+
+.PHONY: traefik-shell # Exec into the traefik container
+traefik-shell:
+	podman exec -it dry-agent-proxy /bin/sh
 
 .PHONY: ssh-authorize # Authorize a SSH public key
 ssh-authorize:

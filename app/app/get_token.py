@@ -2,8 +2,8 @@
 import requests
 import os
 
-APP_HOST = os.environ["APP_HOST"]
-APP_PORT = os.environ["APP_PORT"]
+PUBLIC_HOST = os.environ["PUBLIC_HOST"]
+PUBLIC_PORT = os.environ["PUBLIC_PORT"]
 
 
 def main():
@@ -22,7 +22,7 @@ def main():
         with open("current_token.txt", "r") as f:
             token_from_file = f.read().strip()
         print()
-        print(f"https://{APP_HOST}:{APP_PORT}/login#{token_from_file}")
+        print(f"https://{PUBLIC_HOST}:{PUBLIC_PORT}/login#{token_from_file}")
     except Exception as e:
         print("Error reading token file:", e)
         raise

@@ -1,0 +1,12 @@
+entryPoints:
+  websecure:
+    address: ":${PUBLIC_PORT}"
+  ssh:
+    address: ":${PUBLIC_SSH_PORT}"
+
+providers:
+  file:
+    filename: /etc/traefik/dynamic.yaml
+
+log:
+  level: WARN
