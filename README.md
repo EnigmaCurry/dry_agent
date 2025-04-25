@@ -146,8 +146,8 @@ automatically) and/or `make get-url` (to copy the URL manually). The
 token is also viewable inside the workstation filesystem at
 `/app/current_token.txt`. Your browser session will store the cookie
 so you will stay logged in indefinitely. To login with a new browser,
-you must retrieve a new token. When a new token used, client cookies
-are invalidated and your existing sessions are logged out.
+you must retrieve a new token. When a new token is used, the client
+cookies are invalidated and your existing sessions are logged out.
 
 There is an SSH server built in which is an alternative to using the
 webapp. The SSH server listens on localhost at `SSH_LOCALHOST_PORT`
