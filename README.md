@@ -19,7 +19,8 @@ This software is in development and is pre-alpha.
    * `gettext`
    * `xdg-utils`
    
- * One or more remote Docker servers (or VMs) for dry_agent to manage.
+ * One or more remote Docker servers (or VMs) for `dry_agent` to
+   manage.
 
 ## Features
 
