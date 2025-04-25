@@ -91,12 +91,12 @@ install: deps expect-config build uninstall
 	@echo
 	@podman ps --filter "label=project=dry-agent"
 
-.PHONY: uninstall # Remove the pod (but keep the volumes)
+.PHONY: uninstall # Remove the containers (but keep the volumes)
 uninstall:
 	podman rm -f dry-agent-app
 	podman rm -f dry-agent-proxy
 
-.PHONY: destroy # Remove the pod AND delete its volumes
+.PHONY: destroy # Remove the containers AND delete its volumes
 destroy: deps uninstall
 	podman volume rm -f dry-agent-workstation-data
 	podman volume rm -f dry-agent-hushcrumbs-data
@@ -136,7 +136,7 @@ expect-images:
 
 .PHONY: status # Show the status of the pod
 status:
-	podman pod ps --filter name=dry-agent
+	@podman ps --filter "label=project=dry-agent"
 
 
 .PHONY: logs # Show the app logs
@@ -147,49 +147,13 @@ logs:
 traefik-logs:
 	podman logs -f dry-agent-proxy
 
-.PHONY: start # Start the pod (must be installed already)
+.PHONY: start # Start the containers (must be installed already)
 start:
-	@podname=dry-agent; \
-	if podman pod exists $$podname; then \
-		echo "▶ Starting pod $$podname..."; \
-		podman pod start $$podname; \
-	else \
-		echo "❌ Pod '$$podname' does not exist."; \
-		exit 1; \
-	fi
+	podman start dry-agent-app dry-agent-proxy
 
 .PHONY: stop # Stop the pod
 stop:
-	@podname=dry-agent; \
-	if podman pod exists $$podname; then \
-		echo "⏹️  Stopping pod $$podname..."; \
-		podman pod stop $$podname; \
-	else \
-		echo "❌ Pod '$$podname' does not exist."; \
-		exit 1; \
-	fi
-
-.PHONY: up # Run pod in foreground with logs; stop on Ctrl+C
-up:
-	@podname=dry-agent; \
-	if ! podman pod exists $$podname; then \
-		echo "❌ Pod '$$podname' does not exist. Run 'make install' first."; \
-		exit 1; \
-	fi; \
-	echo "▶ Starting pod $$podname..."; \
-	podman pod start $$podname; \
-	infra_id=$$(podman pod inspect $$podname --format '{{.InfraContainerID}}'); \
-	pids=""; \
-	for c in $$(podman pod inspect $$podname --format '{{range .Containers}}{{.ID}}{{"\n"}}{{end}}'); do \
-		if [ "$$c" != "$$infra_id" ]; then \
-			name=$$(podman inspect --format '{{.Name}}' $$c | sed 's|/||'); \
-			echo "▶ Streaming logs for $$name..."; \
-			podman logs -f $$c | sed "s/^/[$$name] /" & \
-			pids="$$pids $$!"; \
-		fi; \
-	done; \
-	trap 'echo -e "\n⏹️  Stopping pod $$podname..."; podman pod stop $$podname' INT; \
-	wait $$pids
+	podman stop dry-agent-app dry-agent-proxy
 
 .PHONY: get-url # Get the webapp authentication URL
 get-url:
