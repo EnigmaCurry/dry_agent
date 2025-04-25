@@ -7,21 +7,6 @@ to manage all of your remote Docker contexts and services.
 
 This software is in development and is pre-alpha.
 
-## Requirements
-
- * A Linux machine with the following packages installed:
-   
-   * `podman`
-   * `make`
-   * `sed`
-   * `gawk`
-   * `coreutils`
-   * `gettext`
-   * `xdg-utils`
-   
- * One or more remote Docker servers (or VMs) for `dry_agent` to
-   manage.
-
 ## Features
 
  * `dry_agent` is a Podman containerized workstation, designed to
@@ -39,6 +24,21 @@ This software is in development and is pre-alpha.
  * `dry_agent` has minimal host dependencies, with a
    [Makefile](Makefile) to wrap all configuration and installation
    tasks.
+
+## Requirements
+
+ * A Linux machine with the following packages installed:
+   
+   * `podman`
+   * `make`
+   * `sed`
+   * `gawk`
+   * `coreutils`
+   * `gettext`
+   * `xdg-utils`
+   
+ * One or more remote Docker servers (or VMs) for `dry_agent` to
+   manage.
 
 ## Install host dependencies
 
