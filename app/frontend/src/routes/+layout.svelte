@@ -140,9 +140,9 @@
               class="navbar-item"
               on:click={() => setDefaultContext(context)}
               >
-              {context}
-            </a>
-          {/each}
+            {#if context === $currentContext}✅{/if} {context}
+              </a>
+            {/each}
         </div>
       </div>
     </div>
