@@ -9,12 +9,11 @@ This software is in development and is pre-alpha.
 
 ## Features
 
- * `dry_agent` is a Podman containerized workstation, designed to
+ * `dry_agent` is a Podman containerized workstation designed to
    manage _remote_ Docker hosts. It does not require Docker itself.
 
- * `dry_agent` can be installed either to a workstation, for use by
-   localhost only, or to a server, for use by authenticated remote
-   browser clients.
+ * `dry_agent` can be installed either to a workstation (localhost) or
+   to a server (for use by authenticated remote browser clients).
 
  * `dry_agent` uses Podman rootless, it does not require root access.
 
