@@ -9,7 +9,7 @@ This software is in development and is pre-alpha.
 
 ## Requirements
 
- * A Linux workstation with the following packages installed:
+ * A Linux machine with the following packages installed:
    
    * `podman`
    * `make`
@@ -26,14 +26,20 @@ This software is in development and is pre-alpha.
  * `dry_agent` is a Podman containerized workstation, designed to
    manage _remote_ Docker hosts. It does not require Docker itself.
 
+ * `dry_agent` can be installed either to a workstation, for use by
+   localhost only, or to a server, for use by authenticated remote
+   browser clients.
+
  * `dry_agent` uses Podman rootless, it does not require root access.
- 
- * `dry_agent` offers a web application with embedded terminal _and_
-   an SSH service.
+
+ * `dry_agent` offers both a web application with embedded terminal
+   _and_ an SSH service. It is fully usable by either method.
 
  * `dry_agent` has minimal host dependencies, with a
-   [Makefile](Makefile) to wrap all configuration and management
-   functions.
+   [Makefile](Makefile) to wrap all configuration and installation
+   tasks.
+
+## Install host dependencies
 
 ### Fedora dependencies
 
@@ -56,14 +62,16 @@ sudo apt update
 sudo apt install -y git make podman sed gawk coreutils gettext xdg-utils bash-completion
 ```
 
-## Clone repository
+## Install dry_agent
+
+### Clone repository
 
 ```
 git clone https://github.com/EnigmaCurry/dry_agent
 cd dry_agent
 ```
 
-## Configure
+### Configure
 
 ```
 make config
@@ -72,13 +80,13 @@ make config
 Answer the questions to create the `.env` file. For each question you
 may press Enter to use the existing/default value.
 
-## Install
+### Install
 
 ```
 make install
 ```
 
-## Open
+### Open
 
 ```
 make open
@@ -94,7 +102,7 @@ copy it:
 make get-url
 ```
 
-## Authorize SSH service
+### Authorize SSH service
 
 As an alternative to using the webapp, you may wish to connect
 directly to the `dry_agent` workstation via SSH:
