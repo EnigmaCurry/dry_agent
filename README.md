@@ -1,10 +1,10 @@
 # dry_agent
 
-`dry_agent` is a webapp GUI for the
+`dry_agent` is a containerized workstation and webapp GUI for the
 [d.rymcg.tech](https://github.com/EnigmaCurry/d.rymcg.tech)
 self-hosted Docker platform. Once you install `dry_agent` on your
 workstation, you can manage Docker Compose services on any of your
-remote servers and/or VMs. 
+remote servers and/or VMs.
 
 This software is in development and is pre-alpha.
 
