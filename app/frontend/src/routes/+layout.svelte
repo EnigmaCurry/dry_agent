@@ -101,7 +101,7 @@
 
   <div id="main-navbar" class="navbar-menu" class:is-active={burgerActive}>
     <div class="navbar-start">
-      <a class="navbar-item is-deep-red" href="/context"> Context </a>
+      <a class="navbar-item is-deep-red" href="/docker"> Docker </a>
       <a class="navbar-item is-deep-red" href="/config"> Config </a>
 
       <!-- Apps Dropdown -->
@@ -132,7 +132,7 @@
     <div class="navbar-end">
       <div class="navbar-item has-dropdown is-hoverable" class:is-active={showDockerDropdown}>
         <a class="navbar-link" on:click={() => (showDockerDropdown = !showDockerDropdown)}>
-          Context: {$currentContext ?? "Loading..."}
+          Context
         </a>
         <div class="navbar-dropdown is-right">
           {#each dockerContexts as context}
