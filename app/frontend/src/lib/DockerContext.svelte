@@ -1,6 +1,6 @@
 <script>
   import { onMount } from "svelte";
-  import Terminal from "./Terminal.svelte"; // Adjust path as needed
+  import Terminal from "./Terminal.svelte";
   import { currentContext, dockerContexts, refreshDockerContexts } from "$lib/stores";
 
   /**
@@ -668,3 +668,74 @@
     </section>
   </div>
 </div>
+
+
+<!-- Overlay modal for InlineTerminal -->
+{#if showTerminal}
+  <div class="modal is-active">
+    <div
+      class="modal-background"
+      onclick={() => {
+        showTerminal = false;
+        loadConfigs();
+      }}
+    ></div>
+    <div class="modal-card" style="width: 80%; max-width: 80%;">
+      <header class="modal-card-head">
+        <p class="modal-card-title">Terminal for {activeTerminalHost}</p>
+        <button
+          class="delete"
+          aria-label="close"
+          onclick={() => {
+            showTerminal = false;
+            loadConfigs();
+          }}
+        ></button>
+      </header>
+      <section class="modal-card-body">
+        <Terminal
+          restartable={terminalRestartable}
+          command={terminalCommand}
+          on:close={() => {
+            showTerminal = false;
+            loadConfigs();
+          }}
+        />
+      </section>
+    </div>
+  </div>
+{/if}
+
+
+{#if showInfoModal}
+  <div class="modal is-active">
+    <div class="modal-background" onclick={() => (showInfoModal = false)}></div>
+    <div class="modal-card">
+      <header class="modal-card-head">
+        <p class="modal-card-title">Info for {infoHost}</p>
+        <button
+          class="delete"
+          aria-label="close"
+          onclick={() => (showInfoModal = false)}
+        ></button>
+      </header>
+      <section class="modal-card-body">
+        {#if infoError}
+          <div class="notification is-danger">{infoError}</div>
+        {:else if hostFingerprint === null}
+          <div class="notification is-info">Fetching fingerprint...</div>
+        {:else}
+          <div class="content">
+            <p><strong>SSH Fingerprint:</strong></p>
+            <pre>{hostFingerprint}</pre>
+          </div>
+        {/if}
+      </section>
+      <footer class="modal-card-foot">
+        <button class="button" onclick={() => (showInfoModal = false)}
+          >Close</button
+        >
+      </footer>
+    </div>
+  </div>
+{/if}
