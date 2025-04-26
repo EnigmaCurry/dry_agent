@@ -83,8 +83,8 @@
 {/if}
 
 <ModalTerminal
-  command="bash -c 'seq 1000 && whoami'"
-  appName={configApp}
+  command={terminalCommand}
+  title={`d make ${configApp} config`}
   visible={showTerminal}
   on:close={() => showTerminal = false}
 />

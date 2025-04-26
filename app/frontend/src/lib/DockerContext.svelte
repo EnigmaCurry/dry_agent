@@ -1,6 +1,6 @@
 <script>
   import { onMount } from "svelte";
-  import Terminal from "./Terminal.svelte";
+  import ModalTerminal from "./ModalTerminal.svelte";
   import { currentContext, dockerContexts, refreshDockerContexts } from "$lib/stores";
 
   /**
@@ -152,7 +152,7 @@
       dockerDetails = {};
       await loadDockerContexts();
       await loadDefaultContext();
-      
+
       for (const config of sshConfigs) {
         const hostAlias = config.Host[0];
         statuses[hostAlias] = "pending";
@@ -334,7 +334,7 @@
 
       await loadConfigs();
       await refreshDockerContexts();
-      
+
       // 🔽 Set as default if this is the only SSH context
       if (sshConfigs.length === 1) {
         const firstHost = sshConfigs[0].Host[0];
@@ -669,42 +669,13 @@
   </div>
 </div>
 
-
-<!-- Overlay modal for InlineTerminal -->
-{#if showTerminal}
-  <div class="modal is-active">
-    <div
-      class="modal-background"
-      onclick={() => {
-        showTerminal = false;
-        loadConfigs();
-      }}
-    ></div>
-    <div class="modal-card" style="width: 80%; max-width: 80%;">
-      <header class="modal-card-head">
-        <p class="modal-card-title">Terminal for {activeTerminalHost}</p>
-        <button
-          class="delete"
-          aria-label="close"
-          onclick={() => {
-            showTerminal = false;
-            loadConfigs();
-          }}
-        ></button>
-      </header>
-      <section class="modal-card-body">
-        <Terminal
-          restartable={terminalRestartable}
-          command={terminalCommand}
-          on:close={() => {
-            showTerminal = false;
-            loadConfigs();
-          }}
-        />
-      </section>
-    </div>
-  </div>
-{/if}
+<ModalTerminal
+  command={terminalCommand}
+  title={activeTerminalHost}
+  restartable={terminalRestartable}
+  visible={showTerminal}
+  on:close={() => showTerminal = false}
+/>
 
 
 {#if showInfoModal}
