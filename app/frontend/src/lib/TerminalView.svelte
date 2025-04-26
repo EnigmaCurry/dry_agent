@@ -3,6 +3,7 @@
   import { Terminal } from "@xterm/xterm";
   import { FitAddon } from "@xterm/addon-fit";
   import "@xterm/xterm/css/xterm.css";
+  import { debounce } from '$lib/utils';
 
   export let command = "/bin/bash";
   export let fontSize = 14;
@@ -16,6 +17,10 @@
   let resizeHandler;
   let term;
   let terminalContainer;
+
+  const debouncedFit = debounce(() => {
+	resizeHandler();
+  }, 300);
 
   onMount(() => {
     console.log("fontSize", fontSize);
@@ -86,12 +91,15 @@
       term.blur();
     };
 
+	window.addEventListener('resize', debouncedFit);
   });
+
   onDestroy(() => {
     if (socket && socket.readyState === WebSocket.OPEN) {
       socket.close(1000, "Component unmounted");
     }
     window.removeEventListener("resize", resizeHandler);
+	window.removeEventListener('resize', debouncedFit);
     term.dispose();
   });
 </script>
@@ -100,7 +108,7 @@
   id="inline-terminal-container"
   bind:this={terminalContainer}
   class:inline-terminal-default-style={!fullscreen}
-  style={fullscreen ? "width: 100%; height: 100%;" : ""}
+  style={fullscreen ? "width: 100%; height: 100%;" : `--terminal-height: ${height}`}
 ></div>
 
 <style>

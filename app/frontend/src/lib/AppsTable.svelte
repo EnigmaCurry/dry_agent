@@ -1,28 +1,53 @@
-<script lang="ts">
+<script>
   import { onMount } from "svelte";
   import Terminal from "./Terminal.svelte";
-
-  interface AppInfo {
-    name: string;
-    description: string;
-  }
-
-  let apps: AppInfo[] = [];
-  let loading = true;
-  let error: string | null = null;
-  let showTerminal = false;
-  let terminalCommand = null;
-  let configApp = null;
+  import { debounce } from '$lib/utils';
   
   /**
-   * Opens the terminal overlay for the given host and command.
-   * @param {string} host
+   * @typedef {Object} AppInfo
+   * @property {string} name
+   * @property {string} description
+   */
+
+  /** @type {AppInfo[]} */
+  let apps = [];
+
+  /** @type {boolean} */
+  let loading = true;
+
+  /** @type {string|null} */
+  let error = null;
+
+  /** @type {boolean} */
+  let showTerminal = false;
+
+  /** @type {string|null} */
+  let terminalCommand = null;
+
+  /** @type {string|null} */
+  let configApp = null;
+
+  let terminalHeight = 300;
+
+  const debouncedSetTerminalHeight = debounce(() => {
+	terminalHeight = Math.min(window.innerHeight * 0.75, 700);
+  }, 300);
+  onMount(() => {
+	window.addEventListener('resize', debouncedSetTerminalHeight);
+	return () => {
+	  window.removeEventListener('resize', debouncedSetTerminalHeight);
+	}
+  });
+
+  /**
+   * Opens the terminal overlay for the given app and command.
+   * @param {string} app
    * @param {string} command
    */
   function openTerminal(app, command) {
     console.log(command);
     configApp = app;
-    terminalCommand = command;;
+    terminalCommand = command;
     showTerminal = true;
   }
 
@@ -33,7 +58,7 @@
       const data = await res.json();
       apps = data.apps;
     } catch (err) {
-      error = err.message;
+      error = /** @type {Error} */(err).message;
     } finally {
       loading = false;
     }
@@ -57,7 +82,7 @@
         <tr>
           <td>
             <button
-              class="button is-info is-small"
+              class="button is-white is-small"
               onclick={() =>
               openTerminal(
               app.name,
@@ -103,9 +128,10 @@
           }}
         ></button>
       </header>
-      <section class="modal-card-body">
+      <section class="modal-card-body is-clipped">
         <Terminal
           restartable={false}
+          height={`${terminalHeight}px`}
           command={terminalCommand}
           on:close={() => {
             showTerminal = false;
