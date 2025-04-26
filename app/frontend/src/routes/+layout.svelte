@@ -133,18 +133,22 @@
     <div class="navbar-end">
       <div class="navbar-item has-dropdown is-hoverable" class:is-active={showDockerDropdown}>
         <a class="navbar-link" on:click={() => (showDockerDropdown = !showDockerDropdown)}>
-          Context
+          {#if $dockerContexts.length > 0}
+            Context
+          <div class="navbar-dropdown is-right">
+            {#each $dockerContexts as context}
+              <a
+                class="navbar-item"
+                on:click={() => setDefaultContext(context)}
+                >
+              {#if context === $currentContext}✅{/if} {context}
+                </a>
+              {/each}
+            </div>
+          {:else}
+            No Context
+          {/if}
         </a>
-        <div class="navbar-dropdown is-right">
-          {#each $dockerContexts as context}
-            <a
-              class="navbar-item"
-              on:click={() => setDefaultContext(context)}
-              >
-            {#if context === $currentContext}✅{/if} {context}
-              </a>
-            {/each}
-        </div>
       </div>
     </div>
   </div>

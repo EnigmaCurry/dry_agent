@@ -257,15 +257,18 @@
    */
   async function deleteSSHConfig(host) {
     try {
-      // First, delete the Docker context.
+      let dockerDeleteFailed = false;
+
+      // Try to delete the Docker context
       const dockerResponse = await fetch(`/api/docker_context/${host}`, {
         method: "DELETE",
       });
       if (!dockerResponse.ok) {
-        throw new Error("Failed to delete Docker context");
+        dockerDeleteFailed = true;
+        console.error(`Failed to delete Docker context for ${host}`);
       }
 
-      // Then, delete the SSH configuration.
+      // Always attempt to delete the SSH config, even if docker delete failed
       const sshResponse = await fetch(`/api/ssh_config/${host}`, {
         method: "DELETE",
       });
@@ -273,6 +276,7 @@
         throw new Error("Failed to delete SSH configuration");
       }
 
+      // Local cleanups
       if (sshConfigs) {
         sshConfigs = sshConfigs.filter((config) => config.Host[0] !== host);
       }
@@ -280,17 +284,22 @@
       delete dockerStatuses[host];
       delete dockerDetails[host];
 
-      await refreshDockerContexts(); // 🔥 reload after deleting
+      await refreshDockerContexts();
 
-      // 🔥 if the deleted host was the currentContext, set a new default
+      // 🔥 If the deleted host was the currentContext, set a new default
       if (host === $currentContext) {
         if ($dockerContexts.length > 0) {
           const newDefault = $dockerContexts[0];
-          await setDefaultContext(newDefault); // 🔥 re-use your existing function
+          await setDefaultContext(newDefault);
           currentContext.set(newDefault);
         } else {
-          currentContext.set(null); // No contexts left
+          currentContext.set(null);
         }
+      }
+
+      // 🔔 After all, if docker delete failed, warn user
+      if (dockerDeleteFailed) {
+        alert(`Warning: SSH config was deleted, but failed to delete Docker context for ${host}.`);
       }
 
     } catch (err) {
@@ -533,6 +542,7 @@
     <header class="modal-card-head">
       <p class="modal-card-title">Add SSH Docker Context</p>
       <button
+        type="button"
         class="delete"
         aria-label="close"
         onclick={() => (showForm = false)}
@@ -545,171 +555,118 @@
         authorized_keys file (e.g. <code>/root/.ssh/authorized_keys</code>):
       </p>
       <div
-        style="display: flex; align-items: flex-start; gap: 0.5rem; margin: 1em 0 1em 0;"
+        style="display: flex; align-items: flex-start; gap: 0.5rem; margin: 1em 0;"
       >
         <pre
           onclick={selectPre}
-          style="background: #371d1d; padding: 1em; border-radius: 4px; flex-grow: 1; font-weight: bold;">{clientKey}</pre>
-        <button class="button is-small" onclick={copyClientKey}>
+          style="background: #371d1d; padding: 1em; border-radius: 4px; flex-grow: 1; font-weight: bold;"
+        >
+          {clientKey}
+        </pre>
+        <button type="button" class="button is-small" onclick={copyClientKey}>
           {copyIcon}
         </button>
       </div>
-      <!-- Group fields into two rows using Bulma columns -->
-      <div class="columns">
-        <div class="column">
-          <div class="field">
-            <label for="host" class="label">Host Alias</label>
-            <div class="control">
-              <input
-                name="host"
-                class="input"
-                type="text"
-                bind:value={newSSHConfig.Host}
-                placeholder="Enter host alias"
-                required
-              />
+
+      <!-- 🛠 Wrap the fields inside a real <form> -->
+      <form onsubmit={addSSHConfig}>
+        <div class="columns">
+          <div class="column">
+            <div class="field">
+              <label for="host" class="label">Host Alias</label>
+              <div class="control">
+                <input
+                  id="host"
+                  name="host"
+                  class="input"
+                  type="text"
+                  minlength="2"
+                  bind:value={newSSHConfig.Host}
+                  placeholder="Enter host alias"
+                  required
+                />
+              </div>
+            </div>
+          </div>
+          <div class="column">
+            <div class="field">
+              <label for="hostname" class="label">Hostname or IP address</label>
+              <div class="control">
+                <input
+                  id="hostname"
+                  name="hostname"
+                  class="input"
+                  type="text"
+                  minlength="1"
+                  bind:value={newSSHConfig.Hostname}
+                  placeholder="Enter hostname or IP address"
+                  required
+                />
+              </div>
             </div>
           </div>
         </div>
-        <div class="column">
-          <div class="field">
-            <label for="hostname" class="label">Hostname or IP address</label>
-            <div class="control">
-              <input
-                name="hostname"
-                class="input"
-                type="text"
-                bind:value={newSSHConfig.Hostname}
-                placeholder="Enter hostname or IP address"
-                required
-              />
+
+        <div class="columns">
+          <div class="column">
+            <div class="field">
+              <label for="username" class="label">Username</label>
+              <div class="control">
+                <input
+                  id="username"
+                  name="username"
+                  class="input"
+                  type="text"
+                  minlength="1"
+                  bind:value={newSSHConfig.User}
+                  placeholder="Enter username"
+                  required
+                />
+              </div>
+            </div>
+          </div>
+          <div class="column">
+            <div class="field">
+              <label for="port" class="label">Port</label>
+              <div class="control">
+                <input
+                  id="port"
+                  name="port"
+                  class="input"
+                  type="number"
+                  min="1"
+                  bind:value={newSSHConfig.Port}
+                  required
+                />
+              </div>
             </div>
           </div>
         </div>
-      </div>
-      <div class="columns">
-        <div class="column">
-          <div class="field">
-            <label for="username" class="label">Username</label>
-            <div class="control">
-              <input
-                name="username"
-                class="input"
-                type="text"
-                bind:value={newSSHConfig.User}
-                placeholder="Enter username"
-                required
-              />
-            </div>
-          </div>
+
+        {#if formError}
+          <p class="help is-danger">{formError}</p>
+        {/if}
+
+        <div class="field is-grouped is-grouped-right">
+          <p class="control">
+            <button
+              type="button"
+              class="button"
+              onclick={() => (showForm = false)}
+            >
+              Cancel
+            </button>
+          </p>
+          <p class="control">
+            <button
+              type="submit"
+              class="button is-primary"
+            >
+              Add
+            </button>
+          </p>
         </div>
-        <div class="column">
-          <div class="field">
-            <label for="port" class="label">Port</label>
-            <div class="control">
-              <input
-                name="port"
-                class="input"
-                type="number"
-                bind:value={newSSHConfig.Port}
-                required
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-      {#if formError}
-        <p class="help is-danger">{formError}</p>
-      {/if}
-      <div class="field is-grouped is-grouped-right">
-        <p class="control">
-          <button
-            type="button"
-            class="button"
-            onclick={() => (showForm = false)}
-          >
-            Cancel
-          </button>
-        </p>
-        <p class="control">
-          <button
-            type="submit"
-            class="button is-primary"
-            onclick={addSSHConfig}
-          >
-            Add
-          </button>
-        </p>
-      </div>
+      </form>
     </section>
   </div>
 </div>
-
-<!-- Overlay modal for Terminal -->
-{#if showTerminal}
-  <div class="modal is-active">
-    <div
-      class="modal-background"
-      onclick={() => {
-        showTerminal = false;
-        loadConfigs();
-      }}
-    ></div>
-    <div class="modal-card" style="width: 80%; max-width: 80%;">
-      <header class="modal-card-head">
-        <p class="modal-card-title">Terminal for {activeTerminalHost}</p>
-        <button
-          class="delete"
-          aria-label="close"
-          onclick={() => {
-            showTerminal = false;
-            loadConfigs();
-          }}
-        ></button>
-      </header>
-      <section class="modal-card-body">
-        <Terminal
-          restartable={terminalRestartable}
-          command={terminalCommand}
-          on:close={() => {
-            showTerminal = false;
-            loadConfigs();
-          }}
-        />
-      </section>
-    </div>
-  </div>
-{/if}
-
-{#if showInfoModal}
-  <div class="modal is-active">
-    <div class="modal-background" onclick={() => (showInfoModal = false)}></div>
-    <div class="modal-card">
-      <header class="modal-card-head">
-        <p class="modal-card-title">Info for {infoHost}</p>
-        <button
-          class="delete"
-          aria-label="close"
-          onclick={() => (showInfoModal = false)}
-        ></button>
-      </header>
-      <section class="modal-card-body">
-        {#if infoError}
-          <div class="notification is-danger">{infoError}</div>
-        {:else if hostFingerprint === null}
-          <div class="notification is-info">Fetching fingerprint...</div>
-        {:else}
-          <div class="content">
-            <p><strong>SSH Fingerprint:</strong></p>
-            <pre>{hostFingerprint}</pre>
-          </div>
-        {/if}
-      </section>
-      <footer class="modal-card-foot">
-        <button class="button" onclick={() => (showInfoModal = false)}
-          >Close</button
-        >
-      </footer>
-    </div>
-  </div>
-{/if}
