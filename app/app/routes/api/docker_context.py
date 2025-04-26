@@ -17,7 +17,7 @@ def get_docker_context_names() -> List[str]:
     output = run_command(["docker", "context", "ls", "--format", "{{.Name}}"])
     # Each line represents a context name.
     if output:
-        return output.splitlines()
+        return [name for name in output.splitlines() if name != "default"]
     return []
 
 

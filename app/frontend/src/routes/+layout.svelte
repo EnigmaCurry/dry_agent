@@ -2,15 +2,15 @@
   import { onMount } from "svelte";
   import "bulma/css/bulma.min.css";
   import "../../static/styles.css";
-  import { currentContext } from "$lib/stores";
+  import { currentContext, dockerContexts, refreshDockerContexts } from "$lib/stores";
 
-  let dockerContexts = $state([]);
   let showDockerDropdown = $state(false);
 
   let burgerActive = $state(false);
   let activeDropdown = $state(null);
 
   onMount(async () => {
+    await refreshDockerContexts();
     try {
       const defaultRes = await fetch("/api/docker_context/default");
       if (defaultRes.ok) {
@@ -20,10 +20,11 @@
 
       const res = await fetch("/api/docker_context/");
       if (res.ok) {
-        dockerContexts = (await res.json()).filter(ctx => ctx !== "default");
+        const contexts = (await res.json()).filter(ctx => ctx !== "default");
+        dockerContexts.set(contexts);
         // fallback in case default context not yet set
-        if (!currentContext && dockerContexts.length > 0) {
-          currentContext.set(dockerContexts[0]);
+        if (!$currentContext && contexts.length > 0) {
+          currentContext.set(contexts[0]);
         }
       }
     } catch (err) {
@@ -135,7 +136,7 @@
           Context
         </a>
         <div class="navbar-dropdown is-right">
-          {#each dockerContexts as context}
+          {#each $dockerContexts as context}
             <a
               class="navbar-item"
               on:click={() => setDefaultContext(context)}

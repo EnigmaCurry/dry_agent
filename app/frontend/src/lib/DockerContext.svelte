@@ -1,7 +1,7 @@
 <script>
   import { onMount } from "svelte";
   import Terminal from "./Terminal.svelte"; // Adjust path as needed
-  import { currentContext } from "$lib/stores";
+  import { currentContext, dockerContexts, refreshDockerContexts } from "$lib/stores";
 
   /**
    * @typedef {Object} SSHConfig
@@ -33,12 +33,6 @@
    * @type {{ [key: string]: string }}
    */
   let dockerDetails = {};
-
-  /**
-   * List of Docker context names.
-   * @type {string[]}
-   */
-  let dockerContexts = [];
 
   // Variables for the "Add SSH Connection" modal and form.
   let showForm = false;
@@ -195,14 +189,16 @@
     try {
       const response = await fetch("/api/docker_context/");
       if (response.ok) {
-        dockerContexts = await response.json();
+        const data = await response.json();
+        dockerContexts.set(data);
       } else {
-        dockerContexts = [];
+        dockerContexts.set([]);
       }
     } catch (err) {
-      dockerContexts = [];
+      dockerContexts.set([]);
     }
   }
+
 
   /**
    * Tests (or creates then tests) a Docker context for the given host alias.
@@ -210,7 +206,7 @@
    */
   async function testDockerContext(host) {
     // If the docker context doesn't exist, create it.
-    if (!dockerContexts.includes(host)) {
+    if (!$dockerContexts.includes(host)) {
       try {
         // Send the context_name as a query parameter.
         const response = await fetch(
@@ -218,7 +214,7 @@
           { method: "POST" },
         );
         if (response.ok) {
-          dockerContexts.push(host);
+          await refreshDockerContexts();
         } else {
           dockerStatuses[host] = "error";
           dockerDetails[host] = "Failed to create Docker context";
@@ -268,6 +264,7 @@
       if (!dockerResponse.ok) {
         throw new Error("Failed to delete Docker context");
       }
+
       // Then, delete the SSH configuration.
       const sshResponse = await fetch(`/api/ssh_config/${host}`, {
         method: "DELETE",
@@ -275,12 +272,27 @@
       if (!sshResponse.ok) {
         throw new Error("Failed to delete SSH configuration");
       }
+
       if (sshConfigs) {
         sshConfigs = sshConfigs.filter((config) => config.Host[0] !== host);
       }
       delete statuses[host];
       delete dockerStatuses[host];
       delete dockerDetails[host];
+
+      await refreshDockerContexts(); // 🔥 reload after deleting
+
+      // 🔥 if the deleted host was the currentContext, set a new default
+      if (host === $currentContext) {
+        if ($dockerContexts.length > 0) {
+          const newDefault = $dockerContexts[0];
+          await setDefaultContext(newDefault); // 🔥 re-use your existing function
+          currentContext.set(newDefault);
+        } else {
+          currentContext.set(null); // No contexts left
+        }
+      }
+
     } catch (err) {
       alert(err instanceof Error ? err.message : String(err));
       console.error("Error deleting configuration:", err);
@@ -312,7 +324,8 @@
       showForm = false;
 
       await loadConfigs();
-
+      await refreshDockerContexts();
+      
       // 🔽 Set as default if this is the only SSH context
       if (sshConfigs.length === 1) {
         const firstHost = sshConfigs[0].Host[0];
@@ -379,6 +392,7 @@
   onMount(() => {
     loadConfigs();
     loadDefaultContext();
+    refreshDockerContexts();
   });
 </script>
 
