@@ -560,9 +560,7 @@
         <pre
           onclick={selectPre}
           style="background: #371d1d; padding: 1em; border-radius: 4px; flex-grow: 1; font-weight: bold;"
-        >
-          {clientKey}
-        </pre>
+        >{clientKey}</pre>
         <button type="button" class="button is-small" onclick={copyClientKey}>
           {copyIcon}
         </button>

@@ -71,7 +71,9 @@ config: deps
 install: deps expect-config build uninstall
 	@set -a; \
 	source .env; \
-	podman run --name dry-agent-app --label project=dry-agent -d \
+	podman run --name dry-agent-app -d \
+	       --label project=dry-agent \
+           --hostname "dry-agent-$$(head /dev/urandom | tr -dc 'a-f0-9' | head -c8)" \
            -v dry-agent-workstation-data:/root \
            -e PUBLIC_HOST=$${PUBLIC_HOST} -e PUBLIC_PORT=$${PUBLIC_PORT}  \
            -p 127.0.0.1:$${APP_LOCALHOST_PORT}:8001 \
