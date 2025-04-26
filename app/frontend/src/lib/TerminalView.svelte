@@ -32,8 +32,6 @@
     const fitAddon = new FitAddon();
     term.loadAddon(fitAddon);
     term.open(terminalContainer);
-    fitAddon.fit();
-    term.focus();
 
     terminalContainer.addEventListener("click", () => term.focus());
 
@@ -92,6 +90,12 @@
     };
 
 	window.addEventListener('resize', debouncedFit);
+
+    requestAnimationFrame(() => {
+      fitAddon.fit();
+      term.focus();
+    });
+
   });
 
   onDestroy(() => {

@@ -1,8 +1,7 @@
 <script>
   import { onMount } from "svelte";
-  import Terminal from "./Terminal.svelte";
-  import { debounce } from '$lib/utils';
-  
+  import ModalTerminal from "./ModalTerminal.svelte";
+
   /**
    * @typedef {Object} AppInfo
    * @property {string} name
@@ -10,34 +9,14 @@
    */
 
   /** @type {AppInfo[]} */
-  let apps = [];
+  let apps = $state([]);
 
-  /** @type {boolean} */
-  let loading = true;
+  let loading = $state(true);
+  let error = $state(null);
 
-  /** @type {string|null} */
-  let error = null;
-
-  /** @type {boolean} */
-  let showTerminal = false;
-
-  /** @type {string|null} */
-  let terminalCommand = null;
-
-  /** @type {string|null} */
-  let configApp = null;
-
-  let terminalHeight = 300;
-
-  const debouncedSetTerminalHeight = debounce(() => {
-	terminalHeight = Math.min(window.innerHeight * 0.75, 700);
-  }, 300);
-  onMount(() => {
-	window.addEventListener('resize', debouncedSetTerminalHeight);
-	return () => {
-	  window.removeEventListener('resize', debouncedSetTerminalHeight);
-	}
-  });
+  let showTerminal = $state(false);
+  let terminalCommand = $state(null);
+  let configApp = $state(null);
 
   /**
    * Opens the terminal overlay for the given app and command.
@@ -45,7 +24,6 @@
    * @param {string} command
    */
   function openTerminal(app, command) {
-    console.log(command);
     configApp = app;
     terminalCommand = command;
     showTerminal = true;
@@ -83,12 +61,8 @@
           <td>
             <button
               class="button is-white is-small"
-              onclick={() =>
-              openTerminal(
-              app.name,
-              `d.rymcg.tech make ${app.name} config`
-              )}
-              >
+              on:click={() => openTerminal(app.name, `d.rymcg.tech make ${app.name} config`)}
+            >
               {app.name}
             </button>
           </td>
@@ -108,36 +82,9 @@
   </table>
 {/if}
 
-<!-- Overlay modal for InlineTerminal -->
-{#if showTerminal}
-  <div class="modal is-active">
-    <div
-      class="modal-background"
-      onclick={() => {
-        showTerminal = false;
-      }}
-    ></div>
-    <div class="modal-card" style="width: 80%; max-width: 80%;">
-      <header class="modal-card-head">
-        <p class="modal-card-title">d make {configApp} config</p>
-        <button
-          class="delete"
-          aria-label="close"
-          onclick={() => {
-            showTerminal = false;
-          }}
-        ></button>
-      </header>
-      <section class="modal-card-body is-clipped">
-        <Terminal
-          restartable={false}
-          height={`${terminalHeight}px`}
-          command={terminalCommand}
-          on:close={() => {
-            showTerminal = false;
-          }}
-        />
-      </section>
-    </div>
-  </div>
-{/if}
+<ModalTerminal
+  command="bash -c 'seq 1000 && whoami'"
+  appName={configApp}
+  visible={showTerminal}
+  on:close={() => showTerminal = false}
+/>

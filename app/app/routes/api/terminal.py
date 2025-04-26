@@ -64,16 +64,32 @@ async def terminal_ws(websocket: WebSocket):
             terminal_ws._reaper_started = True
             asyncio.create_task(reap_children())
 
+        pty_done = asyncio.Event()
+
         async def wait_for_exit():
             try:
-                _, _ = await asyncio.to_thread(os.waitpid, pid, 0)
+                _, status = await asyncio.to_thread(os.waitpid, pid, 0)
+                exit_code = os.WEXITSTATUS(status)
+                log.info(f"Terminal command exited with code: {exit_code}")
+
+                try:
+                    os.close(slave_fd)  # Close the slave side after the child exits
+                except Exception:
+                    pass
+
+                # Wait for PTY reader to finish draining
+                await pty_done.wait()
+
+                try:
+                    await websocket.send_text(
+                        json.dumps({"type": "exit", "exitCode": exit_code})
+                    )
+                except Exception:
+                    pass
+
+                await websocket.close()
             except Exception as ex:
                 print(f"Error waiting for process exit: {ex}")
-            try:
-                await websocket.send_text(json.dumps({"type": "exit"}))
-            except Exception:
-                pass
-            await websocket.close()
 
         wait_task = asyncio.create_task(wait_for_exit())
 
@@ -82,16 +98,24 @@ async def terminal_ws(websocket: WebSocket):
                 while True:
                     await asyncio.sleep(0.01)
                     if select.select([master_fd], [], [], 0)[0]:
-                        data = os.read(master_fd, 1024).decode(errors="ignore")
-                        # Wrap terminal data in a JSON message.
                         try:
+                            data = os.read(master_fd, 1024)
+                            if not data:
+                                break  # PTY closed (EOF)
                             await websocket.send_text(
-                                json.dumps({"type": "data", "data": data})
+                                json.dumps(
+                                    {
+                                        "type": "data",
+                                        "data": data.decode(errors="ignore"),
+                                    }
+                                )
                             )
-                        except Exception:
+                        except OSError:
                             break
             except Exception as ex:
                 print(f"Error reading from PTY: {ex}")
+            finally:
+                pty_done.set()
 
         pty_task = asyncio.create_task(read_pty())
 
