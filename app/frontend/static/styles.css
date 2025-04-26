@@ -176,3 +176,8 @@ table td a.has-text-link:focus {
 table td a.has-text-link:hover {
   color: #ffc48d !important;
 }
+
+
+hr.is-light-red {
+  background-color: #fca5a5;
+}
