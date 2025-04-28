@@ -1,12 +1,16 @@
-from app.routes import *
+from app.routes import DRY_COMMAND, DRY_PATH
 from app.routes import api as api_routes
 import logging
 import os
 import re
 import traceback
 import subprocess
-from fastapi import APIRouter, Request, HTTPException, Form
+from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse
+
+"""
+General information about available apps and default configs.
+"""
 
 logger = logging.getLogger("uvicorn.error")
 
@@ -61,74 +65,6 @@ async def apps_available():
             status_code=500,
             content={"detail": f"Internal Server Error: {str(e)}"},
         )
-
-
-@router.get("/config", response_class=JSONResponse)
-async def apps_config_data(app: str):
-    try:
-        data = await get_env_dist_data(app)
-        env = data["env"]
-        meta = data["meta"]
-
-        instances = ["default"]  # Placeholder
-
-        return JSONResponse(
-            content={
-                "app": app,
-                "env": env,
-                "meta": meta,
-                "instances": instances,
-                "contexts": ["default - TODO"],
-            }
-        )
-    except Exception as e:
-        logger.error("Failed to load config data:\n%s", traceback.format_exc())
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.post("/config", response_class=JSONResponse)
-async def save_app_config(
-    app: str = Form(...),
-    context: str = Form(...),
-    request: Request = None,
-):
-    form = await request.form()
-
-    if not app or not context:
-        raise HTTPException(status_code=400, detail="Missing 'app' or 'context'")
-
-    data = await get_env_dist_data(app)
-    prefix = data["meta"]["PREFIX"]
-
-    instance_key = f"{prefix}_INSTANCE"
-    instance = form.get(instance_key, "default").strip()
-
-    env_filename = f".env_{context}_{instance}"
-    env_path = os.path.join(DRY_PATH, app, env_filename)
-
-    env_lines = []
-    for key, value in form.items():
-        if key.startswith("env_"):
-            env_var = key[len("env_") :]
-            env_lines.append(f"{env_var}={value}")
-    env_lines.append(f"{instance_key}={instance}")
-
-    try:
-        with open(env_path, "w") as f:
-            f.write("\n".join(env_lines) + "\n")
-
-        return JSONResponse(
-            content={
-                "message": "Configuration saved",
-                "env_file": env_filename,
-                "app": app,
-                "context": context,
-                "instance": instance,
-            },
-            status_code=201,
-        )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to write .env file: {e}")
 
 
 def parse_readme_descriptions():
