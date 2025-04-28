@@ -104,7 +104,7 @@
       {#each apps as app}
         <tr>
           <td>
-            <a href="/instances/{app.name}" class="button is-dark">
+            <a href="/instances/?app={app.name}" class="button is-dark">
               {app.name}
             </a>
           </td>

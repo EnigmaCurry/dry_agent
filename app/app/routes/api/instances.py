@@ -99,9 +99,12 @@ async def save_instance_config(
 
 
 @router.get("/", response_class=JSONResponse)
-async def get_all_app_instances(context: Optional[str] = Query(default=None)):
+async def get_app_instances(
+    context: Optional[str] = Query(default=None),
+    app: Optional[str] = Query(default=None),
+):
     if context is None:
-        context = run_command(["docker", "context", "show"])
+        context = run_command(["docker", "context", "show"]).strip()
     else:
         if context not in get_docker_context_names():
             return JSONResponse(
@@ -112,6 +115,8 @@ async def get_all_app_instances(context: Optional[str] = Query(default=None)):
 
     for instance in get_instance_config_paths():
         if instance.context != context:
+            continue
+        if app and instance.app != app:
             continue
 
         instances[instance.app].append(str(instance.env_path))
