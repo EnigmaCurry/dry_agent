@@ -6,18 +6,26 @@
   const appTitle = $derived(app.replace(/\b\w/g, (c) => c.toUpperCase()));
 
   let instances = $state([]);
-  let envDist = $state(null); // new
+  let envDist = $state(null);
   let loading = $state(true);
   let error = $state(null);
+
+  let expandedInstance = $state(null); // currently expanded instance
+  let expandedConfig = $state(null); // config data for the expanded instance
+  let formData = $state({}); // editable form values
+  let saving = $state(false);
+  let saveError = $state(null);
+  let saveSuccess = $state(null);
 
   async function loadData() {
     loading = true;
     error = null;
     instances = [];
     envDist = null;
-
+    expandedInstance = null;
+    expandedConfig = null;
+    formData = {};
     try {
-      // Fetch instances
       const instancesRes = await fetch(
         `/api/instances/?app=${encodeURIComponent(app)}`,
       );
@@ -27,10 +35,9 @@
       const instancesData = await instancesRes.json();
       const contextData = instancesData[$currentContext];
       if (contextData && contextData[app]) {
-        instances = contextData[app]; // Array of objects
+        instances = contextData[app];
       }
 
-      // Fetch env_dist
       const envDistRes = await fetch(
         `/api/apps/env-dist/?app=${encodeURIComponent(app)}`,
       );
@@ -42,6 +49,67 @@
       error = err.message;
     } finally {
       loading = false;
+    }
+  }
+
+  async function toggleExpand(instance) {
+    if (expandedInstance === instance.instance) {
+      expandedInstance = null;
+      expandedConfig = null;
+      formData = {};
+    } else {
+      expandedInstance = instance.instance;
+      try {
+        const res = await fetch(
+          `/api/instances/config?env_path=${encodeURIComponent(instance.env_path)}`,
+        );
+        if (!res.ok) {
+          throw new Error(`Failed to load instance config`);
+        }
+        expandedConfig = await res.json();
+
+        formData = {};
+        for (const [key, val] of Object.entries(expandedConfig.env || {})) {
+          formData[key] = val ?? "";
+        }
+      } catch (err) {
+        expandedConfig = null;
+        formData = {};
+      }
+      console.log($state.snapshot(formData));
+    }
+    saveError = null;
+    saveSuccess = null;
+  }
+
+  async function saveConfig(instance) {
+    saving = true;
+    saveError = null;
+    saveSuccess = null;
+    try {
+      const form = new FormData();
+      form.append("app", app);
+      form.append("context", $currentContext);
+
+      for (const [key, value] of Object.entries(formData)) {
+        form.append(key, value ?? "");
+      }
+
+      const res = await fetch("/api/instances/config", {
+        method: "POST",
+        body: form,
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.detail || "Failed to save config");
+      }
+
+      saveSuccess = "Configuration saved successfully!";
+    } catch (err) {
+      saveError = err.message;
+    } finally {
+      saving = false;
     }
   }
 
@@ -62,51 +130,87 @@
       </div>
     {:else if error}
       <p class="has-text-danger">Error: {error}</p>
-    {:else}
-      {#if instances.length > 0}
-        <table class="table is-striped is-fullwidth">
-          <thead>
-            <tr>
-              <th>Instance Name</th>
-              <th>Env File Path</th>
+    {:else if instances.length > 0}
+      <table class="table is-striped is-fullwidth">
+        <thead>
+          <tr>
+            <th>Instance Name</th>
+            <th>Env File Path</th>
+          </tr>
+        </thead>
+        <tbody>
+          {#each instances as instance (instance.instance)}
+            <tr
+              on:click={() => toggleExpand(instance)}
+              class:is-dark={true}
+              class:is-primary={expandedInstance === instance.instance}
+              style="cursor: pointer;"
+            >
+              <td>{instance.instance}</td>
+              <td>{instance.env_path}</td>
             </tr>
-          </thead>
-          <tbody>
-            {#each instances as instance}
-              <tr>
-                <td>{instance.instance}</td>
-                <td>{instance.env_path}</td>
-              </tr>
-            {/each}
-          </tbody>
-        </table>
-      {:else}
-        <div class="notification is-primary">
-          <p>
-            No instances of this app are configured for the current context.
-          </p>
-        </div>
-      {/if}
 
-      {#if envDist}
-        <h2 class="subtitle mt-5">Environment Variables</h2>
-        <table class="table is-narrow is-fullwidth">
-          <thead>
-            <tr>
-              <th>Key</th>
-              <th>Default Value</th>
-            </tr>
-          </thead>
-          <tbody>
-            {#each Object.entries(envDist.env || {}) as [key, value]}
+            {#if expandedInstance === instance.instance}
               <tr>
-                <td><code>{key}</code></td>
-                <td>{value}</td>
+                <td colspan="2">
+                  <div class="box">
+                    {#if expandedConfig}
+                      <form
+                        on:submit|preventDefault={() => saveConfig(instance)}
+                      >
+                        {#each Object.entries(envDist.env || {}) as [key, meta]}
+                          <div class="field">
+                            <label class="label">
+                              {key}
+                              <span class="help">{meta.comments}</span>
+                            </label>
+                            <div class="control">
+                              <input
+                                class="input"
+                                type="text"
+                                bind:value={formData[key]}
+                                placeholder={meta.default_value}
+                              />
+                            </div>
+                          </div>
+                        {/each}
+
+                        <div class="field is-grouped mt-4">
+                          <div class="control">
+                            <button
+                              class="button is-primary"
+                              type="submit"
+                              disabled={saving}
+                            >
+                              {saving ? "Saving..." : "Save Configuration"}
+                            </button>
+                          </div>
+                          {#if saveError}
+                            <div class="control">
+                              <p class="has-text-danger">{saveError}</p>
+                            </div>
+                          {/if}
+                          {#if saveSuccess}
+                            <div class="control">
+                              <p class="has-text-success">{saveSuccess}</p>
+                            </div>
+                          {/if}
+                        </div>
+                      </form>
+                    {:else}
+                      <p>Loading instance config...</p>
+                    {/if}
+                  </div>
+                </td>
               </tr>
-            {/each}
-          </tbody>
-        </table>
-      {/if}
+            {/if}
+          {/each}
+        </tbody>
+      </table>
+    {:else}
+      <div class="notification is-primary">
+        <p>No instances of this app are configured for the current context.</p>
+      </div>
     {/if}
   {/if}
 {/key}

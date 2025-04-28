@@ -156,7 +156,6 @@ ul.bulma-list li::before {
 /* Default table row styling */
 .table td,
 .table td strong {
-  color: #ffffff !important;
   font-weight: bold;
 }
 

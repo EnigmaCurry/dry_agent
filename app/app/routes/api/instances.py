@@ -79,9 +79,7 @@ async def save_instance_config(
 
     env_lines = []
     for key, value in form.items():
-        if key.startswith("env_"):
-            env_var = key[len("env_") :]
-            env_lines.append(f"{env_var}={value}")
+        env_lines.append(f"{key}={value}")
     env_lines.append(f"{instance_key}={instance}")
 
     try:
@@ -138,14 +136,7 @@ async def get_instance_config(env_path=Query()):
             contents = f.read()
             env_dict, _, _ = parse_env_file_contents(contents)
 
-            return {
-                "env": {
-                    key: {
-                        "value": env_dict[key],
-                    }
-                    for key in env_dict
-                }
-            }
+            return {"env": {key: env_dict[key] for key in env_dict}}
 
     except HTTPException:
         raise  # re-raise original HTTPException untouched
