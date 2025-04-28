@@ -111,6 +111,11 @@ a:hover {
   }
 }
 
+.noselect {
+  user-select: none;
+  cursor: default;
+}
+
 .command-output.fade-in {
   animation: fadeIn 0.3s ease-in;
 }

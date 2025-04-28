@@ -1,6 +1,9 @@
 <script>
   import { onMount } from "svelte";
-  import ModalTerminal from "./ModalTerminal.svelte";
+  import { currentContext } from "$lib/stores";
+  import { get } from "svelte/store";
+
+  let { context } = $props();
 
   /**
    * @typedef {Object} AppInfo
@@ -14,29 +17,70 @@
   let loading = $state(true);
   let error = $state(null);
 
-  let showTerminal = $state(false);
-  let terminalCommand = $state(null);
   let configApp = $state(null);
 
-  /**
-   * Opens the terminal overlay for the given app and command.
-   * @param {string} app
-   * @param {string} command
-   */
-  function openTerminal(app, command) {
-    configApp = app;
-    terminalCommand = command;
-    showTerminal = true;
+  /** @type {Record<string, number>} */
+  let instanceCounts = $state({});
+
+  const instanceEmojis = [
+    "🙂", // 2nd instance
+    "😎", // 3rd instance
+    "🚀", // 4th instance
+    "🧙‍♂️", // 5th instance
+  ];
+
+  $effect(() => {
+    if (context) {
+      fetchApps();
+      fetchInstanceCounts();
+    }
+  });
+
+  async function fetchApps() {
+    const res = await fetch("/api/apps/available");
+    if (!res.ok) throw new Error(`Error fetching apps: ${res.statusText}`);
+    const data = await res.json();
+    apps = data.apps;
+  }
+
+  async function fetchInstanceCounts() {
+    const res = await fetch("/api/instances/");
+    if (!res.ok) throw new Error(`Error fetching instances: ${res.statusText}`);
+    const data = await res.json();
+
+    const context = get(currentContext) || "default";
+    const instances = data[context] || {};
+
+    /** @type {Record<string, number>} */
+    const counts = {};
+    for (const [appName, envFiles] of Object.entries(instances)) {
+      counts[appName] = envFiles.length;
+    }
+    instanceCounts = counts;
+  }
+
+  function renderInstanceEmojis(appName) {
+    const count = instanceCounts[appName] || 0;
+    if (count === 0) return "";
+
+    if (count > 5) {
+      return "✅ 💯";
+    }
+
+    // Always start with ✅
+    const emojis = ["✅"];
+
+    // Add up to (count-1) more emojis from the list
+    emojis.push(...instanceEmojis.slice(0, count - 1));
+
+    return emojis.join(" ");
   }
 
   onMount(async () => {
     try {
-      const res = await fetch("/api/apps/available");
-      if (!res.ok) throw new Error(`Error fetching apps: ${res.statusText}`);
-      const data = await res.json();
-      apps = data.apps;
+      await Promise.all([fetchApps(), fetchInstanceCounts()]);
     } catch (err) {
-      error = /** @type {Error} */(err).message;
+      error = /** @type {Error} */ (err).message;
     } finally {
       loading = false;
     }
@@ -52,6 +96,7 @@
     <thead>
       <tr>
         <th>Configure</th>
+        <th>Instances</th>
         <th>README</th>
       </tr>
     </thead>
@@ -59,12 +104,17 @@
       {#each apps as app}
         <tr>
           <td>
-            <button
-              class="button is-white is-small"
-              on:click={() => openTerminal(app.name, `d.rymcg.tech make ${app.name} config`)}
-            >
+            <a href="/instances/{app.name}" class="button is-dark">
               {app.name}
-            </button>
+            </a>
+          </td>
+          <td>
+            <span
+              title="{app.name} has {instanceCounts[app.name] ||
+                0} configured instances"
+              style="font-size: 1.5em;"
+              class="noselect">{@html renderInstanceEmojis(app.name)}</span
+            >
           </td>
           <td>
             <a
@@ -81,10 +131,3 @@
     </tbody>
   </table>
 {/if}
-
-<ModalTerminal
-  command={terminalCommand}
-  title={`d make ${configApp} config`}
-  visible={showTerminal}
-  on:close={() => showTerminal = false}
-/>

@@ -1,5 +1,5 @@
 <script>
-  import { invalidateAll } from '$app/navigation';
+  import { invalidateAll } from "$app/navigation";
   import AppsTable from "$lib/AppsTable.svelte";
   import { currentContext } from "$lib/stores";
   let { data } = $props();
@@ -10,8 +10,7 @@
       console.log("invalidate page");
       invalidateAll(); // 🔥 re-run load(), refresh props!
     }
-  })
-
+  });
 </script>
 
 <svelte:head>
@@ -19,18 +18,22 @@
 </svelte:head>
 
 {#key ConfigKey}
-{#if $currentContext != "default" && $currentContext != null}
-  {#if data.configExists}
-    <h1 class="title">Available Apps</h1>
-    <AppsTable />
+  {#if $currentContext != "default" && $currentContext != null}
+    {#if data.configExists}
+      <h1 class="title">Available Apps ({$currentContext})</h1>
+      <AppsTable context={$currentContext} />
+    {:else}
+      <h1 class="title">Root Config Not Found</h1>
+      <p>
+        It looks like there is no configuration file for this Docker context.
+      </p>
+      <br />
+      <a href="/config" class="button is-link">Setup the Root Config</a>
+    {/if}
   {:else}
-    <h1 class="title">Root Config Not Found</h1>
-    <p>It looks like there is no configuration file for this Docker context.</p>
-    <br/>
-    <a href="/config" class="button is-link">Setup the Root Config</a>
+    <h1 class="title">No Context</h1>
+    <a href="/docker" class="button is-link"
+      >Create and/or set a default Docker context</a
+    >
   {/if}
-{:else}
-  <h1 class="title">No Context</h1>
-  <a href="/docker" class="button is-link">Create and/or set a default Docker context</a>
-{/if}
 {/key}
