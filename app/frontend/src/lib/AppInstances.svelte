@@ -12,6 +12,7 @@
 
   let expandedInstance = $state(null); // currently expanded instance
   let expandedConfig = $state(null); // config data for the expanded instance
+  let originalFormData = $state({}); // original to track dirty data
   let formData = $state({}); // editable form values
   let saving = $state(false);
   let saveError = $state(null);
@@ -53,6 +54,10 @@
   }
 
   async function toggleExpand(instance) {
+    if (expandedInstance !== null && expandedInstance !== instance.instance) {
+      await autoSave({ instance: expandedInstance });
+    }
+
     if (expandedInstance === instance.instance) {
       expandedInstance = null;
       expandedConfig = null;
@@ -72,11 +77,13 @@
         for (const [key, val] of Object.entries(expandedConfig.env || {})) {
           formData[key] = val ?? "";
         }
+        originalFormData = structuredClone($state.snapshot(formData));
       } catch (err) {
+        console.error(err);
         expandedConfig = null;
         formData = {};
       }
-      console.log($state.snapshot(formData));
+      console.log("Expanded config loaded:", expandedConfig);
     }
     saveError = null;
     saveSuccess = null;
@@ -108,6 +115,53 @@
       saveSuccess = "Configuration saved successfully!";
     } catch (err) {
       saveError = err.message;
+    } finally {
+      saving = false;
+    }
+  }
+
+  async function autoSave(instanceObj) {
+    if (saving) return;
+    if (!instanceObj) return;
+
+    // Check if formData has actually changed compared to originalFormData
+    const dirty = Object.keys(formData).some(
+      (key) => formData[key] !== originalFormData[key],
+    );
+
+    if (!dirty) {
+      console.log("No changes detected; skipping auto-save.");
+      return; // Don't save if no actual changes
+    }
+
+    saving = true;
+    saveError = null;
+    try {
+      const form = new FormData();
+      form.append("app", app);
+      form.append("context", $currentContext);
+
+      for (const [key, value] of Object.entries(formData)) {
+        form.append(key, value ?? "");
+      }
+
+      const res = await fetch("/api/instances/config", {
+        method: "POST",
+        body: form,
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.detail || "Failed to save config");
+      }
+
+      saveSuccess = "Configuration saved successfully!";
+      console.log("Auto-saved successfully.");
+      // Update the originalFormData snapshot after saving
+      originalFormData = structuredClone(formData);
+    } catch (err) {
+      saveError = err.message;
+      console.error("Auto-save failed:", err);
     } finally {
       saving = false;
     }
@@ -154,7 +208,7 @@
               <tr>
                 <td colspan="2">
                   <div class="box">
-                    {#if expandedConfig}
+                    {#if expandedConfig?.env && envDist?.env}
                       <form
                         on:submit|preventDefault={() => saveConfig(instance)}
                       >
@@ -170,32 +224,11 @@
                                 type="text"
                                 bind:value={formData[key]}
                                 placeholder={meta.default_value}
+                                on:blur={() => autoSave(instance)}
                               />
                             </div>
                           </div>
                         {/each}
-
-                        <div class="field is-grouped mt-4">
-                          <div class="control">
-                            <button
-                              class="button is-primary"
-                              type="submit"
-                              disabled={saving}
-                            >
-                              {saving ? "Saving..." : "Save Configuration"}
-                            </button>
-                          </div>
-                          {#if saveError}
-                            <div class="control">
-                              <p class="has-text-danger">{saveError}</p>
-                            </div>
-                          {/if}
-                          {#if saveSuccess}
-                            <div class="control">
-                              <p class="has-text-success">{saveSuccess}</p>
-                            </div>
-                          {/if}
-                        </div>
                       </form>
                     {:else}
                       <p>Loading instance config...</p>
