@@ -8,8 +8,9 @@ from pathlib import Path
 from collections import defaultdict
 from pydantic import BaseModel
 from typing import Optional
-from .lib import run_command
+from .lib import run_command, parse_env_file_contents
 from .docker_context import get_docker_context_names
+import json
 
 """
 Manage app instances.
@@ -26,8 +27,11 @@ class Instance(BaseModel):
     context: str
     instance: str
 
+    class Config:
+        json_encoders = {Path: lambda v: str(v)}
 
-def get_instance_config_paths() -> list[Instance]:
+
+def get_instances() -> list[Instance]:
     valid_subdirs = (
         d for d in Path(DRY_PATH).iterdir() if d.is_dir() and d.name[:1].isalnum()
     )
@@ -113,12 +117,37 @@ async def get_app_instances(
 
     instances = defaultdict(list)
 
-    for instance in get_instance_config_paths():
+    for instance in get_instances():
         if instance.context != context:
             continue
         if app and instance.app != app:
             continue
 
-        instances[instance.app].append(str(instance.env_path))
+        instances[instance.app].append(json.loads(instance.json()))
 
     return JSONResponse(content={context: instances})
+
+
+@router.get("/config", response_class=JSONResponse)
+async def get_instance_config(env_path=Query()):
+    if not os.path.isfile(env_path):
+        raise HTTPException(status_code=404, detail=f".env file not found: {env_path}")
+
+    try:
+        with open(env_path, "r") as f:
+            contents = f.read()
+            env_dict, _, _ = parse_env_file_contents(contents)
+
+            return {
+                "env": {
+                    key: {
+                        "value": env_dict[key],
+                    }
+                    for key in env_dict
+                }
+            }
+
+    except HTTPException:
+        raise  # re-raise original HTTPException untouched
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
