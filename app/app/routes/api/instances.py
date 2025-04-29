@@ -11,6 +11,7 @@ from typing import Optional
 from .lib import run_command, run_command_status, parse_env_file_contents
 from .docker_context import get_docker_context_names
 import json
+import asyncio
 
 """
 Manage app instances.
@@ -33,7 +34,11 @@ class Instance(BaseModel):
         json_encoders = {Path: lambda v: str(v)}
 
 
-def get_instances(include_status=False) -> list[Instance]:
+def get_instances(
+    include_status: bool = False,
+    context: str | None = None,
+    app: str | None = None,
+) -> list[Instance]:
     valid_subdirs = (
         d for d in Path(DRY_PATH).iterdir() if d.is_dir() and d.name[:1].isalnum()
     )
@@ -41,6 +46,11 @@ def get_instances(include_status=False) -> list[Instance]:
 
     for subdir in valid_subdirs:
         app_name = subdir.name
+
+        # Filter by app if specified
+        if app and app_name != app:
+            continue
+
         for env_file in subdir.glob(".env_*"):
             if not env_file.is_file():
                 continue
@@ -49,7 +59,11 @@ def get_instances(include_status=False) -> list[Instance]:
             if len(parts) != 3:
                 continue  # skip if not .env_{CONTEXT}_{INSTANCE}
 
-            _, context, instance = parts
+            _, file_context, instance_name = parts
+
+            # Filter by context if specified
+            if context and file_context != context:
+                continue
 
             with open(env_file, "r") as f:
                 contents = f.read()
@@ -62,18 +76,18 @@ def get_instances(include_status=False) -> list[Instance]:
 
             if include_status:
                 try:
-                    status_output = run_command(
-                        [
-                            DRY_COMMAND,
-                            "make",
-                            app_name,
-                            "docker-compose-lifecycle-cmd",
-                            "EXTRA_ARGS=ps -a --format json",
-                            "instance=" + instance,
-                        ]
-                    )
+                    status_command = [
+                        DRY_COMMAND,
+                        "make",
+                        app_name,
+                        "docker-compose-lifecycle-cmd",
+                        "EXTRA_ARGS=ps -a --format json",
+                        "instance=" + instance_name,
+                    ]
+                    logger.debug(status_command)
+                    status_output = run_command(status_command)
                     status_json = json.loads(status_output)
-                except HTTPException as e:
+                except HTTPException:
                     status = "uninstalled"
                 except json.JSONDecodeError as e:
                     if status_output.strip() == "":
@@ -89,8 +103,8 @@ def get_instances(include_status=False) -> list[Instance]:
             instance_obj = Instance(
                 app=app_name,
                 env_path=env_file,
-                context=context,
-                instance=instance,
+                context=file_context,
+                instance=instance_name,
                 traefik_host=traefik_host,
                 status=status,
             )
@@ -106,7 +120,7 @@ async def save_instance_config(
     request: Request = None,
 ):
     form = await request.form()
-
+    await asyncio.sleep(5)
     if not app or not context:
         raise HTTPException(status_code=400, detail="Missing 'app' or 'context'")
 
@@ -159,12 +173,9 @@ async def get_app_instances(
 
     instances = defaultdict(list)
 
-    for instance in get_instances(include_status=include_status):
-        if instance.context != context:
-            continue
-        if app and instance.app != app:
-            continue
-
+    for instance in get_instances(
+        include_status=include_status, context=context, app=app
+    ):
         instances[instance.app].append(json.loads(instance.json()))
 
     return JSONResponse(content={context: instances})

@@ -249,8 +249,11 @@
     </div>
 
     {#if loading}
-      <div class="notification">
-        <p>Loading data...</p>
+      <div class="notification is-dark is-info has-text-centered">
+        <span class="loader"></span>
+        <p class="animated-dots">
+          Loading<span>.</span><span>.</span><span>.</span>
+        </p>
       </div>
     {:else if error}
       <p class="has-text-danger">Error: {error}</p>
