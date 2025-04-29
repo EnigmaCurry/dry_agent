@@ -62,22 +62,25 @@ def get_instances(include_status=False) -> list[Instance]:
 
             if include_status:
                 try:
-                    status_json = json.loads(
-                        run_command(
-                            [
-                                DRY_COMMAND,
-                                "make",
-                                app_name,
-                                "docker-compose-lifecycle-cmd",
-                                "EXTRA_ARGS=ps -a --format json",
-                                "instance=" + instance,
-                            ]
-                        )
+                    status_output = run_command(
+                        [
+                            DRY_COMMAND,
+                            "make",
+                            app_name,
+                            "docker-compose-lifecycle-cmd",
+                            "EXTRA_ARGS=ps -a --format json",
+                            "instance=" + instance,
+                        ]
                     )
+                    status_json = json.loads(status_output)
                 except HTTPException as e:
-                    status = None
-                except json.JSONDecodeError:
-                    status = None
+                    status = "uninstalled"
+                except json.JSONDecodeError as e:
+                    if status_output.strip() == "":
+                        status = "uninstalled"
+                    else:
+                        status = "error"
+                        logger.error(e)
                 else:
                     status = status_json.get("State", None)
             else:

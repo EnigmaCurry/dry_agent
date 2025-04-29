@@ -1,69 +1,68 @@
 <script>
-import { onMount } from "svelte";
-import { currentContext } from "$lib/stores";
+  import { onMount } from "svelte";
+  import { currentContext } from "$lib/stores";
 
-/**
- * @typedef {Object} AppInfo
- * @property {string} name
- * @property {string} description
- */
+  /**
+   * @typedef {Object} AppInfo
+   * @property {string} name
+   * @property {string} description
+   */
 
-let apps = $state([]);
-let loading = $state(true);
-let error = $state(null);
-let configApp = $state(null);
-/** @type {Record<string, number>} */
-let instanceCounts = $state({});
+  let apps = $state([]);
+  let loading = $state(true);
+  let error = $state(null);
+  let configApp = $state(null);
+  /** @type {Record<string, number>} */
+  let instanceCounts = $state({});
 
-const instanceEmojis = ["🙂", "😎", "🚀", "🧙‍♂️"];
+  const instanceEmojis = ["🙂", "😎", "🚀", "🧙‍♂️"];
 
-async function fetchApps() {
-  const res = await fetch("/api/apps/available");
-  if (!res.ok) throw new Error(`Error fetching apps: ${res.statusText}`);
-  const data = await res.json();
-  apps = data.apps;
-}
-
-async function fetchInstanceCounts() {
-  const res = await fetch("/api/instances/");
-  if (!res.ok) throw new Error(`Error fetching instances: ${res.statusText}`);
-  const data = await res.json();
-
-  const context = $currentContext || "default";
-  const instances = data[context] || {};
-
-  const counts = {};
-  for (const [appName, envFiles] of Object.entries(instances)) {
-    counts[appName] = envFiles.length;
+  async function fetchApps() {
+    const res = await fetch("/api/apps/available");
+    if (!res.ok) throw new Error(`Error fetching apps: ${res.statusText}`);
+    const data = await res.json();
+    apps = data.apps;
   }
-  instanceCounts = counts;
-}
 
-function renderInstanceEmojis(appName) {
-  const count = instanceCounts[appName] || 0;
-  if (count === 0) return "";
+  async function fetchInstanceCounts() {
+    const res = await fetch("/api/instances/");
+    if (!res.ok) throw new Error(`Error fetching instances: ${res.statusText}`);
+    const data = await res.json();
 
-  if (count > 5) return "✅ 💯";
+    const context = $currentContext || "default";
+    const instances = data[context] || {};
 
-  return ["✅", ...instanceEmojis.slice(0, count - 1)].join(" ");
-}
-
-// ✅ Key the load to currentContext
-$effect(async () => {
-  if (!$currentContext) return;
-
-  loading = true;
-  error = null;
-
-  try {
-    await Promise.all([fetchApps(), fetchInstanceCounts()]);
-  } catch (err) {
-    error = /** @type {Error} */ (err).message;
-  } finally {
-    loading = false;
+    const counts = {};
+    for (const [appName, envFiles] of Object.entries(instances)) {
+      counts[appName] = envFiles.length;
+    }
+    instanceCounts = counts;
   }
-});
 
+  function renderInstanceEmojis(appName) {
+    const count = instanceCounts[appName] || 0;
+    if (count === 0) return "";
+
+    if (count > 5) return "✅ 💯";
+
+    return ["✅", ...instanceEmojis.slice(0, count - 1)].join(" ");
+  }
+
+  // ✅ Key the load to currentContext
+  $effect(async () => {
+    if (!$currentContext) return;
+
+    loading = true;
+    error = null;
+
+    try {
+      await Promise.all([fetchApps(), fetchInstanceCounts()]);
+    } catch (err) {
+      error = /** @type {Error} */ (err).message;
+    } finally {
+      loading = false;
+    }
+  });
 </script>
 
 {#if loading}
@@ -83,7 +82,10 @@ $effect(async () => {
       {#each apps as app}
         <tr>
           <td>
-            <a href="/instances/?app={app.name}" class="button is-dark">
+            <a
+              href="/instances/?app={app.name}"
+              class="button is-dark is-fullwidth"
+            >
               {app.name}
             </a>
           </td>

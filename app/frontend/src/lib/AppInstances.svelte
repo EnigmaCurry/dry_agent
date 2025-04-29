@@ -22,6 +22,7 @@
   let showTerminal = $state(false);
   let terminalCommand = $state("");
   let terminalRestartable = $state(false);
+  let terminalReloadOnClose = $state(false);
   let fetchedServiceStatus = $state(false);
 
   /** @type {Record<string, string|null>} */
@@ -219,9 +220,10 @@
     return `https://${host}${port !== "443" ? `:${port}` : ""}${path}`;
   }
 
-  function openTerminal(command, restartable) {
+  function openTerminal(command, restartable, reloadOnClose) {
     terminalCommand = command;
     terminalRestartable = restartable;
+    terminalReloadOnClose = reloadOnClose;
     showTerminal = true;
   }
 
@@ -253,7 +255,6 @@
             <th>Instance</th>
             <th>Status</th>
             <th>URL</th>
-            <th>Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -262,15 +263,15 @@
               class:is-primary={expandedInstance === instance.instance}
               class:has-background-grey-darker={instance.status == null}
               class:is-dark={instance.status === "running"}
+              on:click={() => toggleExpand(instance)}
               style="cursor: pointer;"
             >
               <td>
                 <button
-                  class="button"
+                  class="button is-fullwidth"
                   class:is-dark={expandedInstance !== instance.instance}
                   class:is-info={expandedInstance !== instance.instance}
                   class:is-danger={expandedInstance === instance.instance}
-                  on:click={() => toggleExpand(instance)}
                 >
                   {instance.instance}
                 </button>
@@ -297,66 +298,111 @@
                   {makeUrl(instance.traefik_host)}
                 </a>
               </td>
-              <td>
-                {#if expandedInstance === null}
-                  <button
-                    class="button is-info"
-                    on:click={() =>
-                      openTerminal(
-                        `d.rymcg.tech make ${app} config instance=${instance.instance}`,
-                        "false",
-                      )}>Reconfigure</button
-                  >
-                  <button
-                    class="button is-primary"
-                    on:click={() =>
-                      openTerminal(
-                        `d.rymcg.tech make ${app} reinstall instance=${instance.instance}`,
-                        "false",
-                      )}>Reinstall</button
-                  >
-                  {#if instance.status === "running"}
-                    <button
-                      class="button is-warning"
-                      on:click={() =>
-                        openTerminal(
-                          `d.rymcg.tech make ${app} stop instance=${instance.instance}`,
-                          "false",
-                        )}>Stop</button
-                    >
-                  {/if}
-                  {#if instance.status === "exited"}
-                    <button
-                      class="button is-info"
-                      on:click={() =>
-                        openTerminal(
-                          `d.rymcg.tech make ${app} start instance=${instance.instance}`,
-                          "false",
-                        )}>Start</button
-                    >
-                  {/if}
-                  <button
-                    class="button is-danger"
-                    on:click={() =>
-                      openTerminal(
-                        `d.rymcg.tech make ${app} destroy instance=${instance.instance}`,
-                        "false",
-                      )}>Destroy</button
-                  >
-                {/if}
-              </td>
             </tr>
 
             {#if expandedInstance === instance.instance}
               <tr>
-                <td colspan="4">
+                <td colspan="100%">
                   <div class="box">
+                    <div
+                      class="is-flex is-justify-content-space-between"
+                      style="width: 100%;"
+                    >
+                      <div></div>
+                      <!-- Empty left side -->
+                      <div class="buttons has-addons">
+                        <button
+                          class="button is-info"
+                          title="Reconfigure .env file"
+                          on:click={() =>
+                            openTerminal(
+                              `d.rymcg.tech make ${app} config instance=${instance.instance}`,
+                              false,
+                              true,
+                            )}
+                        >
+                          Reconfigure
+                        </button>
+
+                        <button
+                          class="button is-link"
+                          title="Start service"
+                          on:click={() =>
+                            openTerminal(
+                              `d.rymcg.tech make ${app} install instance=${instance.instance}`,
+                              false,
+                              true,
+                            )}
+                        >
+                          Install
+                        </button>
+
+                        {#if statusMap[instance.instance] === "running"}
+                          <button
+                            class="button is-warning"
+                            title="Stop service"
+                            on:click={() =>
+                              openTerminal(
+                                `d.rymcg.tech make ${app} stop instance=${instance.instance}`,
+                                false,
+                                true,
+                              )}
+                          >
+                            Stop
+                          </button>
+                        {/if}
+
+                        <!-- {#if statusMap[instance.instance] === "exited"} -->
+                        <!--   <button -->
+                        <!--     class="button has-background-info-dark" -->
+                        <!--     on:click={() => -->
+                        <!--       openTerminal( -->
+                        <!--         `d.rymcg.tech make ${app} start instance=${instance.instance}`, -->
+                        <!--         false, -->
+                        <!--         true, -->
+                        <!--       )} -->
+                        <!--   > -->
+                        <!--     Start -->
+                        <!--   </button> -->
+                        <!-- {/if} -->
+
+                        <button
+                          class="button is-danger"
+                          title="Remove container AND data volume(s)"
+                          on:click={() =>
+                            openTerminal(
+                              `d.rymcg.tech make ${app} destroy instance=${instance.instance}`,
+                              false,
+                              true,
+                            )}
+                        >
+                          Destroy
+                        </button>
+                        {#if statusMap[instance.instance] != "uninstalled"}
+                          <button
+                            class="button has-background-dark"
+                            title="View service logs"
+                            on:click={() =>
+                              openTerminal(
+                                `d.rymcg.tech make ${app} logs instance=${instance.instance}`,
+                                false,
+                                false,
+                              )}
+                          >
+                            Logs
+                          </button>
+                        {/if}
+                      </div>
+                    </div>
                     {#if expandedConfig?.env && envDist?.env}
                       <div class="mb-4">
                         <h2 class="subtitle">
                           Edit the environment variables below.
                         </h2>
-                        <em>All changes are saved automatically.</em>
+                        <em
+                          >All changes are saved automatically. Reinstall to
+                          apply.</em
+                        >
                       </div>
                       <form
                         on:submit|preventDefault={() => saveConfig(instance)}
@@ -404,6 +450,6 @@
   restartable={terminalRestartable}
   on:close={async () => {
     showTerminal = false;
-    window.location.reload();
+    if (terminalReloadOnClose) window.location.reload();
   }}
 />
