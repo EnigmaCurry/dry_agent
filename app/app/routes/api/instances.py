@@ -26,6 +26,7 @@ class Instance(BaseModel):
     env_path: Path
     context: str
     instance: str
+    traefik_host: Optional[str]
 
     class Config:
         json_encoders = {Path: lambda v: str(v)}
@@ -48,8 +49,22 @@ def get_instances() -> list[Instance]:
                 continue  # skip if not .env_{CONTEXT}_{INSTANCE}
 
             _, context, instance = parts
+
+            with open(env_file, "r") as f:
+                contents = f.read()
+                env_dict, _, env_meta = parse_env_file_contents(contents)
+                env_meta.setdefault("PREFIX", app_name.replace("-", "_").upper())
+                try:
+                    traefik_host = env_dict[f"{env_meta['PREFIX']}_TRAEFIK_HOST"]
+                except KeyError:
+                    traefik_host = None
+
             instance_obj = Instance(
-                app=app_name, env_path=env_file, context=context, instance=instance
+                app=app_name,
+                env_path=env_file,
+                context=context,
+                instance=instance,
+                traefik_host=traefik_host,
             )
             instances.append(instance_obj)
 

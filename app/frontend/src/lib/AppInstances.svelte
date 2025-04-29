@@ -188,8 +188,8 @@
       <table class="table is-striped is-fullwidth">
         <thead>
           <tr>
-            <th>Instance Name</th>
-            <th>Env File Path</th>
+            <th>Instance</th>
+            <th>URL</th>
           </tr>
         </thead>
         <tbody>
@@ -201,7 +201,14 @@
               style="cursor: pointer;"
             >
               <td>{instance.instance}</td>
-              <td>{instance.env_path}</td>
+              <td
+                ><a
+                  href="https://{instance.traefik_host}"
+                  target="_blank"
+                  class="has-text-white"
+                  on:click|stopPropagation>https://{instance.traefik_host}</a
+                ></td
+              >
             </tr>
 
             {#if expandedInstance === instance.instance}
