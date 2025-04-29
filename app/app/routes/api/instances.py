@@ -113,6 +113,30 @@ def get_instances(
     return instances
 
 
+@router.get("/", response_class=JSONResponse)
+async def get_app_instances(
+    context: Optional[str] = Query(default=None),
+    app: Optional[str] = Query(default=None),
+    include_status: Optional[bool] = Query(default=False),
+):
+    if context is None:
+        context = run_command(["docker", "context", "show"]).strip()
+    else:
+        if context not in get_docker_context_names():
+            return JSONResponse(
+                content={"message": f"Context not found: {context}"}, status_code=404
+            )
+
+    instances = defaultdict(list)
+
+    for instance in get_instances(
+        include_status=include_status, context=context, app=app
+    ):
+        instances[instance.app].append(json.loads(instance.json()))
+
+    return JSONResponse(content={context: instances})
+
+
 @router.post("/config", response_class=JSONResponse)
 async def save_instance_config(
     app: str = Form(...),
@@ -155,30 +179,6 @@ async def save_instance_config(
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to write .env file: {e}")
-
-
-@router.get("/", response_class=JSONResponse)
-async def get_app_instances(
-    context: Optional[str] = Query(default=None),
-    app: Optional[str] = Query(default=None),
-    include_status: Optional[bool] = Query(default=False),
-):
-    if context is None:
-        context = run_command(["docker", "context", "show"]).strip()
-    else:
-        if context not in get_docker_context_names():
-            return JSONResponse(
-                content={"message": f"Context not found: {context}"}, status_code=404
-            )
-
-    instances = defaultdict(list)
-
-    for instance in get_instances(
-        include_status=include_status, context=context, app=app
-    ):
-        instances[instance.app].append(json.loads(instance.json()))
-
-    return JSONResponse(content={context: instances})
 
 
 @router.get("/config", response_class=JSONResponse)

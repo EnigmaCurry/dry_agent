@@ -68,7 +68,7 @@ async def apps_available():
         )
 
 
-@router.get("/services", response_class=JSONResponse)
+@router.get("/services/", response_class=JSONResponse)
 async def get_app_services(app: str = Query()):
     docker_compose_path = os.path.join(DRY_PATH, app, "docker-compose.yaml")
     if not os.path.isfile(docker_compose_path):

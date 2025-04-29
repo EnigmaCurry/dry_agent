@@ -5,10 +5,12 @@
   let { app } = $props();
   const ContextKey = $derived(currentContext);
   const appTitle = $derived(app.replace(/\b\w/g, (c) => c.toUpperCase()));
+  let dataLoadedForContext = null;
 
   let instances = $state([]);
   let rootEnv = $state(null);
   let envDist = $state(null);
+  let appServices = $state([]);
   let loading = $state(true);
   let error = $state(null);
 
@@ -20,10 +22,33 @@
   let saveError = $state(null);
   let saveSuccess = $state(null);
   let showTerminal = $state(false);
+  let terminalShowServiceSelector = $state(false);
   let terminalCommand = $state("");
   let terminalRestartable = $state(false);
   let terminalReloadOnClose = $state(false);
   let fetchedServiceStatus = $state(false);
+  let terminalSelectedService = $state("all");
+
+  let terminalControls;
+  function onTerminalFormChange() {
+    terminalControls.setTitle(terminalCommand);
+    terminalControls.setCommand(terminalCommand);
+  }
+
+  function onTerminalServiceChange(event) {
+    terminalSelectedService = event.target.value;
+
+    // Remove any existing `service=...` argument from the command
+    let baseCommand = terminalCommand.replace(/\bservice=\S+/g, "").trim();
+
+    // Add the new service arg if it's not "all"
+    if (terminalSelectedService !== "all") {
+      baseCommand += ` service=${terminalSelectedService}`;
+    }
+
+    terminalControls?.setCommand(baseCommand);
+    terminalControls?.setTitle(baseCommand);
+  }
 
   /** @type {Record<string, string|null>} */
   let statusMap = $state({});
@@ -66,6 +91,17 @@
       }
       envDist = await envDistRes.json();
 
+      const appServicesRes = await fetch(
+        `/api/apps/services/?app=${encodeURIComponent(app)}`,
+      );
+      if (!appServicesRes.ok) {
+        throw new Error(
+          `Failed to fetch app services: ${appServicesRes.status}`,
+        );
+      }
+      appServices = (await appServicesRes.json()).services;
+
+      console.log("appServices", $state.snapshot(appServices));
       const rootEnvRes = await fetch(`/api/d.rymcg.tech/config`);
       if (!rootEnvRes.ok) {
         throw new Error(`Failed to fetch root env: ${rootEnvRes.status}`);
@@ -110,7 +146,6 @@
       formData = {};
       await loadData();
     } else {
-      await loadData();
       expandedInstance = instance.instance;
       try {
         const res = await fetch(
@@ -220,15 +255,24 @@
     return `https://${host}${port !== "443" ? `:${port}` : ""}${path}`;
   }
 
-  function openTerminal(command, restartable, reloadOnClose) {
+  function openTerminal(
+    command,
+    restartable,
+    reloadOnClose,
+    showServiceSelector,
+  ) {
     terminalCommand = command;
     terminalRestartable = restartable;
     terminalReloadOnClose = reloadOnClose;
+    terminalShowServiceSelector = showServiceSelector;
     showTerminal = true;
   }
 
   $effect(() => {
-    if ($currentContext != null) {
+    if ($currentContext == null) return;
+    if (dataLoadedForContext !== $currentContext) {
+      console.log("loading data for context:", $currentContext);
+      dataLoadedForContext = $currentContext;
       loadData();
     }
   });
@@ -243,8 +287,12 @@
       <button
         class="button is-info"
         on:click={() =>
-          openTerminal(`d.rymcg.tech make ${app} instance-new`, false, true)}
-        >New Instance</button
+          openTerminal(
+            `d.rymcg.tech make ${app} instance-new`,
+            false,
+            true,
+            false,
+          )}>New Instance</button
       >
     </div>
 
@@ -333,6 +381,7 @@
                               `d.rymcg.tech make ${app} config instance=${instance.instance}`,
                               false,
                               true,
+                              false,
                             )}
                         >
                           Config
@@ -347,6 +396,7 @@
                               `d.rymcg.tech make ${app} install instance=${instance.instance}`,
                               false,
                               true,
+                              false,
                             )}
                         >
                           Install
@@ -362,6 +412,7 @@
                                 `d.rymcg.tech make ${app} stop instance=${instance.instance}`,
                                 false,
                                 true,
+                                false,
                               )}
                           >
                             Stop
@@ -376,6 +427,7 @@
                         <!--         `d.rymcg.tech make ${app} start instance=${instance.instance}`, -->
                         <!--         false, -->
                         <!--         true, -->
+                        <!--         false, -->
                         <!--       )} -->
                         <!--   > -->
                         <!--     Start -->
@@ -391,6 +443,7 @@
                               `d.rymcg.tech make ${app} destroy instance=${instance.instance}`,
                               false,
                               true,
+                              false,
                             )}
                         >
                           Destroy
@@ -405,6 +458,7 @@
                                 `d.rymcg.tech make ${app} logs instance=${instance.instance}`,
                                 false,
                                 false,
+                                true,
                               )}
                           >
                             Logs
@@ -420,6 +474,7 @@
                                 `d.rymcg.tech make ${app} clean instance=${instance.instance}`,
                                 false,
                                 true,
+                                false,
                               )}
                           >
                             Clean
@@ -508,10 +563,11 @@
 {/key}
 
 <ModalTerminal
-  command={terminalCommand}
-  title={terminalCommand}
-  visible={showTerminal}
-  restartable={terminalRestartable}
+  bind:visible={showTerminal}
+  bind:title={terminalCommand}
+  bind:command={terminalCommand}
+  bind:update={terminalControls}
+  bind:restartable={terminalRestartable}
   on:close={async () => {
     showTerminal = false;
     if (terminalReloadOnClose) {
@@ -519,4 +575,23 @@
       await loadData();
     }
   }}
-/>
+>
+  <div slot="form" class="field ml-4 mr-4">
+    {#if terminalShowServiceSelector}
+      <label class="label">Service</label>
+      <div class="control">
+        <div class="select is-fullwidth">
+          <select
+            on:change={onTerminalServiceChange}
+            bind:value={terminalSelectedService}
+          >
+            <option value="all">all</option>
+            {#each $state.snapshot(appServices) as service}
+              <option value={service}>{service}</option>
+            {/each}
+          </select>
+        </div>
+      </div>
+    {/if}
+  </div>
+</ModalTerminal>

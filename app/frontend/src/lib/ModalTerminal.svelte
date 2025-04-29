@@ -8,6 +8,15 @@
   export let visible = false;
   export let restartable = false;
 
+  // Allow parent to change title/command reactively
+  const updateTitle = (newTitle) => (title = newTitle);
+  const updateCommand = (newCmd) => (command = newCmd);
+  // Expose control to parent
+  export let update = {
+    setTitle: updateTitle,
+    setCommand: updateCommand,
+  };
+
   const dispatch = createEventDispatcher();
 
   let terminalHeight = 300;
@@ -38,16 +47,23 @@
       style="width: 80%; max-width: 80%; max-height: unset; height: auto;"
     >
       <header class="modal-card-head" style="padding: 0em 0em 1em 0em;">
-        <p class="modal-card-title">{title}</p>
+        <p class="modal-card-title m-4">{title}</p>
         <button class="delete" aria-label="close" on:click={close}></button>
       </header>
       <section class="modal-card-body" style="padding: 0; margin: 0;">
-        <Terminal
-          {restartable}
-          height={`${terminalHeight}px`}
-          {command}
-          on:close={close}
-        />
+        <!-- Optional Form supplied by parent -->
+        <slot name="form" />
+        <!-- Show Terminal -->
+        <div class="box mt-4">
+          {#key command}
+            <Terminal
+              {restartable}
+              height={`${terminalHeight}px`}
+              {command}
+              on:close={close}
+            />
+          {/key}
+        </div>
       </section>
     </div>
   </div>

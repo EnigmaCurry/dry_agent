@@ -5,7 +5,7 @@
   const dispatch = createEventDispatcher();
 
   export let command = "/bin/bash";
-  export let restartable = "false";
+  export let restartable = false;
   export let fontSize = 14;
   export let height = "300px";
   export let fontFamily = "monospace";

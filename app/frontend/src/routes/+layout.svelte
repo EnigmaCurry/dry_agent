@@ -107,11 +107,41 @@
 
   <div id="main-navbar" class="navbar-menu" class:is-active={burgerActive}>
     <div class="navbar-start">
-      <a class="navbar-item is-deep-red" href="/docker"> Docker </a>
-      <a class="navbar-item is-deep-red" href="/config"> Config </a>
-      <a class="navbar-item is-deep-red" href="/apps"> Apps </a>
-      <a class="navbar-item is-deep-red" href="/repository"> Repository </a>
-      <a class="navbar-item is-deep-red" href="/workstation"> Workstation </a>
+      <a
+        class="navbar-item is-deep-red"
+        onclick={handleDropdownItemClick}
+        href="/docker"
+      >
+        Docker
+      </a>
+      <a
+        class="navbar-item is-deep-red"
+        onclick={handleDropdownItemClick}
+        href="/config"
+      >
+        Config
+      </a>
+      <a
+        class="navbar-item is-deep-red"
+        onclick={handleDropdownItemClick}
+        href="/apps"
+      >
+        Apps
+      </a>
+      <a
+        class="navbar-item is-deep-red"
+        onclick={handleDropdownItemClick}
+        href="/repository"
+      >
+        Repository
+      </a>
+      <a
+        class="navbar-item is-deep-red"
+        onclick={handleDropdownItemClick}
+        href="/workstation"
+      >
+        Workstation
+      </a>
 
       <!-- <\!-- Dropdown Example -\-> -->
       <!-- <div -->
