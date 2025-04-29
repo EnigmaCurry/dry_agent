@@ -331,7 +331,7 @@
                               true,
                             )}
                         >
-                          Reconfigure
+                          Config
                         </button>
 
                         <button
@@ -442,16 +442,40 @@
                               {key}
                               <span class="help">{meta.comments}</span>
                             </label>
+
                             <div class="control">
-                              <input
-                                class="input"
-                                type="text"
-                                bind:value={formData[key]}
-                                placeholder={meta.default_value}
-                                on:blur={() => autoSave(instance)}
-                                disabled={key ===
-                                  `${envDist.meta.PREFIX}_INSTANCE`}
-                              />
+                              {#if meta.default_value === "true" || meta.default_value === "false"}
+                                <label class="radio">
+                                  <input
+                                    type="radio"
+                                    name={key}
+                                    value="true"
+                                    bind:group={formData[key]}
+                                    on:change={() => autoSave(instance)}
+                                  />
+                                  True
+                                </label>
+                                <label class="radio">
+                                  <input
+                                    type="radio"
+                                    name={key}
+                                    value="false"
+                                    bind:group={formData[key]}
+                                    on:change={() => autoSave(instance)}
+                                  />
+                                  False
+                                </label>
+                              {:else}
+                                <input
+                                  class="input"
+                                  type="text"
+                                  bind:value={formData[key]}
+                                  placeholder={meta.default_value}
+                                  on:blur={() => autoSave(instance)}
+                                  disabled={key ===
+                                    `${envDist.meta.PREFIX}_INSTANCE`}
+                                />
+                              {/if}
                             </div>
                           </div>
                         {/each}
