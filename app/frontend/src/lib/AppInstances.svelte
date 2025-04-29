@@ -514,6 +514,9 @@
   restartable={terminalRestartable}
   on:close={async () => {
     showTerminal = false;
-    if (terminalReloadOnClose) window.location.reload();
+    if (terminalReloadOnClose) {
+      fetchedServiceStatus = false;
+      await loadData();
+    }
   }}
 />
