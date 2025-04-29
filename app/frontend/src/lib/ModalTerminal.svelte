@@ -6,6 +6,7 @@
   export let command = "";
   export let title = "";
   export let visible = false;
+  export let restartable = false;
 
   const dispatch = createEventDispatcher();
 
@@ -32,14 +33,17 @@
 {#if visible}
   <div class="modal is-active">
     <div class="modal-background" on:click={close}></div>
-    <div class="modal-card" style="width: 80%; max-width: 80%; max-height: unset; height: auto;">
+    <div
+      class="modal-card"
+      style="width: 80%; max-width: 80%; max-height: unset; height: auto;"
+    >
       <header class="modal-card-head" style="padding: 0em 0em 1em 0em;">
         <p class="modal-card-title">{title}</p>
         <button class="delete" aria-label="close" on:click={close}></button>
       </header>
       <section class="modal-card-body" style="padding: 0; margin: 0;">
         <Terminal
-          restartable={false}
+          {restartable}
           height={`${terminalHeight}px`}
           {command}
           on:close={close}

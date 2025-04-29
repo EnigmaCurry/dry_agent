@@ -8,7 +8,7 @@ from pathlib import Path
 from collections import defaultdict
 from pydantic import BaseModel
 from typing import Optional
-from .lib import run_command, parse_env_file_contents
+from .lib import run_command, run_command_status, parse_env_file_contents
 from .docker_context import get_docker_context_names
 import json
 
@@ -27,12 +27,13 @@ class Instance(BaseModel):
     context: str
     instance: str
     traefik_host: Optional[str]
+    status: Optional[str]
 
     class Config:
         json_encoders = {Path: lambda v: str(v)}
 
 
-def get_instances() -> list[Instance]:
+def get_instances(include_status=False) -> list[Instance]:
     valid_subdirs = (
         d for d in Path(DRY_PATH).iterdir() if d.is_dir() and d.name[:1].isalnum()
     )
@@ -59,12 +60,36 @@ def get_instances() -> list[Instance]:
                 except KeyError:
                     traefik_host = None
 
+            if include_status:
+                try:
+                    status_json = json.loads(
+                        run_command(
+                            [
+                                DRY_COMMAND,
+                                "make",
+                                app_name,
+                                "docker-compose-lifecycle-cmd",
+                                "EXTRA_ARGS=ps -a --format json",
+                                "instance=" + instance,
+                            ]
+                        )
+                    )
+                except HTTPException as e:
+                    status = None
+                except json.JSONDecodeError:
+                    status = None
+                else:
+                    status = status_json.get("State", None)
+            else:
+                status = None
+
             instance_obj = Instance(
                 app=app_name,
                 env_path=env_file,
                 context=context,
                 instance=instance,
                 traefik_host=traefik_host,
+                status=status,
             )
             instances.append(instance_obj)
 
@@ -119,6 +144,7 @@ async def save_instance_config(
 async def get_app_instances(
     context: Optional[str] = Query(default=None),
     app: Optional[str] = Query(default=None),
+    include_status: Optional[bool] = Query(default=False),
 ):
     if context is None:
         context = run_command(["docker", "context", "show"]).strip()
@@ -130,7 +156,7 @@ async def get_app_instances(
 
     instances = defaultdict(list)
 
-    for instance in get_instances():
+    for instance in get_instances(include_status=include_status):
         if instance.context != context:
             continue
         if app and instance.app != app:

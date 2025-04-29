@@ -3,6 +3,7 @@ from typing import List, Optional
 from fastapi import HTTPException
 import string
 from typing import Dict, Tuple
+import re
 
 
 def run_command(
@@ -39,6 +40,25 @@ def run_command(
             status_code=500,
             detail=f"Command '{' '.join(cmd)}' failed: {e.stderr.strip()}",
         )
+
+
+def run_command_status(cmd: List[str], timeout: Optional[int] = None) -> int:
+    """
+    Run a shell command, discarding all output.
+
+    Returns the exit code.
+    If the command times out, returns -1.
+    """
+    try:
+        result = subprocess.run(
+            cmd,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            timeout=timeout,
+        )
+        return result.returncode
+    except subprocess.TimeoutExpired:
+        return -1
 
 
 def ensure_ends_with_punctuation(s: str) -> str:
@@ -109,3 +129,29 @@ def parse_env_file_contents(
             in_meta_block = False  # end meta block if it was open
 
     return env_dict, env_comments, env_meta
+
+
+def parse_makefile_open_hook_path(makefile_content):
+    """
+    Parses the open-hook target from a Makefile and extracts the second argument after ${BIN}/open.
+
+    Args:
+        makefile_content (str): The content of the Makefile as a string.
+
+    Returns:
+        str: The path following `${BIN}/open`, or '/' if not found.
+    """
+    in_open_hook = False
+    for line in makefile_content.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("open-hook:"):
+            in_open_hook = True
+            continue
+        if in_open_hook:
+            # Expecting a command like "${BIN}/open /somepath"
+            match = re.match(r"\$\{BIN\}/open\s+(\S+)", stripped)
+            if match:
+                return match.group(1)
+            else:
+                return "/"  # Found open-hook but no path
+    return "/"  # No open-hook found

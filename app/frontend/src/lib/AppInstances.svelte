@@ -1,5 +1,6 @@
 <script>
   import { currentContext } from "$lib/stores";
+  import ModalTerminal from "./ModalTerminal.svelte";
 
   let { app } = $props();
   const ContextKey = $derived(currentContext);
@@ -18,6 +19,13 @@
   let saving = $state(false);
   let saveError = $state(null);
   let saveSuccess = $state(null);
+  let showTerminal = $state(false);
+  let terminalCommand = $state("");
+  let terminalRestartable = $state(false);
+  let fetchedServiceStatus = $state(false);
+
+  /** @type {Record<string, string|null>} */
+  let statusMap = $state({});
 
   async function loadData() {
     loading = true;
@@ -30,7 +38,7 @@
     formData = {};
     try {
       const instancesRes = await fetch(
-        `/api/instances/?app=${encodeURIComponent(app)}`,
+        `/api/instances/?app=${encodeURIComponent(app)}&include_status=${!fetchedServiceStatus}`,
       );
       if (!instancesRes.ok) {
         throw new Error(`Failed to fetch instances: ${instancesRes.status}`);
@@ -38,7 +46,15 @@
       const instancesData = await instancesRes.json();
       const contextData = instancesData[$currentContext];
       if (contextData && contextData[app]) {
-        instances = contextData[app];
+        instances = sortInstances(contextData[app] || []);
+
+        for (const instance of instances) {
+          if (instance.status != null) {
+            statusMap[instance.instance] = instance.status;
+          } else if (statusMap[instance.instance]) {
+            instance.status = statusMap[instance.instance];
+          }
+        }
       }
 
       const envDistRes = await fetch(
@@ -59,7 +75,27 @@
       error = err.message;
     } finally {
       loading = false;
+      fetchedServiceStatus = true;
     }
+  }
+
+  function sortInstances(list) {
+    const statusOrder = { running: 0, exited: 1 };
+
+    return list.slice().sort((a, b) => {
+      const aStatusRaw = a.status ?? statusMap[a.instance];
+      const bStatusRaw = b.status ?? statusMap[b.instance];
+
+      const aStatus = statusOrder[aStatusRaw] ?? 2;
+      const bStatus = statusOrder[bStatusRaw] ?? 2;
+
+      if (aStatus !== bStatus) return aStatus - bStatus;
+
+      if (a.instance === "default") return -1;
+      if (b.instance === "default") return 1;
+
+      return a.instance.localeCompare(b.instance);
+    });
   }
 
   async function toggleExpand(instance) {
@@ -71,7 +107,9 @@
       expandedInstance = null;
       expandedConfig = null;
       formData = {};
+      await loadData();
     } else {
+      await loadData();
       expandedInstance = instance.instance;
       try {
         const res = await fetch(
@@ -92,7 +130,6 @@
         expandedConfig = null;
         formData = {};
       }
-      console.log("Expanded config loaded:", expandedConfig);
     }
     saveError = null;
     saveSuccess = null;
@@ -167,7 +204,7 @@
       saveSuccess = "Configuration saved successfully!";
       console.log("Auto-saved successfully.");
       // Update the originalFormData snapshot after saving
-      originalFormData = structuredClone(formData);
+      originalFormData = structuredClone($state.snapshot(formData));
     } catch (err) {
       saveError = err.message;
       console.error("Auto-save failed:", err);
@@ -178,7 +215,14 @@
 
   function makeUrl(host) {
     const port = rootEnv.PUBLIC_HTTPS_PORT || "443";
-    return `https://${host}${port !== "443" ? `:${port}` : ""}`;
+    const path = (envDist?.http_path || "/").replace(/^\/?/, "/");
+    return `https://${host}${port !== "443" ? `:${port}` : ""}${path}`;
+  }
+
+  function openTerminal(command, restartable) {
+    terminalCommand = command;
+    terminalRestartable = restartable;
+    showTerminal = true;
   }
 
   $effect(() => {
@@ -198,40 +242,122 @@
       </div>
     {:else if error}
       <p class="has-text-danger">Error: {error}</p>
+    {:else if saveError}
+      <div class="notification is-danger">
+        <p><strong>Error saving config</strong>: {saveError}</p>
+      </div>
     {:else if instances.length > 0 && rootEnv}
       <table class="table is-striped is-fullwidth">
         <thead>
           <tr>
             <th>Instance</th>
+            <th>Status</th>
             <th>URL</th>
+            <th>Actions</th>
           </tr>
         </thead>
         <tbody>
           {#each instances as instance (instance.instance)}
             <tr
-              on:click={() => toggleExpand(instance)}
-              class:is-dark={true}
               class:is-primary={expandedInstance === instance.instance}
+              class:has-background-grey-darker={instance.status == null}
+              class:is-dark={instance.status === "running"}
               style="cursor: pointer;"
             >
-              <td>{instance.instance}</td>
               <td>
+                <button
+                  class="button"
+                  class:is-dark={expandedInstance !== instance.instance}
+                  class:is-info={expandedInstance !== instance.instance}
+                  class:is-danger={expandedInstance === instance.instance}
+                  on:click={() => toggleExpand(instance)}
+                >
+                  {instance.instance}
+                </button>
+              </td>
+              <td style="vertical-align: middle;">
+                {#if instance.status === "running"}
+                  <span class="title" title="Instance is running">🏃</span>
+                {:else if instance.status === "exited"}
+                  <span class="title" title="Instance is stopped">💤</span>
+                {:else}
+                  <span class="subtitle" title="Instance is not installed">
+                    🌱
+                  </span>
+                {/if}
+              </td>
+              <td style="vertical-align: middle;">
                 <a
                   href={makeUrl(instance.traefik_host)}
                   target="_blank"
-                  class="has-text-white"
+                  class:has-text-light={expandedInstance !== instance.instance}
+                  class:has-text-dark={expandedInstance === instance.instance}
                   on:click|stopPropagation
                 >
                   {makeUrl(instance.traefik_host)}
                 </a>
               </td>
+              <td>
+                {#if expandedInstance === null}
+                  <button
+                    class="button is-info"
+                    on:click={() =>
+                      openTerminal(
+                        `d.rymcg.tech make ${app} config instance=${instance.instance}`,
+                        "false",
+                      )}>Reconfigure</button
+                  >
+                  <button
+                    class="button is-primary"
+                    on:click={() =>
+                      openTerminal(
+                        `d.rymcg.tech make ${app} reinstall instance=${instance.instance}`,
+                        "false",
+                      )}>Reinstall</button
+                  >
+                  {#if instance.status === "running"}
+                    <button
+                      class="button is-warning"
+                      on:click={() =>
+                        openTerminal(
+                          `d.rymcg.tech make ${app} stop instance=${instance.instance}`,
+                          "false",
+                        )}>Stop</button
+                    >
+                  {/if}
+                  {#if instance.status === "exited"}
+                    <button
+                      class="button is-info"
+                      on:click={() =>
+                        openTerminal(
+                          `d.rymcg.tech make ${app} start instance=${instance.instance}`,
+                          "false",
+                        )}>Start</button
+                    >
+                  {/if}
+                  <button
+                    class="button is-danger"
+                    on:click={() =>
+                      openTerminal(
+                        `d.rymcg.tech make ${app} destroy instance=${instance.instance}`,
+                        "false",
+                      )}>Destroy</button
+                  >
+                {/if}
+              </td>
             </tr>
 
             {#if expandedInstance === instance.instance}
               <tr>
-                <td colspan="2">
+                <td colspan="4">
                   <div class="box">
                     {#if expandedConfig?.env && envDist?.env}
+                      <div class="mb-4">
+                        <h2 class="subtitle">
+                          Edit the environment variables below.
+                        </h2>
+                        <em>All changes are saved automatically.</em>
+                      </div>
                       <form
                         on:submit|preventDefault={() => saveConfig(instance)}
                       >
@@ -270,3 +396,14 @@
     {/if}
   {/if}
 {/key}
+
+<ModalTerminal
+  command={terminalCommand}
+  title={terminalCommand}
+  visible={showTerminal}
+  restartable={terminalRestartable}
+  on:close={async () => {
+    showTerminal = false;
+    window.location.reload();
+  }}
+/>

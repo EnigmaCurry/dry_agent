@@ -1,90 +1,69 @@
 <script>
-  import { onMount } from "svelte";
-  import { currentContext } from "$lib/stores";
-  import { get } from "svelte/store";
+import { onMount } from "svelte";
+import { currentContext } from "$lib/stores";
 
-  let { context } = $props();
+/**
+ * @typedef {Object} AppInfo
+ * @property {string} name
+ * @property {string} description
+ */
 
-  /**
-   * @typedef {Object} AppInfo
-   * @property {string} name
-   * @property {string} description
-   */
+let apps = $state([]);
+let loading = $state(true);
+let error = $state(null);
+let configApp = $state(null);
+/** @type {Record<string, number>} */
+let instanceCounts = $state({});
 
-  /** @type {AppInfo[]} */
-  let apps = $state([]);
+const instanceEmojis = ["🙂", "😎", "🚀", "🧙‍♂️"];
 
-  let loading = $state(true);
-  let error = $state(null);
+async function fetchApps() {
+  const res = await fetch("/api/apps/available");
+  if (!res.ok) throw new Error(`Error fetching apps: ${res.statusText}`);
+  const data = await res.json();
+  apps = data.apps;
+}
 
-  let configApp = $state(null);
+async function fetchInstanceCounts() {
+  const res = await fetch("/api/instances/");
+  if (!res.ok) throw new Error(`Error fetching instances: ${res.statusText}`);
+  const data = await res.json();
 
-  /** @type {Record<string, number>} */
-  let instanceCounts = $state({});
+  const context = $currentContext || "default";
+  const instances = data[context] || {};
 
-  const instanceEmojis = [
-    "🙂", // 2nd instance
-    "😎", // 3rd instance
-    "🚀", // 4th instance
-    "🧙‍♂️", // 5th instance
-  ];
-
-  $effect(() => {
-    if (context) {
-      fetchApps();
-      fetchInstanceCounts();
-    }
-  });
-
-  async function fetchApps() {
-    const res = await fetch("/api/apps/available");
-    if (!res.ok) throw new Error(`Error fetching apps: ${res.statusText}`);
-    const data = await res.json();
-    apps = data.apps;
+  const counts = {};
+  for (const [appName, envFiles] of Object.entries(instances)) {
+    counts[appName] = envFiles.length;
   }
+  instanceCounts = counts;
+}
 
-  async function fetchInstanceCounts() {
-    const res = await fetch("/api/instances/");
-    if (!res.ok) throw new Error(`Error fetching instances: ${res.statusText}`);
-    const data = await res.json();
+function renderInstanceEmojis(appName) {
+  const count = instanceCounts[appName] || 0;
+  if (count === 0) return "";
 
-    const context = get(currentContext) || "default";
-    const instances = data[context] || {};
+  if (count > 5) return "✅ 💯";
 
-    /** @type {Record<string, number>} */
-    const counts = {};
-    for (const [appName, envFiles] of Object.entries(instances)) {
-      counts[appName] = envFiles.length;
-    }
-    instanceCounts = counts;
+  return ["✅", ...instanceEmojis.slice(0, count - 1)].join(" ");
+}
+
+// ✅ Key the load to currentContext
+$effect(async () => {
+  if (!$currentContext) return;
+
+  loading = true;
+  error = null;
+
+  try {
+    await Promise.all([fetchApps(), fetchInstanceCounts()]);
+  } catch (err) {
+    error = /** @type {Error} */ (err).message;
+  } finally {
+    loading = false;
   }
+});
 
-  function renderInstanceEmojis(appName) {
-    const count = instanceCounts[appName] || 0;
-    if (count === 0) return "";
-
-    if (count > 5) {
-      return "✅ 💯";
-    }
-
-    // Always start with ✅
-    const emojis = ["✅"];
-
-    // Add up to (count-1) more emojis from the list
-    emojis.push(...instanceEmojis.slice(0, count - 1));
-
-    return emojis.join(" ");
-  }
-
-  onMount(async () => {
-    try {
-      await Promise.all([fetchApps(), fetchInstanceCounts()]);
-    } catch (err) {
-      error = /** @type {Error} */ (err).message;
-    } finally {
-      loading = false;
-    }
-  });
 </script>
 
 {#if loading}
