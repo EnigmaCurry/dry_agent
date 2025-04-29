@@ -4,6 +4,7 @@ from fastapi import HTTPException
 import string
 from typing import Dict, Tuple
 import re
+import yaml
 
 
 def run_command(
@@ -155,3 +156,33 @@ def parse_makefile_open_hook_path(makefile_content):
             else:
                 return "/"  # Found open-hook but no path
     return "/"  # No open-hook found
+
+
+def parse_docker_compose_services(docker_compose_content):
+    """
+    Parses docker-compose YAML content and returns the top-level service names.
+
+    Args:
+        docker_compose_content (str): The docker-compose YAML content as a string.
+
+    Returns:
+        list: A list of service names under the top-level 'services' key.
+
+    Raises:
+        ValueError: If the YAML is invalid or 'services' is missing or malformed.
+    """
+
+    def get_service_keys(yaml_str):
+        try:
+            data = yaml.safe_load(yaml_str)
+            if (
+                isinstance(data, dict)
+                and "services" in data
+                and isinstance(data["services"], dict)
+            ):
+                return list(data["services"].keys())
+            raise ValueError("'services' section is missing or not a dictionary.")
+        except yaml.YAMLError as e:
+            raise ValueError(f"Invalid YAML: {e}")
+
+    return get_service_keys(docker_compose_content)

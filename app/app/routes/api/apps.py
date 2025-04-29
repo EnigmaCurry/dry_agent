@@ -5,8 +5,9 @@ import os
 import re
 import traceback
 import subprocess
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import JSONResponse
+from .lib import parse_docker_compose_services
 
 """
 General information about available apps and default configs.
@@ -65,6 +66,26 @@ async def apps_available():
             status_code=500,
             content={"detail": f"Internal Server Error: {str(e)}"},
         )
+
+
+@router.get("/services", response_class=JSONResponse)
+async def get_app_services(app: str = Query()):
+    docker_compose_path = os.path.join(DRY_PATH, app, "docker-compose.yaml")
+    if not os.path.isfile(docker_compose_path):
+        return JSONResponse(
+            status_code=404,
+            content={"detail": f"Could not find docker-compose.yaml for app: {app}"},
+        )
+    with open(docker_compose_path) as f:
+        docker_compose_content = f.read()
+    try:
+        services = parse_docker_compose_services(docker_compose_content)
+    except ValueError:
+        return JSONResponse(
+            status_code=500,
+            content={"detail": f"Could not parse: {docker_compose_path}"},
+        )
+    return {"app": app, "services": services}
 
 
 def parse_readme_descriptions():
