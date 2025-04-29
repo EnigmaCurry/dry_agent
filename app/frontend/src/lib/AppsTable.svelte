@@ -8,6 +8,8 @@
    * @property {string} description
    */
 
+  let { show_all } = $props();
+
   let apps = $state([]);
   let loading = $state(true);
   let error = $state(null);
@@ -15,7 +17,18 @@
   /** @type {Record<string, number>} */
   let instanceCounts = $state({});
 
-  const instanceEmojis = ["1️⃣","2️⃣","3️⃣","4️⃣","5️⃣","6️⃣","7️⃣","8️⃣","9️⃣","🔟"];
+  const instanceEmojis = [
+    "1️⃣",
+    "2️⃣",
+    "3️⃣",
+    "4️⃣",
+    "5️⃣",
+    "6️⃣",
+    "7️⃣",
+    "8️⃣",
+    "9️⃣",
+    "🔟",
+  ];
 
   async function fetchApps() {
     const res = await fetch("/api/apps/available");
@@ -37,6 +50,11 @@
       counts[appName] = envFiles.length;
     }
     instanceCounts = counts;
+    console.log($state.snapshot(instanceCounts));
+    console.log(
+      "instance counts",
+      Object.keys($state.snapshot(instanceCounts)).length,
+    );
   }
 
   function renderInstanceEmojis(appName) {
@@ -67,6 +85,8 @@
   <div class="notification is-info">Loading apps…</div>
 {:else if error}
   <div class="notification is-danger">❌ {error}</div>
+{:else if show_all != true && Object.keys(instanceCounts).length === 0}
+  <div class="notification is-warning">No apps configured.</div>
 {:else}
   <table class="table is-striped is-hoverable is-fullwidth">
     <thead>
@@ -77,7 +97,7 @@
       </tr>
     </thead>
     <tbody>
-      {#each apps as app}
+      {#each apps.filter((app) => show_all || (instanceCounts[app.name] || 0) > 0) as app}
         <tr>
           <td>
             <a

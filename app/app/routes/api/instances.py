@@ -47,6 +47,9 @@ def get_instances(
     for subdir in valid_subdirs:
         app_name = subdir.name
 
+        if app_name == "traefik":
+            continue
+
         # Filter by app if specified
         if app and app_name != app:
             continue
