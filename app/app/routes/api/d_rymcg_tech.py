@@ -7,7 +7,7 @@ import traceback
 import subprocess
 from fastapi import APIRouter, Request, HTTPException, Form
 from fastapi.responses import JSONResponse
-from .lib import run_command
+from .lib import run_command, parse_env_file_contents
 
 logger = logging.getLogger("uvicorn.error")
 
@@ -20,7 +20,13 @@ async def config(context: str = None):
         context = run_command(["docker", "context", "show"])
     config_path = os.path.join(DRY_PATH, f".env_{context}")
     if os.path.isfile(config_path):
-        return JSONResponse({"context": context, "config_path": config_path})
+        with open(config_path) as f:
+            contents = f.read()
+            env_dict, _, _ = parse_env_file_contents(contents)
+
+        return JSONResponse(
+            {"context": context, "config_path": config_path, "env": env_dict}
+        )
     else:
         raise HTTPException(
             status_code=404,

@@ -6,6 +6,7 @@
   const appTitle = $derived(app.replace(/\b\w/g, (c) => c.toUpperCase()));
 
   let instances = $state([]);
+  let rootEnv = $state(null);
   let envDist = $state(null);
   let loading = $state(true);
   let error = $state(null);
@@ -22,6 +23,7 @@
     loading = true;
     error = null;
     instances = [];
+    rootEnv = null;
     envDist = null;
     expandedInstance = null;
     expandedConfig = null;
@@ -46,7 +48,14 @@
         throw new Error(`Failed to fetch env_dist: ${envDistRes.status}`);
       }
       envDist = await envDistRes.json();
+
+      const rootEnvRes = await fetch(`/api/d.rymcg.tech/config`);
+      if (!rootEnvRes.ok) {
+        throw new Error(`Failed to fetch root env: ${rootEnvRes.status}`);
+      }
+      rootEnv = (await rootEnvRes.json()).env;
     } catch (err) {
+      console.error(err);
       error = err.message;
     } finally {
       loading = false;
@@ -167,6 +176,11 @@
     }
   }
 
+  function makeUrl(host) {
+    const port = rootEnv.PUBLIC_HTTPS_PORT || "443";
+    return `https://${host}${port !== "443" ? `:${port}` : ""}`;
+  }
+
   $effect(() => {
     if ($currentContext != null) {
       loadData();
@@ -184,7 +198,7 @@
       </div>
     {:else if error}
       <p class="has-text-danger">Error: {error}</p>
-    {:else if instances.length > 0}
+    {:else if instances.length > 0 && rootEnv}
       <table class="table is-striped is-fullwidth">
         <thead>
           <tr>
@@ -201,14 +215,16 @@
               style="cursor: pointer;"
             >
               <td>{instance.instance}</td>
-              <td
-                ><a
-                  href="https://{instance.traefik_host}"
+              <td>
+                <a
+                  href={makeUrl(instance.traefik_host)}
                   target="_blank"
                   class="has-text-white"
-                  on:click|stopPropagation>https://{instance.traefik_host}</a
-                ></td
-              >
+                  on:click|stopPropagation
+                >
+                  {makeUrl(instance.traefik_host)}
+                </a>
+              </td>
             </tr>
 
             {#if expandedInstance === instance.instance}
