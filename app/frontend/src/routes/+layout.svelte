@@ -2,7 +2,11 @@
   import { onMount } from "svelte";
   import "bulma/css/bulma.min.css";
   import "../../static/styles.css";
-  import { currentContext, dockerContexts, refreshDockerContexts } from "$lib/stores";
+  import {
+    currentContext,
+    dockerContexts,
+    refreshDockerContexts,
+  } from "$lib/stores";
 
   let showDockerDropdown = $state(false);
 
@@ -20,7 +24,7 @@
 
       const res = await fetch("/api/docker_context/");
       if (res.ok) {
-        const contexts = (await res.json()).filter(ctx => ctx !== "default");
+        const contexts = (await res.json()).filter((ctx) => ctx !== "default");
         dockerContexts.set(contexts);
         // fallback in case default context not yet set
         if (!$currentContext && contexts.length > 0) {
@@ -34,7 +38,7 @@
 
   async function setDefaultContext(context) {
     const res = await fetch(`/api/docker_context/${context}/default`, {
-      method: "PUT"
+      method: "PUT",
     });
     if (res.ok) {
       currentContext.set(context);
@@ -103,37 +107,44 @@
 
   <div id="main-navbar" class="navbar-menu" class:is-active={burgerActive}>
     <div class="navbar-start">
-      <a class="navbar-item is-deep-red" href="/docker" onclick={handleDropdownItemClick}> Docker </a>
-      <a class="navbar-item is-deep-red" href="/config" onclick={handleDropdownItemClick}> Config </a>
+      <a class="navbar-item is-deep-red" href="/docker"> Docker </a>
+      <a class="navbar-item is-deep-red" href="/config"> Config </a>
+      <a class="navbar-item is-deep-red" href="/apps"> Apps </a>
+      <a class="navbar-item is-deep-red" href="/repository"> Repository </a>
+      <a class="navbar-item is-deep-red" href="/workstation"> Workstation </a>
 
-      <!-- Apps Dropdown -->
-      <div
-        class="navbar-item has-dropdown is-hoverable"
-        class:is-active={activeDropdown === "apps"}
-      >
-        <button
-          type="button"
-          class="navbar-link"
-          onclick={() => toggleDropdown("apps")}
-        >
-          Apps
-        </button>
-        <div class="navbar-dropdown">
-          <a
-            class="navbar-item is-deep-red"
-            href="/apps"
-            onclick={handleDropdownItemClick}
-          >
-            Available Apps
-          </a>
-        </div>
-      </div>
-      <a class="navbar-item is-deep-red" href="/repository" onclick={handleDropdownItemClick}> Repository </a>
-      <a class="navbar-item is-deep-red" href="/workstation" onclick={handleDropdownItemClick}> Workstation </a>
+      <!-- <\!-- Dropdown Example -\-> -->
+      <!-- <div -->
+      <!--   class="navbar-item has-dropdown is-hoverable" -->
+      <!--   class:is-active={activeDropdown === "apps"} -->
+      <!-- > -->
+      <!--   <button -->
+      <!--     type="button" -->
+      <!--     class="navbar-link" -->
+      <!--     onclick={() => toggleDropdown("apps")} -->
+      <!--   > -->
+      <!--     Apps -->
+      <!--   </button> -->
+      <!--   <div class="navbar-dropdown"> -->
+      <!--     <a -->
+      <!--       class="navbar-item is-deep-red" -->
+      <!--       href="/apps" -->
+      <!--       onclick={handleDropdownItemClick} -->
+      <!--     > -->
+      <!--       Available Apps -->
+      <!--     </a> -->
+      <!--   </div> -->
+      <!-- </div> -->
     </div>
     <div class="navbar-end">
-      <div class="navbar-item has-dropdown is-hoverable mr-2" class:is-active={showDockerDropdown}>
-        <a class="navbar-link" onclick={() => (showDockerDropdown = !showDockerDropdown)}>
+      <div
+        class="navbar-item has-dropdown is-hoverable mr-2"
+        class:is-active={showDockerDropdown}
+      >
+        <a
+          class="navbar-link"
+          onclick={() => (showDockerDropdown = !showDockerDropdown)}
+        >
           {#if $dockerContexts.length > 0}
             {$currentContext}
           {:else}
@@ -143,25 +154,21 @@
 
         <div class="navbar-dropdown is-right">
           {#if $dockerContexts.length > 0}
-            <div class="has-text-weight-semibold ml-2 mr-1">
-              Set context:
-            </div>
-            <hr class="is-light-red ml-3 mr-3 navbar-divider">
+            <div class="has-text-weight-semibold ml-2 mr-1">Set context:</div>
+            <hr class="is-light-red ml-3 mr-3 navbar-divider" />
 
             {#each $dockerContexts as context}
-              <a
-                class="navbar-item"
-                onclick={() => setDefaultContext(context)}
-                >
-              {#if context === $currentContext}✅ {/if}{context}
-                </a>
-              {/each}
-            {:else}
-              <div class="navbar-item has-text-grey-light">
-                No contexts available
-              </div>
-            {/if}
-          </div>
+              <a class="navbar-item" onclick={() => setDefaultContext(context)}>
+                {#if context === $currentContext}✅
+                {/if}{context}
+              </a>
+            {/each}
+          {:else}
+            <div class="navbar-item has-text-grey-light">
+              No contexts available
+            </div>
+          {/if}
+        </div>
       </div>
     </div>
   </div>

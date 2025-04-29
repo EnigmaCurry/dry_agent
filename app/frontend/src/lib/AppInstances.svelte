@@ -432,7 +432,12 @@
                         on:submit|preventDefault={() => saveConfig(instance)}
                       >
                         {#each Object.entries(envDist.env || {}) as [key, meta]}
-                          <div class="field">
+                          <div
+                            class="field"
+                            style={key === `${envDist.meta.PREFIX}_INSTANCE`
+                              ? "display: none;"
+                              : ""}
+                          >
                             <label class="label">
                               {key}
                               <span class="help">{meta.comments}</span>
@@ -444,6 +449,8 @@
                                 bind:value={formData[key]}
                                 placeholder={meta.default_value}
                                 on:blur={() => autoSave(instance)}
+                                disabled={key ===
+                                  `${envDist.meta.PREFIX}_INSTANCE`}
                               />
                             </div>
                           </div>
