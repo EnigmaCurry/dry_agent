@@ -236,7 +236,17 @@
 
 {#key ContextKey}
   {#if $currentContext != "default" && $currentContext != null}
-    <h1 class="title">{appTitle}</h1>
+    <div
+      class="is-flex is-align-items-center is-justify-content-space-between mb-4"
+    >
+      <h1 class="title">{appTitle}</h1>
+      <button
+        class="button is-info"
+        on:click={() =>
+          openTerminal(`d.rymcg.tech make ${app} instance-new`, false, true)}
+        >New Instance</button
+      >
+    </div>
 
     {#if loading}
       <div class="notification">
@@ -326,7 +336,7 @@
 
                         <button
                           class="button is-link"
-                          title="Start service"
+                          title="(Re)start service"
                           on:click={() =>
                             openTerminal(
                               `d.rymcg.tech make ${app} install instance=${instance.instance}`,
@@ -390,6 +400,20 @@
                               )}
                           >
                             Logs
+                          </button>
+                        {/if}
+                        {#if statusMap[instance.instance] === "uninstalled"}
+                          <button
+                            class="button has-background-danger-light has-text-danger-dark"
+                            title="Delete configuration (but keep data volume(s))"
+                            on:click={() =>
+                              openTerminal(
+                                `d.rymcg.tech make ${app} clean instance=${instance.instance}`,
+                                false,
+                                true,
+                              )}
+                          >
+                            Clean
                           </button>
                         {/if}
                       </div>
