@@ -328,12 +328,7 @@
               style="cursor: pointer;"
             >
               <td>
-                <button
-                  class="button is-fullwidth"
-                  class:is-dark={expandedInstance !== instance.instance}
-                  class:is-info={expandedInstance !== instance.instance}
-                  class:is-danger={expandedInstance === instance.instance}
-                >
+                <button class="button is-fullwidth is-info is-dark">
                   {instance.instance}
                 </button>
               </td>

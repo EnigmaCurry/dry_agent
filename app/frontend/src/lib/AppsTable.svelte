@@ -15,7 +15,7 @@
   /** @type {Record<string, number>} */
   let instanceCounts = $state({});
 
-  const instanceEmojis = ["🙂", "😎", "🚀", "🧙‍♂️"];
+  const instanceEmojis = ["1️⃣","2️⃣","3️⃣","4️⃣","5️⃣","6️⃣","7️⃣","8️⃣","9️⃣","🔟"];
 
   async function fetchApps() {
     const res = await fetch("/api/apps/available");
@@ -42,10 +42,8 @@
   function renderInstanceEmojis(appName) {
     const count = instanceCounts[appName] || 0;
     if (count === 0) return "";
-
-    if (count > 5) return "✅ 💯";
-
-    return ["✅", ...instanceEmojis.slice(0, count - 1)].join(" ");
+    if (count > 10) return "💯";
+    return instanceEmojis[count - 1];
   }
 
   // ✅ Key the load to currentContext

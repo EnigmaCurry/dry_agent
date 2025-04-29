@@ -144,7 +144,6 @@ async def save_instance_config(
     request: Request = None,
 ):
     form = await request.form()
-    await asyncio.sleep(5)
     if not app or not context:
         raise HTTPException(status_code=400, detail="Missing 'app' or 'context'")
 
@@ -160,6 +159,8 @@ async def save_instance_config(
 
     env_lines = []
     for key, value in form.items():
+        if key == "app" or key == "context":
+            continue
         env_lines.append(f"{key}={value}")
     env_lines.append(f"{instance_key}={instance}")
 
