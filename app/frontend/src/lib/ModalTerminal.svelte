@@ -48,7 +48,8 @@
     >
       <header class="modal-card-head" style="padding: 0em 0em 1em 0em;">
         <p class="modal-card-title m-4">{title}</p>
-        <button class="delete" aria-label="close" on:click={close}></button>
+        <button class="delete mr-4" aria-label="close" on:click={close}
+        ></button>
       </header>
       <section class="modal-card-body" style="padding: 0; margin: 0;">
         <!-- Optional Form supplied by parent -->
