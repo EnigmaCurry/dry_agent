@@ -337,12 +337,39 @@
                         <button
                           class="button is-link"
                           title="(Re)start service"
-                          on:click={() =>
+                          on:click={async () => {
+                            const start = Date.now();
+                            const timeout = 2000;
+                            let timedOut = false;
+
+                            const waitForSaving = new Promise((resolve) => {
+                              const interval = setInterval(() => {
+                                if (!saving) {
+                                  clearInterval(interval);
+                                  resolve(true); // success
+                                } else if (Date.now() - start > timeout) {
+                                  clearInterval(interval);
+                                  timedOut = true;
+                                  resolve(false); // failure
+                                }
+                              }, 50);
+                            });
+
+                            const success = await waitForSaving;
+
+                            if (!success) {
+                              alert(
+                                "⚠️ Timed out waiting for save to complete before installing. Please try again.",
+                              );
+                              return;
+                            }
+
                             openTerminal(
                               `d.rymcg.tech make ${app} install instance=${instance.instance}`,
                               false,
                               true,
-                            )}
+                            );
+                          }}
                         >
                           Install
                         </button>
