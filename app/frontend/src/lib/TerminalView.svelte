@@ -22,6 +22,11 @@
 	resizeHandler();
   }, 300);
 
+  const beforeUnloadHandler = (event) => {
+    event.preventDefault();
+    event.returnValue = ""; // Triggers browser's "Are you sure?" dialog
+  };
+
   onMount(() => {
     console.log("fontSize", fontSize);
     term = new Terminal({
@@ -44,6 +49,7 @@
       socket.send(JSON.stringify({ command }));
       sendResize();
       term.focus();
+      window.addEventListener("beforeunload", beforeUnloadHandler);
     };
 
     socket.onerror = (error) => {
@@ -87,6 +93,7 @@
     socket.onclose = () => {
       dispatch("exit");
       term.blur();
+      window.removeEventListener("beforeunload", beforeUnloadHandler);
     };
 
 	window.addEventListener('resize', debouncedFit);
@@ -104,6 +111,7 @@
     }
     window.removeEventListener("resize", resizeHandler);
 	window.removeEventListener('resize', debouncedFit);
+    window.removeEventListener("beforeunload", beforeUnloadHandler);
     term.dispose();
   });
 </script>
