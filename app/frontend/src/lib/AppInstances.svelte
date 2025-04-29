@@ -324,6 +324,7 @@
                         <button
                           class="button is-info"
                           title="Reconfigure .env file"
+                          disabled={saving}
                           on:click={() =>
                             openTerminal(
                               `d.rymcg.tech make ${app} config instance=${instance.instance}`,
@@ -337,39 +338,13 @@
                         <button
                           class="button is-link"
                           title="(Re)start service"
-                          on:click={async () => {
-                            const start = Date.now();
-                            const timeout = 2000;
-                            let timedOut = false;
-
-                            const waitForSaving = new Promise((resolve) => {
-                              const interval = setInterval(() => {
-                                if (!saving) {
-                                  clearInterval(interval);
-                                  resolve(true); // success
-                                } else if (Date.now() - start > timeout) {
-                                  clearInterval(interval);
-                                  timedOut = true;
-                                  resolve(false); // failure
-                                }
-                              }, 50);
-                            });
-
-                            const success = await waitForSaving;
-
-                            if (!success) {
-                              alert(
-                                "⚠️ Timed out waiting for save to complete before installing. Please try again.",
-                              );
-                              return;
-                            }
-
+                          disabled={saving}
+                          on:click={() =>
                             openTerminal(
                               `d.rymcg.tech make ${app} install instance=${instance.instance}`,
                               false,
                               true,
-                            );
-                          }}
+                            )}
                         >
                           Install
                         </button>
@@ -378,6 +353,7 @@
                           <button
                             class="button is-warning"
                             title="Stop service"
+                            disabled={saving}
                             on:click={() =>
                               openTerminal(
                                 `d.rymcg.tech make ${app} stop instance=${instance.instance}`,
@@ -406,6 +382,7 @@
                         <button
                           class="button is-danger"
                           title="Remove container AND data volume(s)"
+                          disabled={saving}
                           on:click={() =>
                             openTerminal(
                               `d.rymcg.tech make ${app} destroy instance=${instance.instance}`,
@@ -419,6 +396,7 @@
                           <button
                             class="button has-background-dark"
                             title="View service logs"
+                            disabled={saving}
                             on:click={() =>
                               openTerminal(
                                 `d.rymcg.tech make ${app} logs instance=${instance.instance}`,
@@ -433,6 +411,7 @@
                           <button
                             class="button has-background-danger-light has-text-danger-dark"
                             title="Delete configuration (but keep data volume(s))"
+                            disabled={saving}
                             on:click={() =>
                               openTerminal(
                                 `d.rymcg.tech make ${app} clean instance=${instance.instance}`,
