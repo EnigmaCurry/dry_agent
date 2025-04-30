@@ -26,7 +26,11 @@
 		"@xterm/addon-fit": "^0.10.0",
 		"@xterm/xterm": "^5.5.0",
 		"bulma": "^1.0.3",
+		"highlight.js": "^11.11.1",
+		"highlight.svelte": "^0.1.2",
+		"rehype-external-links": "^3.0.0",
 		"rehype-highlight": "^7.0.2",
+		"remark-gfm": "^4.0.1",
 		"svelte-exmarkdown": "^5.0.1"
 	}
 }

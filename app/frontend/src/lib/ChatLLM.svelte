@@ -1,7 +1,17 @@
 <script>
   import { onMount, tick } from "svelte";
   import Markdown from "svelte-exmarkdown";
-  import python from "highlight.js/lib/languages/python";
+
+  import langPython from "highlight.js/lib/languages/python";
+  import langMakefile from "highlight.js/lib/languages/makefile";
+  import langJson from "highlight.js/lib/languages/json";
+  import langShell from "highlight.js/lib/languages/shell";
+  import langJavascript from "highlight.js/lib/languages/javascript";
+  import langMarkdown from "highlight.js/lib/languages/markdown";
+  import langSvelte from "highlight.svelte";
+
+  import { gfmPlugin } from "svelte-exmarkdown/gfm";
+  import rehypeExternalLinks from "rehype-external-links";
   import "highlight.js/styles/github-dark.css";
   import rehypeHighlight from "rehype-highlight";
 
@@ -12,18 +22,48 @@
   let scrollAnchor;
   let inputElement;
   let renderers;
+  let isAtBottom = true;
+  let chatContainer;
 
   const markdownPlugins = [
+    gfmPlugin(),
     {
       rehypePlugin: [
         rehypeHighlight,
-        { ignoreMissing: true, languages: { python } },
+        {
+          ignoreMissing: true,
+          languages: {
+            python: langPython,
+            makefile: langMakefile,
+            shell: langShell,
+            json: langJson,
+            javascript: langJavascript,
+            svelte: langSvelte,
+            markdown: langMarkdown,
+          },
+        },
+      ],
+    },
+    {
+      rehypePlugin: [
+        rehypeExternalLinks,
+        { rel: ["nofollow", "noopener", "noreferrer"], target: "_blank" },
       ],
     },
   ];
 
+
   function scrollToBottom() {
-    scrollAnchor?.scrollIntoView({ behavior: "smooth" });
+    if (isAtBottom) {
+      scrollAnchor?.scrollIntoView({ behavior: "smooth" });
+    }
+  }
+
+  function handleScroll() {
+    const threshold = 10; // px from bottom before "unlock"
+    const position = chatContainer.scrollTop + chatContainer.clientHeight;
+    const height = chatContainer.scrollHeight;
+    isAtBottom = height - position < threshold;
   }
 
   onMount(async () => {
@@ -95,7 +135,11 @@
 </script>
 
 <div class="chat-wrapper">
-  <div class="box chat-box chat-container">
+  <div
+    class="box chat-box chat-container"
+    on:scroll={handleScroll}
+    bind:this={chatContainer}
+  >
     {#each messages as { role, content } (role + content)}
       {#if role === "user"}
         <div class="user-message">{content}</div>
@@ -264,7 +308,7 @@
   }
 
   :global(.markdown-body pre) {
-    background: #2d2d2d;
+    background: #151111;
     padding: 1rem;
     border-radius: 0.5rem;
     overflow-x: auto;
@@ -272,7 +316,6 @@
   }
 
   :global(.markdown-body code) {
-    background: #0d0a0a;
     padding: 0.25em 0.5em;
     border-radius: 4px;
     font-family: monospace;
