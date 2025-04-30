@@ -13,6 +13,7 @@
   let appServices = $state([]);
   let loading = $state(true);
   let error = $state(null);
+  let validationErrors = $state({});
 
   let expandedInstance = $state(null); // currently expanded instance
   let expandedConfig = $state(null); // config data for the expanded instance
@@ -28,6 +29,9 @@
   let terminalReloadOnClose = $state(false);
   let fetchedServiceStatus = $state(false);
   let terminalSelectedService = $state("all");
+
+  const cidrRegex = /^(?:(?:25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)\.){3}(?:25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)\/(?:[0-9]|[1-2][0-9]|3[0-2])$/;
+  const domainRegex = /^(?!-)(?:[a-zA-Z0-9-]{1,63}(?<!-)\.)+[a-zA-Z]{2,}$/;
 
   let terminalControls;
   function onTerminalFormChange() {
@@ -266,6 +270,47 @@
     terminalReloadOnClose = reloadOnClose;
     terminalShowServiceSelector = showServiceSelector;
     showTerminal = true;
+  }
+
+  function validate(key, value) {
+    if (value.startsWith(" ") || value.endsWith(" ")) {
+      const isValid = false;
+      validationErrors = {
+        ...validationErrors,
+        [key]: isValid ? null : "Must not start or end with whitespace",
+      }
+      return isValid;
+    } else if (key === `${envDist.meta.PREFIX}_IP_SOURCERANGE`) {
+      const isValid = cidrRegex.test(value);
+      validationErrors = {
+        ...validationErrors,
+        [key]: isValid ? null : "Must be a valid CIDR (e.g. 192.168.1.0/24)",
+      };
+      return isValid;
+    } else if (key === `${envDist.meta.PREFIX}_TRAEFIK_HOST`) {
+      const isValid = domainRegex.test(value);
+      validationErrors = {
+        ...validationErrors,
+        [key]: isValid ? null : "Must be a valid domain (e.g. foo.example.com)",
+      };
+      return isValid;
+    } else if (key.endsWith("_UID") || key.endsWith("_GID") || key.endsWith("_PORT")) {
+      const n = Number(value);
+      const isValid = Number.isInteger(n) && n >= 0 && n <= 65535;
+      validationErrors = {
+        ...validationErrors,
+        [key]: isValid ? null : "Must be an integer between 0 and 65535",
+      };
+      return isValid;
+    }
+    return true;
+  }
+
+  function handleBlur(key, value, instance) {
+    const originalValue = originalFormData[key];
+    if (value === originalValue) return;
+    if (!validate(key, value)) return;
+    autoSave(instance);
   }
 
   $effect(() => {
@@ -510,7 +555,8 @@
                                     name={key}
                                     value="true"
                                     bind:group={formData[key]}
-                                    on:change={() => autoSave(instance)}
+                                    on:blur={() =>
+                                      handleBlur(key, formData[key], instance)}
                                   />
                                   True
                                 </label>
@@ -520,7 +566,8 @@
                                     name={key}
                                     value="false"
                                     bind:group={formData[key]}
-                                    on:change={() => autoSave(instance)}
+                                    on:blur={() =>
+                                      handleBlur(key, formData[key], instance)}
                                   />
                                   False
                                 </label>
@@ -530,10 +577,16 @@
                                   type="text"
                                   bind:value={formData[key]}
                                   placeholder={meta.default_value}
-                                  on:blur={() => autoSave(instance)}
                                   disabled={key ===
                                     `${envDist.meta.PREFIX}_INSTANCE`}
+                                  on:blur={() =>
+                                    handleBlur(key, formData[key], instance)}
                                 />
+                              {/if}
+                              {#if validationErrors[key]}
+                                <p class="help is-danger">
+                                  {validationErrors[key]}
+                                </p>
                               {/if}
                             </div>
                           </div>
