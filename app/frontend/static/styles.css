@@ -11,6 +11,8 @@ body {
 /* Account for fixed navbar height (Bulma is ~3.25rem = 52px) */
 body {
   padding-top: 3.25rem;
+  display: flex;
+  flex-direction: column;
 }
 
 a:hover {

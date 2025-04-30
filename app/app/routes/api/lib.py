@@ -5,6 +5,7 @@ import string
 from typing import Dict, Tuple
 import re
 import yaml
+from typing import Iterator
 
 
 def run_command(
@@ -186,3 +187,9 @@ def parse_docker_compose_services(docker_compose_content):
             raise ValueError(f"Invalid YAML: {e}")
 
     return get_service_keys(docker_compose_content)
+
+
+def tokenize_words(text: str) -> Iterator[str]:
+    pattern = re.compile(r"\S+|\s+")
+    for match in pattern.finditer(text):
+        yield match.group()

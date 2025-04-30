@@ -25,6 +25,8 @@
 	"dependencies": {
 		"@xterm/addon-fit": "^0.10.0",
 		"@xterm/xterm": "^5.5.0",
-		"bulma": "^1.0.3"
+		"bulma": "^1.0.3",
+		"rehype-highlight": "^7.0.2",
+		"svelte-exmarkdown": "^5.0.1"
 	}
 }

@@ -142,6 +142,13 @@
       >
         Workstation
       </a>
+      <a
+        class="navbar-item is-deep-red"
+        onclick={handleDropdownItemClick}
+        href="/chat"
+      >
+        Agent
+      </a>
 
       <!-- <\!-- Dropdown Example -\-> -->
       <!-- <div -->

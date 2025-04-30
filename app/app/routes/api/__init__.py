@@ -7,4 +7,5 @@ from . import (
     apps,
     d_rymcg_tech,
     instances,
+    chat,
 )
