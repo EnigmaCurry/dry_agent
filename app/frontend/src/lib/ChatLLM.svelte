@@ -276,7 +276,14 @@
     word-wrap: break-word;
     margin: 0.25rem 0;
     border-bottom-right-radius: 0;
+  }
+
+  .assistant-message {
+    width: 100%;
+    max-width: 100%;
+    word-wrap: break-word;
     white-space: pre-wrap;
+    margin: 0.5rem 0;
   }
 
   textarea.textarea {
@@ -338,7 +345,17 @@
   }
 
   :global(.markdown-body p) {
-    margin: 1em 0;
+    white-space: normal;
+    word-break: normal;
+    overflow-wrap: break-word;
+  }
+
+  :global(.markdown-body ul) {
+    list-style-type: disc;
+  }
+
+  :global(.markdown-body ol) {
+    list-style-type: decimal;
   }
 
   :global(.markdown-body ul),
@@ -348,7 +365,9 @@
   }
 
   :global(.markdown-body li) {
-    margin: 0.25em 0;
+    margin: 0.1em 0;
+    line-height: 1.4;
+    display: list-item;
   }
 
   :global(.markdown-body blockquote) {
