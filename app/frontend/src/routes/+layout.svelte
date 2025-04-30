@@ -1,5 +1,7 @@
 <script>
   import { onMount } from "svelte";
+  import { page } from '$app/stores';
+  
   import "bulma/css/bulma.min.css";
   import "../../static/styles.css";
   import {
@@ -9,10 +11,17 @@
   } from "$lib/stores";
 
   let showDockerDropdown = $state(false);
-
+  let unsubscribe;
+  
   let burgerActive = $state(false);
   let activeDropdown = $state(null);
 
+
+  $effect(() => {
+    const isChat = $page.url.pathname === '/chat/';
+    document.body.classList.toggle('no-scroll', isChat);
+  });
+  
   onMount(async () => {
     await refreshDockerContexts();
     try {
