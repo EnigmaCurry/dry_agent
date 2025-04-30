@@ -47,6 +47,35 @@ print("Hello, world!")
 for i in range(10):
     print(i)
 ```
+
+```javascript
+console.log("Hello, World!");
+```
+
+```java
+public class HelloWorld {
+    public static void main(String[] args) {
+        System.out.println("Hello, World!");
+    }
+}
+```
+
+```c
+#include <stdio.h>
+
+int main() {
+    printf("Hello, World!\n");
+    return 0;
+}
+```
+
+
+```rust
+fn main() {
+    println!("Hello, World!");
+}
+```
+
 This is a collection of Docker Compose projects, consisting of
 [Traefik](https://doc.traefik.io/traefik/) as a TLS HTTP/TCP/UDP
 reverse proxy, and other open-source self-hosted applications and
@@ -55,25 +84,6 @@ containing its own `docker-compose.yaml` and `.env-dist` sample config
 file. This structure allows you to pick and choose which services you
 wish to enable. You may also integrate your own external Docker
 Compose projects into this framework.
-
-All (http) apps are secured with automatic TLS certificates (Let's
-Encrypt or Step-CA), along with configurable self-hosted
-authentication middleware (mTLS, OAuth2, or HTTP Basic auth), as well
-as user group authorization middlewares. Even non-TLS apps may be
-secured with the optional VPN (Wireguard) support.
-
-Each project has a `Makefile` to simplify configuration, installation,
-and maintainance tasks. The setup for any sub-project is as easy as
-running:
-
- * `make config` and interactively answering some questions to
-   generate the `.env` file automatically.
- * `make install` to deploy the service containers.
- * `make open` to automatically open your web browser to the newly
-   deployed application URL.
-
-Under the covers, setup is pure `docker compose`, with *all*
-configuration derived from your customized `.env` file.
 
 # Contents
 
@@ -87,141 +97,6 @@ configuration derived from your customized `.env` file.
 - [Backup .env files](#backup-env-files-optional)
 - [Integrating external projects](#integrating-external-projects)
 - [Questions and discussion](#questions-and-discussion)
-
-## All configuration comes from the environment
-
-All of these projects are configured soley via environment variables
-written to Docker [.env](https://docs.docker.com/compose/env-file/)
-files.
-
-The `.env` files for each application instance are to be kept secret
-because they include things like passwords and keys, and these should
-be kept on a secure workstation and not commited to git (they are
-ignored via `.gitignore`) . Each project includes a `.env-dist` file,
-which is a sample that must be copied to create your own secret `.env`
-file and edited according to the example. (Or run `make config` to run
-a setup wizard to create the `.env` file for you by answering some
-questions interactively.)
-
-For containers that do not support environment variable configuration,
-a sidecar container is included (usually called `config`) that will
-generate a config file from a template including these environment
-variables, and is run automatically before the main application starts
-up (therefore the config file is dynamically generated at each
-startup).
-
-This project stores all application data in Docker **named volumes** as opposed to host mounted directories. **Host-mounted directories are
-considered an anti-pattern and will never be used in this project,
-unless there is a compelling reason to do so.** For more information
-see [Rule 3 of the 12 factor app
-philosophy](https://12factor.net/config). By following this rule, you
-can use Docker from a remote client (like your laptop, accessing a
-remote Docker server over SSH). More importantly, you can ensure that
-all of the dependent files are fully contained by Docker itself
-(`/var/lib/docker/volumes/...`), and therefore the entire application
-state is managed as part of the container/volume lifecycle.
-
-## Prerequisites
-### Create a Docker host (server)
-
-[Install Docker
-Server](https://docs.docker.com/engine/install/#server) on your own
-public internet server or cloud host. You may also install to a
-private server behind a firewall (but in this case be sure to setup
-the Traefik ACME DNS Challenge, because the default TLS challenge
-requires an open port 443 public to the internet).
-
-See [SECURITY.md](SECURITY.md) for a list of security concerns when
-choosing a hosting provider.
-
-As one example, see [DIGITALOCEAN.md](DIGITALOCEAN.md) for
-instructions on creating a secure Docker host on DigitalOcean.
-
-If you need a semi-private development or staging server, and want to
-be able to share some public URLs for your services, you can protect
-your services by turning on Traefik's [HTTP Basic
-Authentication](https://doc.traefik.io/traefik/middlewares/http/basicauth/),
-[OAuth2 Authentication](traefik/README.md#oauth2-authentication),
-[mTLS with Step-CA](../step-ca#readme) and
-[IPAllowlist](https://doc.traefik.io/traefik/middlewares/http/ipallowlist/)
-middlewares, or you can make an exclusively private Traefik service
-with a
-[Wireguard](https://github.com/EnigmaCurry/d.rymcg.tech/tree/master/traefik#wireguard-vpn)
-VPN.
-
-For local development purposes, you can [install Docker on a raspberry
-pi](RASPBERRY_PI.md) or you can [install Docker in a virtual
-machine](_docker_vm#readme) (in all scenarios you will remotely
-control Docker from your native workstation), this ensures that your
-development environment is deployed in the same way as you would a
-production server. Never install Docker on your native
-workstation/desktop! (Or, if you do, never give your normal user
-account any docker privileges!) See [_docker_vm](_docker_vm#readme)
-for details on how and why to install Docker in KVM/Qemu. Please note
-that Docker Desktop is not currently supported because [it does not
-support host
-networking](https://docs.docker.com/network/network-tutorial-host/),
-and the Traefik configuration relies upon this (if you know a way
-around this, please open an issue/PR). (If you don't use Linux on your
-workstation, you may have better luck installing Docker yourself
-inside of a traditional virtual machine like VMWare or Virtualbox, and
-then setting up an SSH service so you can access the VM remotely from
-your native desktop (the docker *client* works just fine from WSL2);
-or even easier would be to [install Docker on a raspberry
-pi](https://github.com/EnigmaCurry/d.rymcg.tech/blob/master/RASPBERRY_PI.md)
-and connect it on your LAN.
-
-### Setup DNS for your domain and Docker server
-
-You need to bring your own internet domain name and DNS service. You
-will need to create DNS type `A` records (or `AAAA` records if using
-IPv6) pointing to your docker server. There are many different DNS
-platforms that you can use, but see [DIGITALOCEAN.md](DIGITALOCEAN.md)
-for one example.
-
-It is recommended to dedicate a sub-domain for this project, and then
-create sub-sub-domains for each application. This will create domain
-names that look like `whoami.d.example.com`, where `whoami` is the
-application name, and `d` is a unique name for the overall sub-domain
-representing your docker server (`d` is for `docker`, but you can make
-this whatever you want).
-
-By dedicating a sub-domain for all your projects, this allows you to
-create a DNS record for the wildcard: `*.d.example.com`, which will
-automatically direct all sub-sub-domain requests to your docker
-server.
-
-Note that you *could* put a wildcard record on your root domain, ie.
-`*.example.com`, however if you did this you would not be able to use
-the domain for a second instance, but if you're willing to dedicate
-the entire domain to this single instance, go ahead.
-
-If you don't want to create a wildcard record, you can just create
-several normal `A` (or `AAAA`) records for each of the domains your
-apps will use, but this might mean that you need to come back and add
-several more records later as you install more projects, (and also
-complicates the TLS certificate creation process) but this would let
-you freely use whatever domain names you want.
-
-### Notes on firewall
-
-This system does not include a network firewall of its own. You are
-expected to provide this in your host networking environment. (Note:
-`ufw` is NOT recommended for use with Docker, nor is any other
-firewall that is directly located on the same host machine as Docker.
-You should prefer an external dedicated network firewall [ie. your
-cloud provider, or VM host]. If you have no other option but to run
-the firewall on the same machine, check out
-[chaifeng/ufw-docker](https://github.com/chaifeng/ufw-docker#solving-ufw-and-docker-issues)
-for a partial fix.)
-
-With only a few exceptions, all network traffic flows through one of
-several Traefik entrypoints, listed in the [static configuration
-template](traefik/config/traefik.yml) (`traefik.yml`) in the
-`entryPoints` section.
-
-Each entrypoint has an associated environment variable to turn it on
-or off. See the [Traefik](traefik) configuration for more details.
 
 Depending on which services you actually install, and how they are
 configured, you may need to open these ports in your firewall:
@@ -280,55 +155,6 @@ merge the following configuration:
   ]
 }
 ```
-
-and restart the docker daemon, or reboot the server.
-
-## Setup Workstation
-
-Your local "workstation" is assumed to be a Linux desktop/laptop
-computer, or another Linux system that you remotely connect to via
-SSH:
-
- * Tested workstation architectures:
-   * Linux x86_64 (64 bit Intel or AMD)
-   * Linux aarch64 (64 bit ARM)
-   * Arch Linux, Debian, and Fedora have been regularly tested.
- * Other operating systems and architectures have not been tested, and
-may require customization (please [open an
-issue](https://github.com/EnigmaCurry/d.rymcg.tech/issues)).
- * Your workstation should not be the same machine as the docker
-   server (unless docker is in its own virtual machine).
-
-### Install Docker CLI tools
-
-You need to install the following tools on your local workstation:
-
- * [Install docker client](https://docs.docker.com/get-docker/) (For
-   Linux, install Docker Engine, but not necessarily starting the
-   daemon; the `docker` client program and `ssh` are all you need
-   installed on your workstation to connect to a remote docker server.
-   For Mac/Windows, install Docker Desktop, or use your own Linux
-   Virtual Machine and install Docker Engine.)
- * [Install docker-compose
-   v2.x](https://docs.docker.com/compose/cli-command/#installing-compose-v2)
-   (For Docker Desktop, `docker compose` is already installed. For
-   Linux, it is a separate installation.)
- * [Install docker
-   buildx](https://docs.docker.com/build/buildx/install/) - "Docker Buildx, is a CLI
-   plugin that extends the docker command with the full support of the
-   features provided by BuildKit builder toolkit." This is now a required dependency of Docker 25.
-
-For Arch Linux, run: `sudo pacman -S docker docker-compose docker-buildx`
-
-For Debian or Ubuntu, you should strictly follow the directions from
-the links above and install only from the docker.com third party apt
-repository (because the docker packages from the Ubuntu repositories
-are always out of date).
-
-You do not need to (and perhaps *should not*) run the Docker Engine on
-your local workstation. You will use the `docker` client exclusively to
-control a *remote* docker server (or VM). To turn off/disable the
-Docker Engine on your worksation, run the following:
 
 ```shell
 ## Disable local Docker Engine:
@@ -1213,7 +1039,7 @@ async def stream_mock_chat(request: Request):
     async def generate():
         for token in tokenize_words(doc1):
             yield token
-            await asyncio.sleep(0.02)  # simulate token delay
+            await asyncio.sleep(0.05)  # simulate token delay
 
     return StreamingResponse(generate(), media_type="text/plain")
 

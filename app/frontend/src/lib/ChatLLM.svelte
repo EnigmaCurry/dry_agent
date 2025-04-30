@@ -9,6 +9,9 @@
   import langJavascript from "highlight.js/lib/languages/javascript";
   import langMarkdown from "highlight.js/lib/languages/markdown";
   import langSvelte from "highlight.svelte";
+  import langRust from "highlight.js/lib/languages/rust";
+  import langC from "highlight.js/lib/languages/c";
+  import langJava from "highlight.js/lib/languages/java";
 
   import { gfmPlugin } from "svelte-exmarkdown/gfm";
   import rehypeExternalLinks from "rehype-external-links";
@@ -46,6 +49,9 @@
             javascript: langJavascript,
             svelte: langSvelte,
             markdown: langMarkdown,
+            rust: langRust,
+            c: langC,
+            java: langJava
           },
         },
       ],
@@ -276,6 +282,7 @@
     word-wrap: break-word;
     margin: 0.25rem 0;
     border-bottom-right-radius: 0;
+    white-space: pre-wrap;
   }
 
   .assistant-message {
@@ -366,8 +373,11 @@
 
   :global(.markdown-body li) {
     margin: 0.1em 0;
-    line-height: 1.4;
+    line-height: 1;
     display: list-item;
+    white-space: normal;
+    word-break: normal;
+    overflow-wrap: break-word;
   }
 
   :global(.markdown-body blockquote) {
@@ -432,6 +442,9 @@
   :global(.markdown-body th),
   :global(.markdown-body td) {
     vertical-align: top;
+    white-space: normal;
+    word-break: normal;
+    overflow-wrap: break-word;
   }
 
   :global(.markdown-body table caption) {
