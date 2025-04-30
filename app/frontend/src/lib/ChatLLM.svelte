@@ -23,7 +23,13 @@
   let inputElement;
   let renderers;
   let isAtBottom = true;
+  let showScrollButton = false;
   let chatContainer;
+  let scrollTimeout;
+  let lockScroll = false;
+
+  const AUTO_SCROLL_THRESHOLD = 10; // user scroll tolerance
+  const SCROLL_BUTTON_DISPLAY_THRESHOLD = 100; // when to show the button
 
   const markdownPlugins = [
     gfmPlugin(),
@@ -52,18 +58,31 @@
     },
   ];
 
-
   function scrollToBottom() {
-    if (isAtBottom) {
-      scrollAnchor?.scrollIntoView({ behavior: "smooth" });
-    }
+    lockScroll = true;
+    scrollAnchor?.scrollIntoView({ behavior: "smooth" });
+
+    setTimeout(() => {
+      if (chatContainer) {
+        const position = chatContainer.scrollTop + chatContainer.clientHeight;
+        const height = chatContainer.scrollHeight;
+        isAtBottom = height - position < AUTO_SCROLL_THRESHOLD;
+      }
+      lockScroll = false;
+    }, 300); // or match your scroll duration
   }
 
   function handleScroll() {
-    const threshold = 10; // px from bottom before "unlock"
-    const position = chatContainer.scrollTop + chatContainer.clientHeight;
-    const height = chatContainer.scrollHeight;
-    isAtBottom = height - position < threshold;
+    clearTimeout(scrollTimeout);
+    scrollTimeout = setTimeout(() => {
+      const position = chatContainer.scrollTop + chatContainer.clientHeight;
+      const height = chatContainer.scrollHeight;
+
+      const distanceFromBottom = height - position;
+
+      isAtBottom = distanceFromBottom < AUTO_SCROLL_THRESHOLD;
+      showScrollButton = distanceFromBottom >= SCROLL_BUTTON_DISPLAY_THRESHOLD;
+    }, 100);
   }
 
   onMount(async () => {
@@ -80,6 +99,7 @@
 
     const index = messages.length - 1;
     input = "";
+    await tick();
     adjustTextareaHeight();
     loading = true;
     controller = new AbortController();
@@ -99,7 +119,7 @@
         const { done, value } = await reader.read();
         if (done) break;
         messages[index].content += decoder.decode(value);
-        scrollToBottom();
+        if (isAtBottom) scrollToBottom();
       }
     } catch (err) {
       if (err.name === "AbortError") {
@@ -159,6 +179,17 @@
     <div bind:this={scrollAnchor}></div>
   </div>
 
+  {#if showScrollButton}
+    <button
+      class="scroll-to-bottom"
+      type="button"
+      on:click={scrollToBottom}
+      aria-label="Scroll to bottom"
+    >
+      ⬇️
+    </button>
+  {/if}
+
   <form on:submit|preventDefault={send} class="chat-form">
     <div class="field is-grouped is-grouped-multiline">
       <div class="control is-expanded">
@@ -202,7 +233,7 @@
   .chat-wrapper {
     display: flex;
     flex-direction: column;
-    height: 100%; /* not 100vh! */
+    height: 100%;
     min-height: 0;
   }
 
@@ -237,14 +268,15 @@
 
   .user-message {
     align-self: flex-end;
-    background-color: #209cee; /* Bulma primary */
+    background-color: #209cee;
     color: white;
     padding: 0.75rem 1rem;
     border-radius: 1rem;
     max-width: 70%;
     word-wrap: break-word;
     margin: 0.25rem 0;
-    border-bottom-right-radius: 0; /* optional for speech-bubble look */
+    border-bottom-right-radius: 0;
+    white-space: pre-wrap;
   }
 
   textarea.textarea {
@@ -254,6 +286,26 @@
     overflow: hidden;
     max-height: 30vh;
     width: 100%;
+  }
+
+  .scroll-to-bottom {
+    position: fixed;
+    bottom: 6.5rem; /* adjust to hover just above .chat-form */
+    right: 1.5rem;
+    background: #209cee;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    padding: 0.5rem 0.6rem;
+    font-size: 1.5rem;
+    cursor: pointer;
+    z-index: 150;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.4);
+    transition: opacity 0.2s ease;
+  }
+
+  .scroll-to-bottom:hover {
+    background: #1075c2;
   }
 
   :global(.markdown-body) {
