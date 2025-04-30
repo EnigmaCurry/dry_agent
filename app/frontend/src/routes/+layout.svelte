@@ -1,7 +1,7 @@
 <script>
   import { onMount } from "svelte";
-  import { page } from '$app/stores';
-  
+  import { page } from "$app/stores";
+
   import "bulma/css/bulma.min.css";
   import "../../static/styles.css";
   import {
@@ -12,16 +12,15 @@
 
   let showDockerDropdown = $state(false);
   let unsubscribe;
-  
+
   let burgerActive = $state(false);
   let activeDropdown = $state(null);
 
-
   $effect(() => {
-    const isChat = $page.url.pathname === '/chat/';
-    document.body.classList.toggle('no-scroll', isChat);
+    const isAgent = $page.url.pathname === "/agent/";
+    document.body.classList.toggle("no-scroll", isAgent);
   });
-  
+
   onMount(async () => {
     await refreshDockerContexts();
     try {
@@ -154,7 +153,7 @@
       <a
         class="navbar-item is-deep-red"
         onclick={handleDropdownItemClick}
-        href="/chat"
+        href="/agent"
       >
         Agent
       </a>

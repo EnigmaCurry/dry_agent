@@ -3,7 +3,7 @@
 </script>
 
 <svelte:head>
-  <title>dry_agent - Chat</title>
+  <title>dry_agent - Agent</title>
 </svelte:head>
 
 <ChatLLM />
