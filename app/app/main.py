@@ -48,6 +48,7 @@ app.include_router(api_routes.apps.router)
 app.include_router(api_routes.d_rymcg_tech.router)
 app.include_router(api_routes.instances.router)
 app.include_router(api_routes.chat.router)
+app.include_router(api_routes.events.router)
 
 ## Add static frontend route LAST:
 public_path = os.path.join(

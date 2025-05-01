@@ -14,8 +14,11 @@ logger = logging.getLogger("uvicorn.error")
 router = APIRouter(prefix="/api/d.rymcg.tech", tags=["d.rymcg.tech"])
 
 
-@router.get("/config", response_class=JSONResponse)
-async def config(context: str = None):
+class ConfigError(Exception):
+    pass
+
+
+def get_root_config(context: str = None):
     if not context:
         context = run_command(["docker", "context", "show"])
     config_path = os.path.join(DRY_PATH, f".env_{context}")
@@ -23,11 +26,18 @@ async def config(context: str = None):
         with open(config_path) as f:
             contents = f.read()
             env_dict, _, _ = parse_env_file_contents(contents)
-
-        return JSONResponse(
-            {"context": context, "config_path": config_path, "env": env_dict}
-        )
+            return env_dict
     else:
+        raise ConfigError("Config file not found: {config_path}")
+
+
+@router.get("/config", response_class=JSONResponse)
+async def config(context: str = None):
+    if not context:
+        context = run_command(["docker", "context", "show"])
+    try:
+        return get_root_config(context)
+    except ConfigError:
         raise HTTPException(
             status_code=404,
             detail={"context": context, "message": "Config file not found"},

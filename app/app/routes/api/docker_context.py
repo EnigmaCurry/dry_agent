@@ -10,6 +10,10 @@ from .ssh_config import parse_ssh_config
 router = APIRouter(prefix="/api/docker_context", tags=["docker_context"])
 
 
+def get_docker_context() -> str:
+    return run_command(["docker", "context", "show"])
+
+
 def get_docker_context_names() -> List[str]:
     """
     Retrieve a list of existing docker context names.
@@ -103,7 +107,7 @@ def get_default_context():
     """
     Retrieve the current default docker context using the docker CLI.
     """
-    default_context = run_command(["docker", "context", "show"])
+    default_context = get_docker_context()
     return {"default_context": default_context}
 
 

@@ -1,6 +1,7 @@
 <script>
   import { onMount } from "svelte";
   import { page } from "$app/stores";
+  import { listenToServerEvents } from "$lib/listenToEvents.js";
 
   import "bulma/css/bulma.min.css";
   import "../../static/styles.css";
@@ -42,6 +43,11 @@
     } catch (err) {
       console.error("Failed to fetch docker contexts", err);
     }
+  });
+
+  onMount(() => {
+    const cleanup = listenToServerEvents();
+    return cleanup;
   });
 
   async function setDefaultContext(context) {
@@ -205,7 +211,7 @@
     </div>
     <div class="navbar-end">
       <div
-        class="navbar-item has-dropdown is-hoverable mr-2"
+        class="navbar-item has-dropdown mr-2"
         class:is-active={showDockerDropdown}
       >
         <a

@@ -8,4 +8,5 @@ from . import (
     d_rymcg_tech,
     instances,
     chat,
+    events,
 )

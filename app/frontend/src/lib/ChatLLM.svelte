@@ -1,6 +1,8 @@
 <script>
   import { onMount, tick } from "svelte";
   import Markdown from "svelte-exmarkdown";
+  import { currentContext, dockerContexts } from "$lib/stores";
+  import { get } from "svelte/store";
 
   import langPython from "highlight.js/lib/languages/python";
   import langMakefile from "highlight.js/lib/languages/makefile";
@@ -170,6 +172,24 @@
         body: JSON.stringify({ message: messages[index - 1].content }),
         signal: controller.signal,
       });
+
+      if (!res.ok) {
+        let errorMessage = `HTTP ${res.status}`;
+        try {
+          const errorData = await res.json();
+          if (errorData?.detail) {
+            errorMessage += `: ${errorData.detail}`;
+          }
+        } catch (_) {
+          const text = await res.text();
+          if (text) errorMessage += `: ${text}`;
+        }
+
+        messages[index].content = `❌ Request failed.\n\n${errorMessage}`;
+        messages[index].is_error = true;
+        return;
+      }
+
       await tick();
       scrollToBottom();
 
@@ -309,7 +329,6 @@
       pre.appendChild(button);
     }
   }
-
 </script>
 
 <div class="chat-wrapper">
@@ -322,9 +341,15 @@
       {#if message.role === "user"}
         <div class="user-message">{message.content}</div>
       {:else if message.role === "assistant"}
-        <div class="assistant-message markdown-body" data-msg-index={index}>
-          <Markdown md={message.content || ""} plugins={markdownPlugins} />
-        </div>
+        {#if message.is_error}
+          <div class="notification is-danger" data-msg-index={index}>
+            {message.content}
+          </div>
+        {:else}
+          <div class="assistant-message markdown-body" data-msg-index={index}>
+            <Markdown md={message.content || ""} plugins={markdownPlugins} />
+          </div>
+        {/if}
       {/if}
     {/each}
 
