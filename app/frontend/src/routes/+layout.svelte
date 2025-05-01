@@ -115,24 +115,43 @@
 
   <div id="main-navbar" class="navbar-menu" class:is-active={burgerActive}>
     <div class="navbar-start">
-      <a
-        class="navbar-item is-deep-red {'/docker/' === $page.url.pathname
-          ? 'is-active'
-          : ''}"
-        onclick={handleDropdownItemClick}
-        href="/docker/"
+      <!-- Setup -->
+      <div
+        class="navbar-item has-dropdown"
+        class:is-active={activeDropdown === "setup"}
       >
-        Docker
-      </a>
-      <a
-        class="navbar-item is-deep-red {'/config/' === $page.url.pathname
-          ? 'is-active'
-          : ''}"
-        onclick={handleDropdownItemClick}
-        href="/config/"
-      >
-        Config
-      </a>
+        <button
+          type="button"
+          class="navbar-link"
+          onclick={() => toggleDropdown("setup")}
+        >
+          Setup
+        </button>
+        <div class="navbar-dropdown">
+          <a
+            class="navbar-item is-deep-red"
+            href="/docker"
+            onclick={handleDropdownItemClick}
+          >
+            Docker
+          </a>
+          <a
+            class="navbar-item is-deep-red"
+            href="/repository/"
+            onclick={handleDropdownItemClick}
+          >
+            Repository
+          </a>
+          <a
+            class="navbar-item is-deep-red"
+            href="/config/"
+            onclick={handleDropdownItemClick}
+          >
+            Config (Traefik)
+          </a>
+        </div>
+      </div>
+
       <a
         class="navbar-item is-deep-red {'/apps/' === $page.url.pathname
           ? 'is-active'
@@ -141,15 +160,6 @@
         href="/apps/"
       >
         Apps
-      </a>
-      <a
-        class="navbar-item is-deep-red {'/repository/' === $page.url.pathname
-          ? 'is-active'
-          : ''}"
-        onclick={handleDropdownItemClick}
-        href="/repository/"
-      >
-        Repository
       </a>
       <a
         class="navbar-item is-deep-red {'/workstation/' === $page.url.pathname
