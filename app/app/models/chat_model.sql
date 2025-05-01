@@ -1,24 +1,26 @@
 -- name: create_conversation!
-insert into conversation (id)
-    values (:id);
+insert into conversation (id, created_at)
+    values (:id, current_timestamp);
 
 -- name: add_message!
-insert into message (conversation_id, role, message_index, content)
+insert into message (conversation_id, role, message_index, content, created_at)
     values (:conversation_id, :role, coalesce((
             select
                 max(message_index) + 1
             from message
             where
-                conversation_id = :conversation_id), 0), :content);
+                conversation_id = :conversation_id), 0), :content, current_timestamp);
 
 -- name: get_last_messages
 select
     role,
-    content
+    content,
+    created_at
 from (
     select
         role,
-        content
+        content,
+        created_at
     from
         message
     where
