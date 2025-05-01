@@ -4,8 +4,11 @@ from pathlib import Path
 from typing import List, Optional, Callable, AsyncContextManager
 import aiosqlite
 import logging
+from gibberish import Gibberish
 
 logger = logging.getLogger(__name__)
+
+gib = Gibberish()
 
 
 class ChatModel:
@@ -17,10 +20,13 @@ class ChatModel:
         self.connection = conn_provider
         self.queries = queries
 
-    async def create_conversation(self, conversation_id: Optional[str] = None) -> str:
+    async def create_conversation(
+        self, conversation_id: Optional[str] = None, title: Optional[str] = None
+    ) -> str:
         conv_id = conversation_id or str(uuid.uuid4())
+        title = title or " ".join(gib.generate_words(2)).title()
         async with self.connection() as conn:
-            await self.queries.create_conversation(conn=conn, id=conv_id)
+            await self.queries.create_conversation(conn=conn, id=conv_id, title=title)
             await conn.commit()
         return conv_id
 

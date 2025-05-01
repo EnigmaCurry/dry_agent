@@ -1,6 +1,6 @@
 -- name: create_conversation!
-insert into conversation (id, created_at)
-    values (:id, current_timestamp);
+insert into conversation (id, created_at, title)
+    values (:id, current_timestamp, :title);
 
 -- name: add_message!
 insert into message (conversation_id, role, message_index, content, created_at)
@@ -34,7 +34,8 @@ order by
 -- name: get_conversation^
 select
     id,
-    created_at
+    created_at,
+    title
 from
     conversation
 where

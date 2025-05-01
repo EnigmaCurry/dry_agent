@@ -19,7 +19,9 @@
   import rehypeHighlight from "rehype-highlight";
 
   let conversationId;
-  let messages = $state([{ role: "system", content: "You are a helpful assistant." }]);
+  let messages = $state([
+    { role: "system", content: "You are a helpful assistant." },
+  ]);
   let input = $state("");
   let loading = $state(false);
   let controller;
@@ -31,7 +33,7 @@
   let chatContainer;
   let scrollTimeout;
   let lockScroll = $state(false);
-  let showHistoryModal = $state(false);
+  let showMenuModal = $state(false);
 
   const AUTO_SCROLL_THRESHOLD = 10; // user scroll tolerance
   const SCROLL_BUTTON_DISPLAY_THRESHOLD = 100; // when to show the button
@@ -130,12 +132,12 @@
     },
   ];
 
-  function toggleHistoryModal() {
-    showHistoryModal = !showHistoryModal;
+  function toggleMenuModal() {
+    showMenuModal = !showMenuModal;
   }
 
-  function closeHistoryModal() {
-    showHistoryModal = false;
+  function closeMenuModal() {
+    showMenuModal = false;
   }
 
   function scrollToBottom() {
@@ -293,12 +295,8 @@
       </div>
 
       <div class="control">
-        <button
-          class="button is-info"
-          type="button"
-          on:click={toggleHistoryModal}
-        >
-          History
+        <button class="button is-info" type="button" on:click={toggleMenuModal}>
+          Menu
         </button>
       </div>
 
@@ -313,13 +311,16 @@
   </form>
 </div>
 
-{#if showHistoryModal}
-  <div class="history modal is-active">
-    <div class="modal-background" on:click={closeHistoryModal}></div>
+{#if showMenuModal}
+  <div class="menu modal is-active">
+    <div class="modal-background" on:click={closeMenuModal}></div>
     <div class="modal-card">
       <header class="modal-card-head">
-        <p class="modal-card-title">Conversation History</p>
-        <button class="delete" aria-label="close" on:click={closeHistoryModal}
+        <p class="modal-card-title">Conversations</p>
+        <div class="pr-4">
+          <button class="button is-link">New Conversation</button>
+        </div>
+        <button class="delete" aria-label="close" on:click={closeMenuModal}
         ></button>
       </header>
       <section class="modal-card-body">
@@ -438,7 +439,7 @@
     background: #1075c2;
   }
 
-  .history .modal-card-body {
+  .menu .modal-card-body {
     max-height: 75%;
   }
 

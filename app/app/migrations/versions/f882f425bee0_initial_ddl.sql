@@ -1,7 +1,8 @@
 -- Conversations table
 create table conversation (
     id text primary key, -- UUID as text
-    created_at timestamp not null default current_timestamp
+    created_at timestamp not null default current_timestamp,
+    title text not null
 );
 
 -- Messages within a conversation

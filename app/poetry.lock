@@ -170,6 +170,23 @@ all = ["email-validator (>=2.0.0)", "fastapi-cli[standard] (>=0.0.5)", "httpx (>
 standard = ["email-validator (>=2.0.0)", "fastapi-cli[standard] (>=0.0.5)", "httpx (>=0.23.0)", "jinja2 (>=3.1.5)", "python-multipart (>=0.0.18)", "uvicorn[standard] (>=0.12.0)"]
 
 [[package]]
+name = "gibberish"
+version = "0.4.0"
+description = "A pseudo-word generator"
+optional = false
+python-versions = "*"
+files = [
+    {file = "gibberish-0.4.0-py2.py3-none-any.whl", hash = "sha256:f3404e56549937f759d3ed02b642ac19efee7019ee967242f2f3ad4c3832eb58"},
+    {file = "gibberish-0.4.0.tar.gz", hash = "sha256:c572998f16833527f3e4c1a7586fa0cd65327c27fbfef97d99cafb1f9146fef8"},
+]
+
+[package.dependencies]
+PyYAML = "*"
+
+[package.extras]
+dev = ["nltk"]
+
+[[package]]
 name = "greenlet"
 version = "3.2.1"
 description = "Lightweight in-process concurrent programming"
@@ -1228,4 +1245,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "930644562f4857531ec3161aa26f49a428f5890158eaf92ac2c6cbfa13071601"
+content-hash = "aef61e98cf9eb20f2f6fa164e29fe1a5847c046f9a29088812ee49ea333751a5"
