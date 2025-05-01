@@ -116,44 +116,56 @@
   <div id="main-navbar" class="navbar-menu" class:is-active={burgerActive}>
     <div class="navbar-start">
       <a
-        class="navbar-item is-deep-red"
+        class="navbar-item is-deep-red {'/docker/' === $page.url.pathname
+          ? 'is-active'
+          : ''}"
         onclick={handleDropdownItemClick}
-        href="/docker"
+        href="/docker/"
       >
         Docker
       </a>
       <a
-        class="navbar-item is-deep-red"
+        class="navbar-item is-deep-red {'/config/' === $page.url.pathname
+          ? 'is-active'
+          : ''}"
         onclick={handleDropdownItemClick}
-        href="/config"
+        href="/config/"
       >
         Config
       </a>
       <a
-        class="navbar-item is-deep-red"
+        class="navbar-item is-deep-red {'/apps/' === $page.url.pathname
+          ? 'is-active'
+          : ''}"
         onclick={handleDropdownItemClick}
-        href="/apps"
+        href="/apps/"
       >
         Apps
       </a>
       <a
-        class="navbar-item is-deep-red"
+        class="navbar-item is-deep-red {'/repository/' === $page.url.pathname
+          ? 'is-active'
+          : ''}"
         onclick={handleDropdownItemClick}
-        href="/repository"
+        href="/repository/"
       >
         Repository
       </a>
       <a
-        class="navbar-item is-deep-red"
+        class="navbar-item is-deep-red {'/workstation/' === $page.url.pathname
+          ? 'is-active'
+          : ''}"
         onclick={handleDropdownItemClick}
-        href="/workstation"
+        href="/workstation/"
       >
         Workstation
       </a>
       <a
-        class="navbar-item is-deep-red"
+        class="navbar-item is-deep-red {'/agent/' === $page.url.pathname
+          ? 'is-active'
+          : ''}"
         onclick={handleDropdownItemClick}
-        href="/agent"
+        href="/agent/"
       >
         Agent
       </a>

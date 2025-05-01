@@ -32,23 +32,34 @@ a:hover {
 .navbar-brand {
   font-size: 2em;
 }
+
 .navbar-burger {
   scale: 2;
 }
-.navbar.is-deep-red {
+
+.navbar.is-deep-red,
+.navbar.is-deep-red:active {
   background-color: #7b1c1c;
 }
-.navbar-dropdown a.navbar-item:not(.is-active, .is-selected) {
+
+.navbar.is-deep-red .navbar-brand,
+.navbar.is-deep-red .navbar-brand:active,
+.navbar.is-deep-red .navbar-brand:hover,
+.navbar.is-deep-red .navbar-brand *:active,
+.navbar.is-deep-red .navbar-brand *:hover,
+.navbar.is-deep-red .navbar-brand *:focus-within {
+  background-color: #4f1818;
+}
+
+.navbar-dropdown a.navbar-item:not(.is-active, .is-selected),
+.navbar.is-deep-red .navbar-item:active,
+.navbar.is-deep-red .navbar-item:focus-within {
   background-color: #5e1515;
 }
 .navbar.is-deep-red .navbar-item,
 .navbar.is-deep-red .navbar-item:visited,
 .navbar.is-deep-red .navbar-link {
   color: #fff;
-}
-.navbar.is-deep-red .navbar-item:hover:not(.has-dropdown),
-.navbar.is-deep-red .navbar-item:focus:not(.has-dropdown) {
-  background-color: #992222;
 }
 .navbar.is-deep-red .navbar-burger span {
   background-color: #ffffff;
@@ -59,10 +70,6 @@ a:hover {
 }
 .navbar.is-deep-red .navbar-item {
   color: #ffffff;
-}
-.navbar.is-deep-red .navbar-item:hover:not(.has-dropdown),
-.navbar.is-deep-red .navbar-item:focus:not(.has-dropdown) {
-  background-color: #771c1c;
 }
 /* Override the white dropdown background */
 .navbar.is-deep-red .navbar-dropdown {
@@ -78,19 +85,32 @@ a:hover {
 /* Hover state for dropdown items */
 .navbar.is-deep-red .navbar-dropdown .navbar-item:hover,
 .navbar.is-deep-red .navbar-dropdown .navbar-item:focus {
-  background-color: #771c1c;
   color: #ffffff;
 }
 /* Fix "More" link background when hovered or active */
 .navbar.is-deep-red .navbar-link,
-.navbar.is-deep-red .navbar-link:focus,
-.navbar.is-deep-red .navbar-link.is-active {
+.navbar.is-deep-red .navbar-link:focus {
   background-color: #5e1515;
   color: #ffffff;
 }
-.navbar.is-deep-red .navbar-link:hover {
+.navbar.is-deep-red .navbar-link:hover:not(.is-active),
+.navbar.is-deep-red .navbar-item:hover:not(.is-active) {
   background-color: #771c1c;
 }
+.navbar.is-deep-red .navbar-link:hover,
+.navbar.is-deep-red .navbar-item:hover,
+ {
+  background-color: #5e1515;
+}
+.navbar.is-deep-red .navbar-item.is-active {
+  background-color: #481717;
+  border-bottom: 1px solid #00b7b7;
+}
+
+.navbar-dropdown .navbar-item:not(.is-active, .is-selected) {
+  background-color: #5e1515;
+}
+
 /* Keep "More" link background dark, even when a dropdown item is hovered */
 .navbar.is-deep-red .navbar-item.has-dropdown:hover .navbar-link {
   background-color: #5e1515 !important;
