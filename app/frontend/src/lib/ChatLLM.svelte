@@ -265,6 +265,40 @@
       }
     }
   }
+
+  $effect(async () => {
+    await tick();
+
+    // Wait until assistant messages are visibly in DOM
+    const check = () => document.querySelectorAll(".assistant-message pre code").length > 0;
+
+    // Retry up to 10 times with a slight delay
+    for (let i = 0; i < 10; i++) {
+      if (check()) break;
+      await new Promise((res) => setTimeout(res, 50));
+    }
+
+    const blocks = document.querySelectorAll(".assistant-message pre code");
+
+    for (const codeBlock of blocks) {
+      if (codeBlock.parentElement?.querySelector(".copy-button")) continue;
+
+      const button = document.createElement("button");
+      button.textContent = "📋";
+      button.className = "copy-button is-size-5";
+      button.title = "Copy to clipboard";
+      button.onclick = () => {
+        navigator.clipboard.writeText(codeBlock.innerText).then(() => {
+          button.textContent = "✅";
+          setTimeout(() => (button.textContent = "📋"), 1000);
+        });
+      };
+
+      codeBlock.parentElement?.style.setProperty("position", "relative");
+      codeBlock.parentElement?.appendChild(button);
+    }
+  });
+
 </script>
 
 <div class="chat-wrapper">
@@ -277,7 +311,7 @@
       {#if message.role === "user"}
         <div class="user-message">{message.content}</div>
       {:else if message.role === "assistant"}
-        <div class="assistant-message markdown-body">
+        <div class="assistant-message markdown-body" data-msg-index={index}>
           <Markdown md={message.content || ""} plugins={markdownPlugins} />
         </div>
       {/if}
@@ -509,6 +543,31 @@
   .modal-card-foot {
     padding: 0;
     max-height: 1em;
+  }
+
+  :global(.assistant-message pre) {
+    position: relative;
+    padding-top: 2.2rem;
+  }
+
+  :global(.assistant-message .copy-button) {
+    position: absolute;
+    top: 0.6rem;
+    right: 0.8rem;
+    background: #444;
+    color: white;
+    border: none;
+    cursor: pointer;
+    padding: 0.3rem 0.5rem;
+    font-size: 0.8rem;
+    border-radius: 4px;
+    opacity: 0.6;
+    transition: opacity 0.2s ease;
+    z-index: 10;
+  }
+
+  :global(.assistant-message .copy-button:hover) {
+    opacity: 1;
   }
 
   :global(.markdown-body) {
