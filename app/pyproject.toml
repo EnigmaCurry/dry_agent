@@ -13,5 +13,8 @@ python-multipart = "^0.0.20"
 dicewarepy = "^1.0.3"
 openai = "^1.76.2"
 python-lorem = "v1.3.0.post3"
+aiosql = "^13.4"
+aiosqlite = "^0.21.0"
+alembic = "^1.15.2"
 
 [tool.poetry.group.dev.dependencies]

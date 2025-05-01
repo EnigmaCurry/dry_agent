@@ -18,6 +18,7 @@
   import "highlight.js/styles/github-dark.css";
   import rehypeHighlight from "rehype-highlight";
 
+  let conversationId;
   let messages = [{ role: "system", content: "You are a helpful assistant." }];
   let input = "";
   let loading = false;
@@ -92,6 +93,7 @@
   }
 
   onMount(async () => {
+    conversationId = crypto.randomUUID();
     await tick();
     adjustTextareaHeight();
     inputElement?.focus();
@@ -111,10 +113,10 @@
     controller = new AbortController();
 
     try {
-      const res = await fetch("/api/chat/stream/", {
+      const res = await fetch(`/api/chat/stream/${conversationId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: messages.slice(0, -1) }),
+        body: JSON.stringify({ message: messages[index - 1].content }),
         signal: controller.signal,
       });
 

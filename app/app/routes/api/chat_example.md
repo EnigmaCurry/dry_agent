@@ -1,0 +1,991 @@
+# d.rymcg.tech
+
+> ℹ️ **New book available now!**: [Portable Docker: Build and Deploy Anywhere with WireGuard Tunneling](https://book.rymcg.tech/portable-docker/)
+
+
+```python
+print("Hello, world!")
+for i in range(10):
+    print(i)
+```
+
+```javascript
+console.log("Hello, World!");
+```
+
+```java
+public class HelloWorld {
+    public static void main(String[] args) {
+        System.out.println("Hello, World!");
+    }
+}
+```
+
+```c
+#include <stdio.h>
+
+int main() {
+    printf("Hello, World!\n");
+    return 0;
+}
+```
+
+
+```rust
+fn main() {
+    println!("Hello, World!");
+}
+```
+
+This is a collection of Docker Compose projects, consisting of
+[Traefik](https://doc.traefik.io/traefik/) as a TLS HTTP/TCP/UDP
+reverse proxy, and other open-source self-hosted applications and
+services behind it. Each project is in its own sub-directory
+containing its own `docker-compose.yaml` and `.env-dist` sample config
+file. This structure allows you to pick and choose which services you
+wish to enable. You may also integrate your own external Docker
+Compose projects into this framework.
+
+# Contents
+
+- [All configuration comes from the environment](#all-configuration-comes-from-the-environment)
+- [Prerequisites](#prerequisites)
+- [Setup Workstation](#setup-workstation)
+- [Main configuration](#main-configuration)
+- [Install applications](#install-applications)
+- [Command line interaction](#command-line-interaction)
+- [Creating multiple instances of a service](#creating-multiple-instances-of-a-service)
+- [Backup .env files](#backup-env-files-optional)
+- [Integrating external projects](#integrating-external-projects)
+- [Questions and discussion](#questions-and-discussion)
+
+Depending on which services you actually install, and how they are
+configured, you may need to open these ports in your firewall:
+
+| Type       | Protocol | Port Range | Description                                               |
+|------------|----------|------------|-----------------------------------------------------------|
+| SSH        | TCP      | 22         | Host SSH server (direct-map)                              |
+| HTTP       | TCP      | 80         | Traefik HTTP entrypoint (web; redirects to websecure)     |
+| HTTP+TLS   | TCP      | 443        | Traefik HTTPS entrypoint (websecure)                      |
+| TCP socket | TCP      | 1704       | Traefik Snapcast (audio) entrypoint                       |
+| TCP socket | TCP      | 1705       | Traefik Snapcast (control) entrypoint                     |
+| RTMP(s)    | TCP      | 1935       | Traefik RTMP (real time message protocol) entrypoint      |
+| SSH        | TCP      | 2222       | Traefik Forgejo SSH (TCP) entrypoint                      |
+| SSH        | TCP      | 2223       | SFTP container SSH (TCP) (direct-map)                     |
+| TLS        | TCP      | 5432       | PostgreSQL mTLS DBaaS (direct-map)                        |
+| TCP+TLS    | TCP      | 6380       | Traefik Redis in-memory database entrypoint               |
+| TCP socket | TCP      | 6600       | Traefik Mopidy (MPD) entrypoint                           |
+| HTTP       | TCP      | 8000       | Traefik HTTP entrypoint (web_plain; explicitly non-https) |
+| TLS        | TCP      | 8883       | Mosquitto MQTT (direct-map)                               |
+| WebRTC     | UDP      | 10000      | Jitsi Meet video bridge (direct-map)                      |
+| VPN        | UDP      | 51820      | Wireguard (Traefik VPN)  (direct-map)                     |
+
+The ports that are listed as `(direct-map)` are not connected to
+Traefik, but are directly exposed (public) to the docker host network.
+
+For a minimal installation, you only need to open ports 22 and 443.
+This would enable all of the web-based applications to work, except
+for the ones that need an additional port, as listed above.
+
+See [DIGITALOCEAN.md](DIGITALOCEAN.md) for an example of setting the
+DigitalOcean firewall service.
+
+Later, after you've deployed things, you can audit all of the open
+published ports: from the root project directory, run `make
+show-ports` to list all of the services with open ports (or those that
+run in the host network and are therefore completely open. You will
+find traefik and the wireguard server/client in this latter category).
+Each sub-project directory also has a `make status` with useful
+per-project information.
+
+### Configure Docker bridge networks (optional)
+
+By default, Docker will only reserve enough IP addresses for a total
+of 30 user-defined networks. This means that, by default, you can only
+deploy up to 30 apps per docker server.
+
+If you would like more than 30, you can increase the range of IP
+addresses that Docker reserves. On your Docker server, edit
+`/etc/docker/daemon.json` (create this file if it does not exist), and
+merge the following configuration:
+
+```json
+{
+  "default-address-pools": [
+    {"base": "172.17.0.0/16", "size": 24}
+  ]
+}
+```
+
+```shell
+## Disable local Docker Engine:
+sudo systemctl mask --now docker
+```
+
+#### Enable Docker buildx (optional)
+
+Following the [buildx installation
+guide](https://docs.docker.com/build/buildx/install/), and run the
+installation:
+
+```shell
+docker buildx install
+```
+
+### Install workstation tools
+
+The Makefiles have extra dependencies in order to help configure and
+manage your containers. These dependencies are optional, but strongly
+recommended. (The Makefiles are strictly convenience wrappers for
+creating/modifying your `.env` files, and for running `docker compose`
+commands, so if you would rather just edit your `.env` files by hand
+and/or run `docker compose` manually, these dependencies may be
+skipped):
+
+   * Base development tools including `bash`, `make`, `sed`, `xargs`, and
+     `shred`.
+   * `openssl` (for generating randomized passwords)
+   * `htpasswd` (for encoding passwords for Traefik Basic Authentication)
+   * `jq` (for processing JSON)
+   * `sshfs` (for mounting volumes used by the [sftp](sftp) container)
+   * `xdg-open` (Used for automatically opening the service URLs in
+      your web-browser via `make open`. Don't install this if your
+      workstation is on a headless server, as it depends on
+      Xorg/Wayland. Without installing `xdg-open`, it will degrade to
+      simply printing the URL that you can copy and paste.)
+   * `wireguard` (client for connecting to the [traefik
+     wireguard](traefik#wireguard-vpn) VPN)
+   * `curl` (for downloading an installing external dependencies:
+     [script-wizard](https://github.com/enigmacurry/script-wizard))
+   * `inotify-tools` for any any project that has implemented
+     [dev-sync](_scripts/dev-sync), which can be used to synchronize
+     local files into container volumes.
+
+On Arch Linux, run this to install all these dependencies:
+
+```shell
+pacman -S bash base-devel gettext git openssl apache xdg-utils jq sshfs wireguard-tools curl inotify-tools w3m moreutils
+```
+
+For Debian or Ubuntu, run:
+
+```shell
+apt-get install bash build-essential gettext git openssl apache2-utils xdg-utils jq sshfs wireguard curl inotify-tools w3m moreutils
+```
+
+For Fedora, run:
+
+```shell
+dnf install bash gettext openssl git xdg-utils jq sshfs curl inotify-tools httpd-tools make wireguard-tools w3m moreutils
+```
+
+### Setup SSH access to the server
+
+Make sure that your local workstation user account is setup for SSH
+access to the remote docker server (ie. you should be able to ssh to
+the remote server `root` account, or another account that has been
+added into the `docker` group). You should setup key-based
+authentication so that you don't need to enter passwords during login,
+as each `docker` command will need to authenticate via SSH.
+
+ * See the general article [How to Set Up SSH
+   Keys](https://www.digitalocean.com/community/tutorials/how-to-set-up-ssh-keys-2)
+ * Make sure to turn off regular password authentication, set
+   `PasswordAuthentication no` in the server config.
+ * Check out this [SSH Hardening
+   Guide](https://www.sshaudit.com/hardening_guides.html) for
+   disabling outdated key types.
+ * If your workstation's operating system does not automatically provide an
+   ssh-agent (to make it so you don't have to keep typing your key's
+   passphrase), check out
+   [Keychain](https://wiki.archlinux.org/title/Keychain#Keychain) for an easy
+   solution.
+
+When set for a remote Docker context, the `docker` command will create
+a new SSH connection for each time it is run. This can be especially
+slow for running several commands in a row. You can speed the
+connection time up, by enabling SSH connection multiplexing, which
+starts a single background connection and makes new connections re-use
+this existing connection.
+
+On your workstation, create or edit your existing
+`${HOME}/.ssh/config` file. Add the following configuration (replacing
+`ssh.d.example.com` with your own docker server hostname, and `root`
+for the user account that controls Docker):
+
+```
+Host ssh.d.example.com
+    User root
+    ControlMaster auto
+    ControlPersist yes
+    ControlPath /tmp/ssh-%u-%r@%h:%p
+```
+
+(The hostname `ssh.d.example.com` relies upon the wildcard
+`*.d.example.com` or an explicit `A` record having been created for
+this hostname.)
+
+Note: if you use a workstation that goes to sleep, or loses network
+connectivity, you may find that your shared+multiplexed SSH
+connections will sometimes become zombies and stop communication. Get
+used to running `killall ssh` before trying to restablish the
+connection.
+
+### Set remote Docker context
+
+On your local workstation, create a new [Docker
+context](https://docs.docker.com/engine/context/working-with-contexts/)
+to use with your remote docker server (eg. named `d.example.com`) over
+SSH:
+
+```shell
+docker context create d.example.com --docker "host=ssh://ssh.d.example.com"
+docker context use d.example.com
+```
+
+(To benefit from connection multiplexing, make sure to use the exact
+Host name [`ssh.d.exmaple.com`] that you specified in your
+`${HOME}/.ssh/config`)
+
+Now whenever you issue `docker` commands on your local workstation,
+you will actually be controlling your remote Docker server through
+SSH, and you can easily switch contexts between multiple server
+backends.
+
+For example, I have three docker contexts, for three different remote
+Docker servers:
+
+```shell
+$ docker context ls
+NAME              DESCRIPTION  DOCKER ENDPOINT
+d.rymcg.tech *                 ssh://ssh.d.rymcg.tech
+docker-vm                      ssh://docker-vm
+pi                             ssh://pi
+```
+
+(The `*` indicates my current context.)
+
+I can select to use which context I want to use:
+
+```shell
+$ docker context use docker-vm
+Current context is now "docker-vm"
+```
+
+(This is a permanent setting that will survive a workstation reboot.
+Use the same command again to switch to any other context.)
+
+### Clone this repository to your workstation
+
+```shell
+git clone https://github.com/EnigmaCurry/d.rymcg.tech.git \
+    ${HOME}/git/vendor/enigmacurry/d.rymcg.tech
+
+cd ${HOME}/git/vendor/enigmacurry/d.rymcg.tech
+```
+
+You may clone to any path you like, but the path suggested above is a
+vendor neutral way of organizing third party repositories, with the
+intention of making the same path work on all machines.
+
+## Main configuration
+
+Run the configuration wizard, and answer the questions:
+
+```shell
+## Run this command inside the root source directory of d.rymcg.tech:
+make config
+```
+
+Running `make config`, in the root project directory, writes the main
+project level variables into a file named `.env_${DOCKER_CONTEXT}`
+(eg. `.env_d.example.com`) in the root source directory, based upon
+the name of the current Docker context. This file is excluded from the
+git repository via `.gitignore`.)
+
+All of the Makefiles depend on a helper utility called
+[script-wizard](https://github.com/enigmacurry/script-wizard), which
+is automatically installed the first time you run `make config`.
+
+This will also check your system for the dependencies and alert you if
+you need to install something.
+
+The `ROOT_DOMAIN` variable is saved in `.env_${DOCKER_CONTEXT}` and
+will serve as the default root domain of all of the sub-project
+domains, so that when you run `make config` in any of the sub-project
+directories, the default (yet customizable) domain will be
+pre-populated with this root domain suffix.
+
+You can have multiple `.env_${DOCKER_CONTEXT}` files, one for each
+Docker server, named after the associated Docker context. To switch
+the current .env file being used, change the Docker context:
+
+```shell
+docker context use {CONTEXT}
+```
+
+## Install applications
+
+Each of the sub-projects have their own `README.md`. You should
+install [Traefik](traefik) first, as almost all of the others depend
+on it. After that, install the [whoami](whoami) service to test that
+things are working correctly.
+
+Install these first:
+
+* [Traefik](traefik#readme) - HTTP / TLS / TCP / UDP reverse proxy
+* [Whoami](whoami#readme) - HTTP test service
+
+Install these recommended backbone applications next:
+
+* [Forgejo](forgejo#readme)
+  * A git host (fork of Gitea/Gogs, which is similar to self-hosted
+    GitHub) and OAuth2 server.
+  * Like GitHub, it can act as an OAuth2 identity service, which
+    supports 2FA including hardware tokens, even if you have no need
+    for a git forge, install this!
+* [Traefik-forward-auth](traefik-forward-auth#readme)
+  * Traefik OAuth2 authentication middleware.
+  * Required if you want OAuth2 authentication. You'll combine this
+    with your forgejo instance (or another external Oauth provider) to
+    add authentication to any of your apps.
+* [Homepage](homepage#readme)
+  * Homepage acts as a dashboard or launcher for all your other apps
+    (but this is not required for any other functionality, if you
+    don't need it.)
+* [Postfix-Relay](postfix-relay#readme)
+  * A simple email forwarding service (SMTP) which can be used by any
+    other container that needs to send email.
+* [Registry](registry#readme) 
+  * An OCI container registry for hosting docker container images.
+
+Install these other services at your leisure/preference:
+
+* [13ft](thirteenft#readme) - a tool to block ads and bypass paywalls
+* [Actual](actual#readme) - a personal finance tool
+* [ArchiveBox](archivebox#readme) - a website archiving tool
+* [Audiobookshelf](audiobookshelf#readme) - an audiobook and podcast server
+* [Autoheal](autoheal#readme) - a Docker container healthcheck monitor with auto-restart service
+* [Backrest](backrest#readme) - a backup tool based on restic
+* [Backup-Volume](backup-volume#readme) - a Docker volume backup tool
+* [Baikal](baikal#readme) - a lightweight CalDAV+CardDAV server
+* [Caddy](caddy#readme) - an HTTP server with automatic TLS (passthrough)
+* [CalcPad](calcpad#readme) - a different take on the caculator
+* [Calibre](calibre#readme) - an ebook manager
+* [Commentario](commentario#readme) - a website comment service
+* [Coturn](coturn#readme) - a TURN relay server for NAT traversal
+* [DOH-server](doh-server#readme) - a DNS-over-HTTPs proxy resolver
+* [DrawIO](drawio#readme) - a diagram / whiteboard editor tool
+* [Ejabberd](ejabberd#readme) - an XMPP (Jabber) server
+* [Filestash](filestash#readme) - a web based file manager with customizable backend storage providers
+* [FreshRSS](freshrss#readme) - an RSS reader / proxy
+* [Glances](glances#readme) - a cross-platform system monitoring tool
+* [Gradio](gradio#readme) - a configurable web interface for machine learning 
+* [Grocy](grocy#readme) - a grocery & household management/chore solution
+* [Icecast](icecast#readme) - a SHOUTcast compatible streaming multimedia server
+* [Immich](immich#readme) - a photo gallery
+* [Invidious](invidious#readme) - a Youtube proxy
+* [Iperf](iperf#readme) - a bandwidth speed testing service
+* [Jitsi Meet](jitsi-meet#readme) - a video conferencing and screencasting service
+* [Jupyterlab](jupyterlab#readme) - a web based code editing environment / reproducible research tool
+* [Larynx](larynx#readme) - a speech synthesis engine
+* [Lemmy](lemmy#readme) - a link aggregator and forum for the fediverse
+* [Matterbridge](matterbridge#readme) - a chat room bridge (IRC, Matrix, XMPP, etc)
+* [Maubot](maubot#readme) - a matrix Bot
+* [Minio](minio#readme) - an S3 storage server
+* [Mopidy](mopidy#readme) - a streaming music server built with MPD and Snapcast
+* [Mosquitto](mosquitto#readme) - an MQTT server
+* [Nextcloud](nextcloud#readme) - a collaborative file server
+* [Nginx](nginx#readme) - a webserver configured with fast-cgi support for PHP scripts
+* [Node-RED](nodered#readme) - a graphical event pipeline editor
+* [Ntfy-sh](ntfy-sh#readme) - a simple HTTP-based pub-sub notification service
+* [Pairdrop](pairdrop#readme) - a webapp (PWA) to send files and messages peer to peer
+* [Peertube](peertube#readme) - a decentralized and federated video platform
+* [Photoprism](photoprism#readme) - a photo gallery and manager
+* [Piwigo](piwigo#readme) - a photo gallery and manager
+* [Plausible](plausible#readme) - a privacy friendly web visitor analytics engine
+* [PostgreSQL](postgresql#readme) - a database server configured with mutual TLS authentication for public networks
+* [PrivateBin](privatebin#readme) - a minimal, encrypted, zero-knowledge, pastebin
+* [Prometheus](prometheus#readme) - a systems monitoring and alerting toolkit (+ node-exporter + cAdvisor + Grafana)
+* [QBittorrent-Wireguard](qbittorrent-wireguard#readme) - a Bittorrent (libtorrent v2) client with a combined VPN client
+* [Redbean](redbean#readme) - a small website server bundled in a single executable zip file
+* [Redmine](redmine#readme) - a flexible project management web application
+* [S3-proxy](s3-proxy#readme) - an HTTP directory index for S3 backend
+* [SearXNG](searxng#readme) - a privacy-respecting, hackable metasearch engine
+* [SFTP](sftp#readme) - a secure file server
+* [Shaarli](shaarli#readme) - a bookmark manager
+* [Smokeping](smokeping#readme) - a network latency measurement tool
+* [Speedtest Tracker](speedtest-tracker#readme) - a network privacyerformance monitor
+* [Step-CA](step-ca) - a secure, online, self-hosted Certificate Authority (CA)
+* [Syncthing](syncthing#readme) - a multi-device file synchronization tool
+* [Sysbox-Systemd](sysbox-systemd#readme) - a traditional service manager for Linux running in an unprivileged container via sysbox-runc
+* [Tesseract](tesseract#readme) - a front-end for Lemmy instances
+* [Thttpd](thttpd#readme) - a tiny/turbo/throttling HTTP server for serving static files
+* [Tiny Tiny RSS](ttrss#readme) - an RSS reader / proxy
+* [TriliumNext Notes](triliumnext-notes#readme) - a note-taking/knowledge base application
+* [Vaultwarden](vaultwarden#readme) - a bitwarden compatible password manager written in Rust (formerly bitwarden_rs)
+* [Websocketd](websocketd#readme) - a websocket / CGI server
+* [Wordpress](wordpress#readme) - a ubiquitous blogging / CMS platform, with a plugin to build a static HTML site snapshot
+* [XBrowserSync](xbs#readme) - a bookmark manager
+* [YOURLS](yourls#readme) - a URL shortener
+
+You can create a new application by using any other application as an
+example, ([whoami](whoami) is the most basic one).
+
+Bespoke things:
+
+* [Linux Shell Containers](_terminal/linux) create Bash aliases that
+  automatically build and run programs in Docker containers.
+* [_docker_vm](_docker_vm#readme) Run Docker in a Virtual Machine (KVM) on Linux.
+
+Also check the [_attic](_attic) directory for a collection of old and
+broken things.
+
+## Command line interaction
+
+As alluded to earlier, this project offers multiple ways to control
+Docker:
+
+ 1. Editing `.env` files by hand, and running `docker compose`
+    commands yourself (this is a usable, but lower level, base
+    abstraction).
+ 2. Running `make` targets that edit the `.env` files automatically
+    and runs `docker compose` for you (this is the author's preferred
+    method, and the one that most of the documentation will actually
+    use).
+ 3. Running the `d.rymcg.tech` CLI script, which runs the `make`
+    targets from any working directory. (This method also includes
+    extra features such as creating your own new projects from
+    templates.)
+
+All of these methods are compatible, and they will all get you to the
+same place. The Makefiles offer a more streamlined approach with a
+configuration wizard and sensible defaults. Most of the sub-project
+README files reflect the `make` command style for config. Editing the
+`.env` files by hand still offers you more control, with more freedom
+for experimentation, and this option always remains available.
+
+### Using the Makefiles
+
+Each project has a `Makefile` that helps to simplify installation and
+maintainance. You can use the Makefiles to automatically edit the
+`.env` files and to start the services for you (and this way you won't
+have to run any docker commands by hand).
+
+The most important thing to know is that `make` looks for a `Makefile`
+in your *current* working directory. `make` is contextual to the
+directory you are in.
+
+ * `cd` into the sub-project directory of an app you want to install.
+ * Read the `README.md` file.
+ * Run `make config`
+ * Answer the interactive questions, and the
+   `.env_${DOCKER_CONTEXT}_default` file will be created/updated for
+   you (named with your current docker context, eg.
+   `.env_d.example.com_default`). The answers are pre-populated with
+   default values from `.env-dist` (and based upon your `ROOT_DOMAIN`
+   specified earlier). You can accept the suggested default values, or
+   use the backspace key and edit the value, to fill in your own
+   answers.
+ * The suffix of the .env filename, `_default`, refers to the
+   [instance](#creating-multiple-instances-of-a-service) of the
+   service (each instance has a different name, with `_default` being
+   the default name. This default name is typical only when you are
+   deploying a single instance, otherwise you should use a unique name
+   for each instance.)
+ * Verify the configuration by looking at the contents of
+   `.env_${DOCKER_CONTEXT}_default`.
+ * Run `make install` to start the services. (this is the same thing as
+   `docker compose up --build -d`)
+ * Most services have a website URL, which you can open automatically,
+   run: `make open` (requires `xdg-utils`, otherwise it will print the
+   URL and you can copy and paste it).
+ * See `make help` (or just run `make`) for a list of all the other available
+   targets, including `make status`, `make start`, `make stop` and `make
+   destroy`. Be sure to recognize that `make` has tab completion in Bash :)
+ * You can also run `make status` in the root directory of the cloned
+   source. This will list all of the installed/running applications.
+
+`make config` *does not literally* create a file named `.env`, but
+rather one based upon the current docker context:
+`.env_${DOCKER_CONTEXT}_default`. This allows for different
+configurations to coexist in the same directory. All of the `make`
+commands operate assuming this contextual environment file name, *not*
+`.env`. To switch between configs, you switch your current docker
+context: `docker context use {CONTEXT}`.
+
+During `make config`, you will sometimes be asked to create HTTP Basic
+Authentication passwords, and these passwords can be *optionally*
+saved into a file named `passwords.json` inside the sub-project
+directory. This file is a convenience, so that you can remember the
+passwords that you create. **`passwords.json` is stored in plain
+text**, but excluded from being checked into git via `.gitignore`.
+When you run `make open` the username and password stored in this file
+is automatically applied to the URL that the browser is asked to open,
+thus logging you into the website account automatically. To delete all
+of the passwords.json files, you can run `make delete-passwords` in
+the root directory of this project (or `make clean` which will delete
+the `.env` files too).
+
+For a more in depth guide on using the Makefiles, see
+[MAKEFILE_OPS.md](MAKEFILE_OPS.md)
+
+### Using the `d.rymcg.tech` CLI script (optional)
+
+By default, both `make` and `docker compose` expect you to change your
+working directory to use them, and so this is sometimes inconvenient.
+You *can* work around this by using `make -C` or `docker compose -f`,
+but another option is to use the eponymous [`d.rymcg.tech`
+script](_scripts/d.rymcg.tech) that is included in this repository.
+
+In addition to letting you run any project's `make` targets from any
+working directory, this shell script also offers a convenient way to
+create [external projects](#integrating-external-projects) from a
+skeleton template, and to create shorter command aliases for any
+project.
+
+To install the script, you need to add it to your `PATH` shell
+variable, and at your option, evaluate the Bash shell tab completion
+script:
+
+```shell
+#### To enable Bash shell completion support for d.rymcg.tech,
+#### add the following lines into your ~/.bashrc ::
+export PATH=${PATH}:${HOME}/git/vendor/enigmacurry/d.rymcg.tech/_scripts/user
+eval "$(d.rymcg.tech completion bash)"
+```
+
+Once installed, run `d.rymcg.tech` to see the command help text.
+
+```
+## Main d.rymcg.tech sub-commands:
+cd             Enter a sub-shell and go to the ROOT_DIR directory
+create         Create a new external project
+make           Run a make command for the given d.rymcg.tech project name
+
+## Documentation sub-commands:
+help                  Show this help screen
+list                  List available d.rymcg.tech projects
+                      (not including external projects, unless you symlink them into ROOT_DIR)
+readme [PROJECT]      Open the README.md for the given project name
+readme                Open the main d.rymcg.tech README.md in your browser
+readme raspberry_pi   Open the RASPBERRY_PI.md documentation
+readme makefile_ops   Open the MAKEFILE_OPS.md documentation
+readme security       Open the SECURITY.md documentation
+readme digitalocean   Open the DIGITALOCEAN.md documentation
+readme license        Open the LICENSE.txt software license
+```
+
+You can use this script to run the make targets for any of the bundled
+projects, usable from any working directory, and with full tab
+completion support:
+
+ * `d.rymcg.tech list` (retrieve list of all available projects)
+ * `d.rymcg.tech make -- status` (view status of all installed
+   projects)
+ * `d.rymcg.tech make traefik config` (run the Traefik `make config` target)
+ * `d.rymcg.tech make traefik install` (run the Traefik `make install` target)
+ * `d.rymcg.tech make whoami logs` (run the whoami `make logs` target)
+ * `d.rymcg.tech make piwigo logs SERVICE=db` (you can also add any
+   variable assignments, just like with `make`)
+
+`d.rymcg.tech make [PROJECT_NAME] ...` is a simple wrapper for `make
+-C ~/git/vendor/enigmacurry/d.rymcg.tech/${PROJECT_NAME} ...` (the
+script will detect the correct path that you cloned to) so that you
+can run all of the same things as outlined in
+[MAKEFILE_OPS.md](MAKEFILE_OPS.md), but from any directory. The
+special project placeholder value `-` (any number of consecutive
+dashes) indicates to use the [root Makefile](Makefile) rather than any
+particular project Makefile.
+
+You can get into the root d.rymcg.tech directory quickly, from
+anywhere:
+
+```shell
+## This enters a subshell and changes the working directory to the d.rymcg.tech root:
+## (You can also specify a second argument to specify the sub-directory.)
+d.rymcg.tech cd
+```
+
+Press `Ctrl-D` to exit the sub-shell and jump back to wherever you
+came from.
+
+From any working directory, you can create a new, [external
+project](#integrating-external-projects), from an external repository
+URL:
+
+```shell
+# This creates a new project directory in your current working directory:
+# It will ask you to enter the name of the project and choose the template.
+# Optional 2nd and 3rd args will skip the asking: PROJECT_NAME TEMPLATE_REPO
+d.rymcg.tech create
+```
+
+Check out the example [Python Flask template
+repository](https://github.com/EnigmaCurry/flask-template/).
+
+Open any project's README file directly in your web browser:
+
+```shell
+## Open the main README
+d.rymcg.tech readme
+
+## Open the Traefik README
+d.rymcg.tech readme traefik
+```
+
+#### Project and context specific shell aliases
+
+You can add additional command aliases to your shell (put these in
+your `~/.bashrc` *after* the `eval` line that loads the main
+`d.rymcg.tech` script):
+
+```shell
+## Alternative alias to shorten `d.rymcg.tech` to simply `d`:
+__d.rymcg.tech_cli_alias d
+```
+
+You can make project specific aliases:
+
+```shell
+## Example project alias: creates a shorter command used just for the Traefik project:\
+## e.g., `traefik config`, `traefik install`
+__d.rymcg.tech_project_alias traefik
+```
+
+If you have created an [external
+project](#integrating-external-projects) (eg. named `mikeapp`), you can
+create a command alias for it:
+
+```shell
+## Example external project alias:
+## e.g., `mikeapp config`, `mikeapp install`
+__d.rymcg.tech_project_alias mikeapp ~/git/mikeapp
+```
+
+You can also do context specific aliases:
+
+```shell
+## Example context alias: creates a shorter command used just for the given Docker context:
+## e.g., `sentry make traefik config`, `sentry make traefik install`.
+__d.rymcg.tech_context_alias sentry
+```
+
+To get a synopsis of all of these completion commands, run:
+
+```shell
+d.rymcg.tech completion
+```
+
+### Using `docker compose` by hand (optional)
+
+This project was originally designed to be a pure docker compose
+project, and it still is. The `make` commands or the `d.rymcg.tech`
+wrapper script are the recommended methods to use, however you can
+still use `docker compose` by hand if you wish.
+
+For all of the containers that you wish to install, do the following:
+
+ * Read the README.md file found in the sub-project directory.
+ * Open your terminal and `cd` to the project directory containing
+   `docker-compose.yaml`
+ * Copy the example `.env-dist` to `.env`
+ * Edit all of the variables in `.env` according to the example and comments.
+ * Create a
+   [`docker-compose.override.yaml`](https://docs.docker.com/compose/extends/#multiple-compose-files)
+   file by hand, copying from the template given in
+   `docker-compose.instance.yaml` (If the project does not have this
+   file, you can skip this step.) This [ytt](https://carvel.dev/ytt/)
+   template is mainly used for the service container labels, and has
+   logic for choosing which Traefik middlewares to apply. So you just
+   need to remove (comment out) the lines that don't apply in your
+   case. The override files are not committed into git, as they are
+   normally dynamically generated by the Makefiles and rendering from
+   the template on the fly. If you want to maintain these files by
+   hand, you can remove the exclusion of them from the
+   [.gitignore](.gitignore) and commit them with your own forked
+   repository.
+ * Follow the README for instructions to start the containers.
+   Generally, all you need to do is run: `docker compose up --build
+   -d` (This is the same thing that `make install` does)
+
+When using `docker compose` by hand, it uses the `.env` file name by
+default. To use any other filename, specify the `--env-file` argument
+(eg. when deploying multiple instances).
+
+## Creating multiple instances of a service
+
+By default, each project supports deploying a single instance per
+Docker context. The singleton instance environment file is named
+`.env_${DOCKER_CONTEXT}_default`, which is contained in each project
+subdirectory (eg. `whoami/.env_d.example.com_default`).
+
+If you want to deploy more than one instance of a given project (and
+to the same docker context, and from the same source directory), you
+need to create a separate environment file for each one. The
+convention that the Makefile expects is to name your several
+environment files like this: `.env_${DOCKER_CONTEXT}_${INSTANCE_NAME}`
+(eg. `whoami/.env_d.example.com_foo`).
+
+Not every project supports instances yet (nor does it make sense to in
+some cases), it is opt-in for each project, by including the
+[Makefile.instance](_scripts/Makefile.instance) file at the top of
+their own Makefile.
+
+By default, all of the `make` targets will use the default
+environment, but you can tell it use the instance environment instead,
+by setting the `instance` (or `INSTANCE`) variable:
+
+```
+make instance=foo config  # Configure a new or existing instance named foo
+make instance=bar config  # (Re)configures bar instance
+make instance=foo install # This (re)installs only the foo instance
+make instance=bar install # (Re)installs only bar instance
+make instance=foo ps      # This shows the containers status of the foo instance
+make instance=foo stop    # This stops the foo instance
+make instance=bar destroy # This destroys only the bar instance
+
+# Show the status of all instances of the current project subdirectory:
+make status
+```
+
+It may seem tedious to repeat typing `instance=foo` everytime (and its
+easy to forget!), so there is a shortcut: `make instance`, which will
+ask you to enter an instance name, and then enter a new sub-shell with
+the environment variables set for that instance, making it now the
+default within the sub-shell, so you don't have to type it anymore:
+
+```shell
+# Use this to create a new instance (or to use an existing one):
+# Enter a subshell with the instance temporarily set as the default:
+make instance
+```
+
+Example:
+
+```shell
+## Example terminal session for creating a new instance of whoami named foo:
+
+$ cd ~/git/vendor/enigmacurry/d.rymcg.tech/whoami
+$ make instance
+Enter an instance name to create/edit
+: foo
+Configuring environment file: .env_d.rymcg.tech_foo
+WHOAMI_TRAEFIK_HOST: Enter the whoami domain name (eg. whoami.example.com)
+: whoami-foo.d.rymcg.tech
+WHOAMI_NAME: Enter a unique name to display in all responses
+: foo
+Set WHOAMI_INSTANCE=foo
+## Entering sub-shell for instance foo.
+## Press Ctrl-D to exit or type `exit`.
+
+(context=d.rymcg.tech project=whoami instance=foo)
+whoami $
+```
+
+Inside the sub-shell, the `PS1` Bash prompt has been set so that it
+will remind you of your current locked instance:
+`(context=d.rymcg.tech project=whoami instance=foo)`. You have access
+to all of the same `make` targets as before, but now they will apply
+to the instance by default:
+
+```
+## Inside of the foo instance sub-shell ...
+make config                  # (Re)configures foo instance
+make install                 # (Re)installs foo instance
+make destroy                 # Destroys foo instance
+etc...
+```
+
+To exit the sub-shell, press `Ctrl-D` or type `exit` and you will
+return to the original parent shell and working directory.
+
+When you create a new instance, `make config` will automatically run. You
+may switch to an existing instance with either: `make instance` or
+`make switch` (the former will re-run `make config` while the latter
+will not).
+
+Note: the sub shell only works temporarily for you to focus on a single app. If
+you're doing things outside of that focus, you need to not be in the subshell.
+
+### Overriding docker-compose.yaml per-instance
+
+Most of the time, when you create multiple instances, the only thing
+that needs to change is the environment file
+(`.env_${DOCKER_CONTEXT}_${INSTANCE}`). Normally the
+`docker-compose.yaml` is static and stays the same between several
+instances.
+
+However, sometimes you need to configure the `docker-compose.yaml` of
+two instances a little bit differently from each other, but mostly
+stay the same. You may also wish to modify the configuration without
+wanting to commit those changes back to the base template in the git
+repository.
+
+You can override each project's `docker-compose.yaml` with a
+per-docker-context `docker-compose.override_${DOCKER_CONTEXT}_default.yaml`
+(default instance) or a per-instance
+`docker-compose.override_${DOCKER_CONTEXT}_${INSTANCE}.yaml` file.
+
+You can find an example of this in the [sftp](sftp) project. Each
+instance of sftp will need a custom set of volumes, and since this is
+normally a static list in `docker-compose.yaml`, you need a way of
+dynamically generating it. There is a template
+[docker-compose.instance.yaml](sftp/docker-compose.instance.yaml) that
+when you run `make config` it will render the template to the file
+`docker-compose.override_${DOCKER_CONTEXT}_default.yaml` containing
+the custom mountpoints (this file is ignored by git.) The override
+file is merged with the base `docker-compose.yaml` whenever you run
+`make install`, thus each instance receives its own list of volumes to
+mount.
+
+Reference the Docker compose documentation for [Adding and overriding
+configuration](https://docs.docker.com/compose/extends/#adding-and-overriding-configuration)
+regarding the rules for how the merging of configuration files takes
+place.
+
+## Backup .env files (optional)
+
+Because the `.env` files contain secrets, they are to be excluded from
+being committed to the git repository via `.gitignore`. However, you
+may still wish to retain your configurations by making a backup. This
+section will describe how to make a backup of all of your `.env` and
+`passwords.json` files into a GPG encrypted tarball, and how to
+clean/delete all of the plain text copies.
+
+### Setup GPG
+
+First you will need to setup a GPG key. You can do this from the same
+workstation, or from a different computer entirely:
+
+```shell
+# Create gpg key (note the long ID it generates, second line after 'pub'):
+gpg --gen-key
+
+# Send your key to the public keyserver:
+gpg --send-keys [YOUR_KEY_ID]
+```
+
+On the workstation you cloned this repository to, import this key:
+
+```shell
+# Import your key from the public keyserver:
+gpg --receive-keys [YOUR_KEY_ID]
+```
+
+### Create encrypted backup
+
+From the root directory of your clone of this repository, run:
+
+```shell
+make backup-env
+```
+
+The script will ask to add `GPG_RECIPIENT` to your
+`.env_${DOCKER_CONTEXT}_default` file. Enter the GPG pub key ID value
+for your key.
+
+A new encrypted backup file will be created in the same directory
+called something like
+`./${DOCKER_CONTEXT}_environment-backup-2022-02-08--18-51-39.tgz.gpg`.
+The `GPG_RECIPIENT` key is the *only* key that will be able to read
+this encrypted backup file.
+
+### Clean environment files
+
+Now that you have an encrypted backup, you may wish to delete all of
+the unencryped `.env` files. Note that you will not be able to control
+your docker-compose projects without the decrypted .env files, but you
+may restore them from the backup at any time.
+
+To delete all the .env files, you could run:
+
+```shell
+## Make sure you have a backup of your .env files first:
+make clean
+```
+
+### Restore .env files from backup
+
+To restore from this backup, you will need your GPG private keys setup
+on your worstation, and then run:
+
+```shell
+make restore-env
+```
+
+Enter the name of the backup file, and all of the `.env` and
+`passwords.json` files will be restored to their original locations.
+
+## Integrating external projects
+
+You may create your own external projects, and/or integrate your
+existing docker-compose projects, including from external git
+repositories, and have them use the same d.rymcg.tech framework.
+
+ * Create a new project directory, or clone your existing project, to
+   any directory. (It does not need to be a sub-directory of
+   `d.rymcg.tech`, but it can be).
+ * In your own project repository directory, create the files for
+   `docker-compose.yaml`, `docker-compose.instance.yaml`, `Makefile`,
+   `.env-dist`, `.gitignore`and `README.md`. As an example, you can
+   use any of the d.rymcg.tech sub-projects, like [whoami](whoami), or
+   take a look at the
+   [flask-template](https://github.com/EnigmaCurry/flask-template/).
+
+Create the `Makefile` in your own separate repository so that it
+includes the main d.rymcg.tech `Makefile.projects` file from
+elsewhere:
+
+```makefile
+## Example Makefile in your own project repository:
+
+# ROOT_DIR can be a relative or absolute path to the d.rymcg.tech directory:
+ROOT_DIR = ${HOME}/git/vendor/enigmacurry/d.rymcg.tech
+include ${ROOT_DIR}/_scripts/Makefile.projects
+include ${ROOT_DIR}/_scripts/Makefile.instance
+
+.PHONY: config-hook # Configure .env file
+config-hook:
+	@${BIN}/reconfigure_ask ${ENV_FILE} EXAMPLE_TRAEFIK_HOST "Enter the example domain name" example.${ROOT_DOMAIN}
+	@${BIN}/reconfigure_ask ${ENV_FILE} EXAMPLE_OTHER_VAR "Enter the example other variable"
+```
+
+By convention, external project Makefiles should always hardcode the
+enigmacurry git vendor path: `ROOT_DIR = ${HOME}/git/vendor/enigmacurry/d.rymcg.tech`, 
+(but you may want to use your own directory if you have forked this
+project and you have introduced unmerged changes):
+
+```shell
+## As long as everyone uses this same ROOT_DIR, then we can all share the same configs:
+## (You might also create this path as a symlink, if you don't like this convention):
+ROOT_DIR = ${HOME}/git/vendor/enigmacurry/d.rymcg.tech
+```
+
+A minimal `Makefile`, like the one above, should include a
+`config-hook` target that reconfigures your `.env` file based upon the
+example variables given in `.env-dist`. This is what the user will
+have to answer qusetions for when running `make config` for your
+project.
+
+Now in your own project directory, you can use all the regular `make`
+commands that d.rymcg.tech provides:
+
+```shell
+make config
+make install
+make open
+# etc
+```
+
+## Questions and discussion
+
+If you have a question, or have some feedback, you can join us on [the
+Matrix chat room](https://matrix.to/#/#d.rymcg.tech:enigmacurry.com).
+You can also use the [discussions
+interface](https://github.com/EnigmaCurry/d.rymcg.tech/discussions) on
+github.
+
+Feature suggestions, bug reports, and pull requests, are all welcome
+on the github repository, but only open source self-hostable software
+is acceptable for inclusion in this repository.

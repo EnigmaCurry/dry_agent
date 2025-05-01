@@ -43,6 +43,9 @@ EOF
 # Ensure SSHD runtime dir exists
 mkdir -p /var/run/sshd
 
+# Create directory for the sqlite database used by the app
+mkdir -p /root/dry_agent/database
+
 /usr/sbin/sshd
 
 exec python -m uvicorn app.main:app --host 0.0.0.0 --port 8001 --log-level info

@@ -190,3 +190,7 @@ ssh-authorize:
 			read -r key && grep -qxF "$$key" $$HOME/.ssh/authorized_keys || echo "$$key" >> $$HOME/.ssh/authorized_keys' <<< "$$sshkey" && \
 		echo "✅ SSH key successfully authorized."; \
 	fi
+
+.PHONY: migrate-db # Run database migrations
+migrate-db:
+	podman exec -i -w /app/app dry-agent-app python -m alembic upgrade head
