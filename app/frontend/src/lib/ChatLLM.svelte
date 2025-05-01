@@ -19,21 +19,86 @@
   import rehypeHighlight from "rehype-highlight";
 
   let conversationId;
-  let messages = [{ role: "system", content: "You are a helpful assistant." }];
-  let input = "";
-  let loading = false;
+  let messages = $state([{ role: "system", content: "You are a helpful assistant." }]);
+  let input = $state("");
+  let loading = $state(false);
   let controller;
   let scrollAnchor;
   let inputElement;
   let renderers;
-  let isAtBottom = true;
-  let showScrollButton = false;
+  let isAtBottom = $state(true);
+  let showScrollButton = $state(false);
   let chatContainer;
   let scrollTimeout;
-  let lockScroll = false;
+  let lockScroll = $state(false);
+  let showHistoryModal = $state(false);
 
   const AUTO_SCROLL_THRESHOLD = 10; // user scroll tolerance
   const SCROLL_BUTTON_DISPLAY_THRESHOLD = 100; // when to show the button
+
+  //TODO: placeholder:
+  const conversationHistory = [
+    {
+      id: "1",
+      title: "Docker issue",
+      synopsis: "Troubleshooting container networking...",
+    },
+    {
+      id: "2",
+      title: "Svelte help",
+      synopsis: "How to bind class dynamically...",
+    },
+    {
+      id: "3",
+      title: "Makefile pipeline",
+      synopsis: "Fixing a broken build step...",
+    },
+    {
+      id: "1",
+      title: "Docker issue",
+      synopsis: "Troubleshooting container networking...",
+    },
+    {
+      id: "2",
+      title: "Svelte help",
+      synopsis: "How to bind class dynamically...",
+    },
+    {
+      id: "3",
+      title: "Makefile pipeline",
+      synopsis: "Fixing a broken build step...",
+    },
+    {
+      id: "1",
+      title: "Docker issue",
+      synopsis: "Troubleshooting container networking...",
+    },
+    {
+      id: "2",
+      title: "Svelte help",
+      synopsis: "How to bind class dynamically...",
+    },
+    {
+      id: "3",
+      title: "Makefile pipeline",
+      synopsis: "Fixing a broken build step...",
+    },
+    {
+      id: "1",
+      title: "Docker issue",
+      synopsis: "Troubleshooting container networking...",
+    },
+    {
+      id: "2",
+      title: "Svelte help",
+      synopsis: "How to bind class dynamically...",
+    },
+    {
+      id: "3",
+      title: "Makefile pipeline",
+      synopsis: "Fixing a broken build step...",
+    },
+  ];
 
   const markdownPlugins = [
     gfmPlugin(),
@@ -52,7 +117,7 @@
             markdown: langMarkdown,
             rust: langRust,
             c: langC,
-            java: langJava
+            java: langJava,
           },
         },
       ],
@@ -64,6 +129,14 @@
       ],
     },
   ];
+
+  function toggleHistoryModal() {
+    showHistoryModal = !showHistoryModal;
+  }
+
+  function closeHistoryModal() {
+    showHistoryModal = false;
+  }
 
   function scrollToBottom() {
     lockScroll = true;
@@ -219,6 +292,16 @@
         </button>
       </div>
 
+      <div class="control">
+        <button
+          class="button is-info"
+          type="button"
+          on:click={toggleHistoryModal}
+        >
+          History
+        </button>
+      </div>
+
       {#if loading}
         <div class="control">
           <button class="button is-danger" type="button" on:click={stop}>
@@ -229,6 +312,37 @@
     </div>
   </form>
 </div>
+
+{#if showHistoryModal}
+  <div class="history modal is-active">
+    <div class="modal-background" on:click={closeHistoryModal}></div>
+    <div class="modal-card">
+      <header class="modal-card-head">
+        <p class="modal-card-title">Conversation History</p>
+        <button class="delete" aria-label="close" on:click={closeHistoryModal}
+        ></button>
+      </header>
+      <section class="modal-card-body">
+        <div class="buttons is-flex is-flex-direction-column">
+          {#each conversationHistory as { id, title, synopsis }}
+            <button
+              class="button is-dark is-fullwidth is-justify-content-flex-start history-item"
+              on:click={() => console.log("Selected conversation:", id)}
+            >
+              <div class="has-text-left">
+                <strong>{title}</strong><br />
+                <small class="has-text-grey">{synopsis}</small>
+              </div>
+            </button>
+          {/each}
+        </div>
+      </section>
+      <footer class="modal-card-foot">
+        <hr />
+      </footer>
+    </div>
+  </div>
+{/if}
 
 <style>
   html,
@@ -322,6 +436,22 @@
 
   .scroll-to-bottom:hover {
     background: #1075c2;
+  }
+
+  .history .modal-card-body {
+    max-height: 75%;
+  }
+
+  .history-item {
+    text-align: left;
+    user-select: none;
+    white-space: normal;
+    padding: 0.75rem 1rem;
+  }
+
+  .modal-card-foot {
+    padding: 0;
+    max-height: 1em;
   }
 
   :global(.markdown-body) {
