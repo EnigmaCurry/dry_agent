@@ -23,10 +23,14 @@ a:hover {
   color: #dddddd;
 }
 
-/* Ensure Bulma section fills remaining space */
 .section {
   min-height: 100vh;
-  padding-bottom: 3rem;
+}
+
+.section > .container {
+  max-width: none !important;
+  width: 100% !important;
+  padding: 0;
 }
 
 .navbar-brand {

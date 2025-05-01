@@ -17,33 +17,31 @@
 
   import { gfmPlugin } from "svelte-exmarkdown/gfm";
   import rehypeExternalLinks from "rehype-external-links";
-  import "highlight.js/styles/github-dark.css";
   import rehypeHighlight from "rehype-highlight";
+  import "highlight.js/styles/github-dark.css";
+
+  let sidebarOpen = $state(true);
 
   let conversationId = $state(null);
-  let messages = $state([
-    { role: "system", content: "You are a helpful assistant." },
-  ]);
+  let messages = $state([]);
   let input = $state("");
   let loading = $state(false);
   let controller;
   let scrollAnchor;
   let inputElement;
-  let renderers;
   let isAtBottom = $state(true);
   let showScrollButton = $state(false);
   let chatContainer;
   let scrollTimeout;
   let lockScroll = $state(false);
-  let showMenuModal = $state(false);
-
-  const AUTO_SCROLL_THRESHOLD = 10; // user scroll tolerance
-  const SCROLL_BUTTON_DISPLAY_THRESHOLD = 100; // when to show the button
 
   let conversationHistory = $state([]);
   let currentHistoryPage = $state(1);
   let hasMoreConversations = $state(true);
   let loadingConversations = $state(false);
+
+  const AUTO_SCROLL_THRESHOLD = 10;
+  const SCROLL_BUTTON_DISPLAY_THRESHOLD = 100;
 
   const markdownPlugins = [
     gfmPlugin(),
@@ -75,202 +73,59 @@
     },
   ];
 
-  function toggleMenuModal() {
-    showMenuModal = !showMenuModal;
-    if (showMenuModal) {
-      conversationHistory = [];
-      currentHistoryPage = 1;
-      hasMoreConversations = true;
-      loadingConversations = false;
-      fetchConversations();
-    }
-  }
-
-  function closeMenuModal() {
-    showMenuModal = false;
-  }
-
-  function scrollToBottom() {
-    lockScroll = true;
-    scrollAnchor?.scrollIntoView({ behavior: "smooth" });
-
-    setTimeout(() => {
-      if (chatContainer) {
-        const position = chatContainer.scrollTop + chatContainer.clientHeight;
-        const height = chatContainer.scrollHeight;
-        isAtBottom = height - position < AUTO_SCROLL_THRESHOLD;
-      }
-      lockScroll = false;
-    }, 300); // or match your scroll duration
-  }
-
-  function handleScroll() {
-    clearTimeout(scrollTimeout);
-    scrollTimeout = setTimeout(() => {
-      const position = chatContainer.scrollTop + chatContainer.clientHeight;
-      const height = chatContainer.scrollHeight;
-
-      const distanceFromBottom = height - position;
-
-      isAtBottom = distanceFromBottom < AUTO_SCROLL_THRESHOLD;
-      showScrollButton = distanceFromBottom >= SCROLL_BUTTON_DISPLAY_THRESHOLD;
-    }, 100);
+  function toggleSidebar() {
+    sidebarOpen = !sidebarOpen;
+    if (sidebarOpen && conversationHistory.length === 0) fetchConversations();
   }
 
   onMount(async () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const idParam = urlParams.get("id");
-
-    if (idParam) {
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get("id");
+    conversationId = id || crypto.randomUUID();
+    if (id) {
       try {
-        const res = await fetch(`/api/chat/conversation/${idParam}`);
-        if (!res.ok)
-          throw new Error(`Failed to load conversation: ${res.status}`);
+        const res = await fetch(`/api/chat/conversation/${id}`);
+        if (!res.ok) throw new Error(res.status);
         const data = await res.json();
-
-        conversationId = idParam;
-        messages = [
-          { role: "system", content: "You are a helpful assistant." },
-          ...(data.messages ?? []).map((m) => ({
-            role: m.role,
-            content: m.content,
-          })),
-        ];
-        await tick();
-        scrollToBottom();
-      } catch (err) {
-        console.error(err);
-        // fallback to new conversation
-        conversationId = crypto.randomUUID();
+        messages = data.messages || [];
+      } catch {
+        messages = [];
       }
-    } else {
-      conversationId = crypto.randomUUID();
     }
-
+    await fetchConversations();
     await tick();
     adjustTextareaHeight();
     inputElement?.focus();
+    scrollToBottom();
   });
-
-  async function send() {
-    if (!input.trim()) return;
-
-    messages.push({ role: "user", content: input });
-    messages.push({ role: "assistant", content: "" });
-
-    const index = messages.length - 1;
-    input = "";
-    await tick();
-    adjustTextareaHeight();
-    loading = true;
-    controller = new AbortController();
-
-    try {
-      const res = await fetch(`/api/chat/stream/${conversationId}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: messages[index - 1].content }),
-        signal: controller.signal,
-      });
-
-      if (!res.ok) {
-        let errorMessage = `HTTP ${res.status}`;
-        try {
-          const errorData = await res.json();
-          if (errorData?.detail) {
-            errorMessage += `: ${errorData.detail}`;
-          }
-        } catch (_) {
-          const text = await res.text();
-          if (text) errorMessage += `: ${text}`;
-        }
-
-        messages[index].content = `❌ Request failed.\n\n${errorMessage}`;
-        messages[index].is_error = true;
-        return;
-      }
-
-      await tick();
-      scrollToBottom();
-
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder("utf-8");
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        messages[index].content += decoder.decode(value);
-        if (isAtBottom) scrollToBottom();
-      }
-    } catch (err) {
-      if (err.name === "AbortError") {
-        messages[index].content += "\n\n_⛔️ Response stopped by user._";
-      } else {
-        messages[index].content += "\n\n❌ Error occurred: " + err.message;
-      }
-    } finally {
-      loading = false;
-      controller = null;
-
-      // If conversationId is not in the URL, update it without reloading
-      const currentUrl = new URL(window.location.href);
-      if (!currentUrl.searchParams.get("id")) {
-        currentUrl.searchParams.set("id", conversationId);
-        window.history.replaceState({}, "", currentUrl);
-      }
-    }
-  }
-
-  function stop() {
-    if (controller) controller.abort();
-  }
-
-  function handleKeyDown(event) {
-    if (event.key === "Enter" && !event.shiftKey) {
-      event.preventDefault();
-      send();
-    }
-  }
-
-  function adjustTextareaHeight() {
-    if (!inputElement) return;
-
-    inputElement.style.height = "auto"; // reset
-    const maxHeight = window.innerHeight * 0.3;
-    inputElement.style.height =
-      Math.min(inputElement.scrollHeight, maxHeight) + "px";
-  }
 
   async function fetchConversations() {
     if (loadingConversations || !hasMoreConversations) return;
     loadingConversations = true;
-
     try {
       const res = await fetch(
         `/api/chat/conversations?page=${currentHistoryPage}&page_size=10`,
       );
       const json = await res.json();
-      if (json.conversations.length > 0) {
+      if (json.conversations.length) {
         conversationHistory = [...conversationHistory, ...json.conversations];
-        currentHistoryPage += 1;
+        currentHistoryPage++;
       } else {
         hasMoreConversations = false;
       }
-    } catch (err) {
-      console.error("Failed to load conversations:", err);
+    } catch {
+      console.error("Error loading conversations");
     } finally {
       loadingConversations = false;
     }
   }
 
-  function getRelativeTime(timestamp) {
-    const now = Date.now(); // UTC ms since epoch
-    const then = Date.parse(timestamp + "Z"); // force UTC by adding "Z"
-
-    const deltaSeconds = Math.floor((now - then) / 1000);
-
+  function getRelativeTime(ts) {
+    const now = Date.now();
+    const then = Date.parse(ts + "Z");
+    const delta = Math.floor((now - then) / 1000);
     const rtf = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
-    const thresholds = [
+    const units = [
       [60, "seconds", 1],
       [3600, "minutes", 60],
       [86400, "hours", 3600],
@@ -279,220 +134,276 @@
       [31557600, "months", 2629800],
       [Infinity, "years", 31557600],
     ];
+    for (const [limit, unit, div] of units)
+      if (delta < limit) return rtf.format(-Math.floor(delta / div), unit);
+  }
 
-    for (const [limit, unit, divisor] of thresholds) {
-      if (deltaSeconds < limit) {
-        return rtf.format(-Math.floor(deltaSeconds / divisor), unit);
+  function handleScroll() {
+    clearTimeout(scrollTimeout);
+    scrollTimeout = setTimeout(() => {
+      const pos = chatContainer.scrollTop + chatContainer.clientHeight;
+      const dist = chatContainer.scrollHeight - pos;
+      isAtBottom = dist < AUTO_SCROLL_THRESHOLD;
+      showScrollButton = dist >= SCROLL_BUTTON_DISPLAY_THRESHOLD;
+    }, 100);
+  }
+
+  async function send() {
+    if (!input.trim()) return;
+    messages = [
+      ...messages,
+      { role: "user", content: input },
+      { role: "assistant", content: "" },
+    ];
+    const idx = messages.length - 1;
+    input = "";
+    await tick();
+    adjustTextareaHeight();
+    loading = true;
+    controller = new AbortController();
+    try {
+      const res = await fetch(`/api/chat/stream/${conversationId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: messages[idx - 1].content }),
+        signal: controller.signal,
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const reader = res.body.getReader();
+      const dec = new TextDecoder();
+      await tick();
+      scrollToBottom();
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        messages[idx].content += dec.decode(value);
+        if (isAtBottom) scrollToBottom();
+      }
+    } catch (e) {
+      messages[idx].content +=
+        e.name === "AbortError" ? "\n\n_⛔️ Stopped_" : `\n\n❌ ${e.message}`;
+      messages[idx].is_error = true;
+    } finally {
+      loading = false;
+      controller = null;
+      const u = new URL(window.location.href);
+      if (!u.searchParams.get("id")) {
+        u.searchParams.set("id", conversationId);
+        window.history.replaceState({}, "", u);
       }
     }
   }
 
+  function stop() {
+    controller?.abort();
+  }
+  function handleKeyDown(e) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      send();
+    }
+  }
+  function adjustTextareaHeight() {
+    if (!inputElement) return;
+    inputElement.style.height = "auto";
+    const maxH = window.innerHeight * 0.3;
+    inputElement.style.height =
+      Math.min(inputElement.scrollHeight, maxH) + "px";
+  }
+  function scrollToBottom() {
+    lockScroll = true;
+    scrollAnchor?.scrollIntoView({ behavior: "smooth" });
+    setTimeout(() => (lockScroll = false), 300);
+  }
+
   $effect(() => {
-    const observer = new MutationObserver(() => {
-      addClipboardButtons();
-    });
-
-    const chat = document.querySelector(".chat-box");
-    if (chat) {
-      observer.observe(chat, {
-        childList: true,
-        subtree: true,
-      });
-    }
-
-    // Initial pass in case something already exists
+    const obs = new MutationObserver(addClipboardButtons);
+    const cb = document.querySelector(".chat-box");
+    if (cb) obs.observe(cb, { childList: true, subtree: true });
     tick().then(addClipboardButtons);
-
-    return () => observer.disconnect(); // cleanup
+    return () => obs.disconnect();
   });
-
   function addClipboardButtons() {
-    const blocks = document.querySelectorAll(".assistant-message pre code");
-
-    for (const codeBlock of blocks) {
-      const pre = codeBlock.parentElement;
-      if (!pre || pre.querySelector(".copy-button")) continue;
-
-      const button = document.createElement("button");
-      button.textContent = "📋";
-      button.className = "copy-button is-size-5";
-      button.title = "Copy to clipboard";
-
-      button.onclick = () => {
-        navigator.clipboard.writeText(codeBlock.innerText).then(() => {
-          button.textContent = "✅";
-          setTimeout(() => (button.textContent = "📋"), 1000);
+    document.querySelectorAll(".assistant-message pre code").forEach((code) => {
+      const pre = code.parentElement;
+      if (pre.querySelector(".copy-button")) return;
+      const btn = document.createElement("button");
+      btn.textContent = "📋";
+      btn.className = "copy-button is-size-5";
+      btn.onclick = () =>
+        navigator.clipboard.writeText(code.innerText).then(() => {
+          btn.textContent = "✅";
+          setTimeout(() => (btn.textContent = "📋"), 1000);
         });
-      };
-
-      pre.style.setProperty("position", "relative");
-      pre.appendChild(button);
-    }
+      pre.style.position = "relative";
+      pre.appendChild(btn);
+    });
   }
 </script>
 
 <div class="chat-wrapper">
-  <div
-    class="box chat-box chat-container"
-    onscroll={handleScroll}
-    bind:this={chatContainer}
-  >
-    {#each messages as message, index (index)}
-      {#if message.role === "user"}
-        <div class="user-message">{message.content}</div>
-      {:else if message.role === "assistant"}
-        {#if message.is_error}
-          <div class="notification is-danger" data-msg-index={index}>
-            {message.content}
-          </div>
-        {:else}
-          <div class="assistant-message markdown-body" data-msg-index={index}>
-            <Markdown md={message.content || ""} plugins={markdownPlugins} />
-          </div>
-        {/if}
-      {/if}
-    {/each}
+  <button class="button sidebar-toggle" on:click={toggleSidebar}>
+    {#if sidebarOpen}❌{:else}☰{/if}
+  </button>
 
-    {#if loading}
-      <div class="mt-4 assistant-message loading-message">
-        Assistant is typing...
-      </div>
-    {/if}
-
-    <div bind:this={scrollAnchor}></div>
-  </div>
-
-  {#if showScrollButton}
-    <button
-      class="scroll-to-bottom"
-      type="button"
-      onclick={scrollToBottom}
-      aria-label="Scroll to bottom"
+  <aside class="sidebar" class:collapsed={!sidebarOpen}>
+    <div class="sidebar-header">
+      <h2 class="title is-5">Conversations</h2>
+      <button
+        class="button is-small is-link mt-2"
+        on:click={() => (window.location.href = "/agent/")}
+        >New Conversation</button
+      >
+    </div>
+    <div
+      class="sidebar-body"
+      on:scroll={(e) => {
+        const el = e.target;
+        if (el.scrollTop + el.clientHeight >= el.scrollHeight - 50)
+          fetchConversations();
+      }}
     >
-      ⬇️
-    </button>
-  {/if}
-
-  <form
-    onsubmit={(e) => {
-      e.preventDefault();
-      send();
-    }}
-    class="chat-form"
-  >
-    <div class="field is-grouped is-grouped-multiline">
-      <div class="control is-expanded">
-        <textarea
-          class="textarea"
-          bind:this={inputElement}
-          bind:value={input}
-          placeholder="Ask something..."
-          onkeydown={handleKeyDown}
-          oninput={adjustTextareaHeight}
-          rows="1"
-          style="resize: none; overflow: hidden"
-        />
-      </div>
-
-      <div class="control">
-        <button class="button is-link" type="submit" disabled={loading}>
-          Send
+      {#each conversationHistory as { id, title, preview, created_at }}
+        <button
+          class="button is-fullwidth sidebar-item"
+          on:click={() => (window.location.href = `/agent/?id=${id}`)}
+        >
+          <div>
+            <strong>{title}</strong><br />
+            <small class="has-text-grey">{preview}</small><br />
+            <small class="has-text-grey is-size-7"
+              >{getRelativeTime(created_at)}</small
+            >
+          </div>
         </button>
-      </div>
-
-      <div class="control">
-        <button class="button is-info" type="button" onclick={toggleMenuModal}>
-          Menu
-        </button>
-      </div>
-
-      {#if loading}
-        <div class="control">
-          <button class="button is-danger" type="button" onclick={stop}>
-            Stop
-          </button>
-        </div>
+      {/each}
+      {#if loadingConversations}
+        <div class="has-text-centered has-text-grey mt-2">Loading…</div>
       {/if}
     </div>
-  </form>
-</div>
+  </aside>
 
-{#if showMenuModal}
-  <div class="menu modal is-active">
-    <div class="modal-background" onclick={closeMenuModal}></div>
-    <div class="modal-card">
-      <header class="modal-card-head">
-        <p class="modal-card-title">Conversations</p>
-        <div class="pr-4">
-          <button
-            class="button is-link"
-            onclick={() => (window.location.href = "/agent/")}
-            >New Conversation</button
-          >
-        </div>
-        <button class="delete" aria-label="close" onclick={closeMenuModal}
-        ></button>
-      </header>
-      <section
-        class="modal-card-body"
-        onscroll={(e) => {
-          const el = e.target;
-          if (el.scrollTop + el.clientHeight >= el.scrollHeight - 50) {
-            fetchConversations();
-          }
-        }}
-      >
-        <div class="buttons is-flex is-flex-direction-column">
-          {#each conversationHistory as { id, title, preview, created_at }}
-            <button
-              class="button is-dark is-fullwidth is-justify-content-flex-start history-item"
-              onclick={() => (window.location.href = `/agent/?id=${id}`)}
-            >
-              <div class="has-text-left">
-                <strong>{title}</strong><br />
-                <small class="has-text-grey">{preview}</small><br />
-                <small class="has-text-grey is-size-7"
-                  >{getRelativeTime(created_at)}</small
-                >
-              </div>
-            </button>
-          {/each}
-          {#if loadingConversations}
-            <div class="has-text-centered has-text-grey mt-2">
-              Loading more…
+  <main class="main-content" class:expanded={!sidebarOpen}>
+    <div
+      class="box chat-box chat-container"
+      style:left={sidebarOpen ? "300px" : "0px"}
+      on:scroll={handleScroll}
+      bind:this={chatContainer}
+    >
+      {#each messages as message, idx (idx)}
+        {#if message.role === "user"}
+          <div class="user-message">{message.content}</div>
+        {:else if message.role === "assistant"}
+          {#if message.is_error}
+            <div class="notification is-danger" data-msg-index={idx}>
+              {message.content}
+            </div>
+          {:else}
+            <div class="assistant-message markdown-body" data-msg-index={idx}>
+              <Markdown md={message.content} plugins={markdownPlugins} />
             </div>
           {/if}
-        </div>
-      </section>
-      <footer class="modal-card-foot">
-        <hr />
-      </footer>
+        {/if}
+      {/each}
+      {#if loading}<div class="mt-4 assistant-message loading-message">
+          Assistant is typing...
+        </div>{/if}
+      <div bind:this={scrollAnchor}></div>
     </div>
-  </div>
-{/if}
+    {#if showScrollButton}<button
+        class="scroll-to-bottom"
+        type="button"
+        on:click={scrollToBottom}
+        aria-label="Scroll to bottom">⬇️</button
+      >{/if}
+    <form on:submit|preventDefault={send} class="chat-form">
+      <div class="field is-grouped is-grouped-multiline">
+        <div class="control is-expanded">
+          <textarea
+            class="textarea"
+            bind:this={inputElement}
+            bind:value={input}
+            placeholder="Ask something..."
+            on:keydown={handleKeyDown}
+            on:input={adjustTextareaHeight}
+            rows="1"
+            style="resize:none;overflow:hidden"
+          />
+        </div>
+        <div class="control">
+          <button class="button is-link" type="submit" disabled={loading}
+            >Send</button
+          >
+        </div>
+        {#if loading}<div class="control">
+            <button class="button is-danger" type="button" on:click={stop}
+              >Stop</button
+            >
+          </div>{/if}
+      </div>
+    </form>
+  </main>
+</div>
 
 <style>
+  .chat-wrapper {
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+    margin: -3.25rem 0 0 -3.25rem;
+  }
+  .sidebar-toggle {
+    position: fixed;
+    top: 4.25rem;
+    left: 1rem;
+    z-index: 200;
+  }
+  aside.sidebar {
+    width: 300px;
+    background: #222;
+    color: #fff;
+    padding: 1rem;
+    overflow-y: auto;
+    transition: width 0.3s ease;
+  }
+  .sidebar.collapsed {
+    width: 0;
+    padding: 0;
+    overflow: hidden;
+  }
+  .sidebar-header {
+    margin: 3.25rem 0 1rem 0;
+  }
+  .sidebar-body {
+    overflow-y: auto;
+    max-height: calc(100vh-6rem);
+    margin-top: 3.25rem;
+  }
+  .sidebar-item {
+    text-align: left;
+    margin-bottom: 0.5rem;
+    white-space: normal;
+  }
+  .main-content {
+    flex: 1;
+    overflow: hidden;
+    transition: margin-left 0.3s ease;
+  }
+  .main-content.expanded {
+    margin-left: 0;
+  }
   html,
   body {
     margin: 0;
     padding: 0;
     height: 100%;
   }
-
-  .chat-wrapper {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    min-height: 0;
-  }
-
   .box.chat-box {
-    padding-bottom: 130px; /* matches .chat-form height */
+    padding-bottom: 130px;
     display: flex;
     flex-direction: column;
     align-items: flex-start;
   }
-
   .chat-container {
     position: fixed;
     top: 4rem;
@@ -501,7 +412,6 @@
     right: 0;
     overflow-y: auto;
   }
-
   .chat-form {
     position: fixed;
     bottom: 0;
@@ -514,7 +424,6 @@
     z-index: 100;
     box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.25);
   }
-
   .user-message {
     align-self: flex-end;
     background-color: #209cee;
@@ -527,7 +436,6 @@
     border-bottom-right-radius: 0;
     white-space: pre-wrap;
   }
-
   .assistant-message {
     width: 100%;
     max-width: 100%;
@@ -535,7 +443,6 @@
     white-space: pre-wrap;
     margin: 0.5rem 0;
   }
-
   textarea.textarea {
     font-family: inherit;
     line-height: 1.4;
@@ -544,10 +451,9 @@
     max-height: 30vh;
     width: 100%;
   }
-
   .scroll-to-bottom {
     position: fixed;
-    bottom: 6.5rem; /* adjust to hover just above .chat-form */
+    bottom: 6.5rem;
     right: 1.5rem;
     background: #209cee;
     color: white;
@@ -560,32 +466,13 @@
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.4);
     transition: opacity 0.2s ease;
   }
-
   .scroll-to-bottom:hover {
     background: #1075c2;
   }
-
-  .menu .modal-card-body {
-    max-height: 75%;
-  }
-
-  .history-item {
-    text-align: left;
-    user-select: none;
-    white-space: normal;
-    padding: 0.75rem 1rem;
-  }
-
-  .modal-card-foot {
-    padding: 0;
-    max-height: 1em;
-  }
-
   :global(.assistant-message pre) {
     position: relative;
     padding-top: 2.2rem;
   }
-
   :global(.assistant-message .copy-button) {
     position: absolute;
     top: 0.6rem;
@@ -601,141 +488,13 @@
     transition: opacity 0.2s ease;
     z-index: 10;
   }
-
   :global(.assistant-message .copy-button:hover) {
     opacity: 1;
   }
-
   :global(.markdown-body) {
     line-height: 1.6;
     word-break: break-word;
     color: #e0e0e0;
     font-size: 1rem;
-  }
-
-  :global(.markdown-body h1) {
-    font-size: 2rem;
-    font-weight: bold;
-    margin: 1.5rem 0 1rem;
-    border-bottom: 1px solid #444;
-    padding-bottom: 0.3rem;
-  }
-
-  :global(.markdown-body h2) {
-    font-size: 1.5rem;
-    font-weight: bold;
-    margin: 1.25rem 0 0.75rem;
-    border-bottom: 1px solid #444;
-    padding-bottom: 0.25rem;
-  }
-
-  :global(.markdown-body h3) {
-    font-size: 1.25rem;
-    font-weight: bold;
-    margin: 1rem 0 0.5rem;
-  }
-
-  :global(.markdown-body p) {
-    white-space: normal;
-    word-break: normal;
-    overflow-wrap: break-word;
-  }
-
-  :global(.markdown-body ul) {
-    list-style-type: disc;
-  }
-
-  :global(.markdown-body ol) {
-    list-style-type: decimal;
-  }
-
-  :global(.markdown-body ul),
-  :global(.markdown-body ol) {
-    margin: 1em 0 1em 1.5em;
-    padding-left: 1.25em;
-  }
-
-  :global(.markdown-body li) {
-    margin: 0.1em 0;
-    line-height: 1;
-    display: list-item;
-    white-space: normal;
-    word-break: normal;
-    overflow-wrap: break-word;
-  }
-
-  :global(.markdown-body blockquote) {
-    border-left: 4px solid #666;
-    padding-left: 1em;
-    color: #aaa;
-    font-style: italic;
-    margin: 1em 0;
-  }
-
-  :global(.markdown-body pre) {
-    background: #151111;
-    padding: 1rem;
-    border-radius: 0.5rem;
-    overflow-x: auto;
-    margin: 1em 0;
-  }
-
-  :global(.markdown-body code) {
-    padding: 0.25em 0.5em;
-    border-radius: 4px;
-    font-family: monospace;
-    font-size: 0.95em;
-  }
-
-  :global(.markdown-body table) {
-    width: 100%;
-    border-collapse: collapse;
-    margin: 1.5rem 0;
-    font-size: 0.95rem;
-    background-color: #1e1e1e;
-    color: #e0e0e0;
-    border: 1px solid #444;
-    border-radius: 0.5rem;
-    overflow: hidden;
-  }
-
-  :global(.markdown-body thead) {
-    background-color: #2a2a2a;
-    font-weight: bold;
-  }
-
-  :global(.markdown-body thead th),
-  :global(.markdown-body tbody td) {
-    padding: 0.75rem 1rem;
-    border-bottom: 1px solid #444;
-    text-align: left;
-  }
-
-  :global(.markdown-body tbody tr:last-child td) {
-    border-bottom: none;
-  }
-
-  :global(.markdown-body tbody tr:nth-child(even)) {
-    background-color: #252525;
-  }
-
-  :global(.markdown-body tbody tr:hover) {
-    background-color: #333;
-  }
-
-  :global(.markdown-body th),
-  :global(.markdown-body td) {
-    vertical-align: top;
-    white-space: normal;
-    word-break: normal;
-    overflow-wrap: break-word;
-  }
-
-  :global(.markdown-body table caption) {
-    caption-side: top;
-    text-align: left;
-    font-weight: bold;
-    margin-bottom: 0.5rem;
-    color: #ccc;
   }
 </style>
