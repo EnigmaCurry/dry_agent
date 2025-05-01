@@ -244,8 +244,9 @@
   }
 
   function getRelativeTime(timestamp) {
-    const now = new Date();
-    const then = new Date(timestamp);
+    const now = Date.now(); // UTC ms since epoch
+    const then = Date.parse(timestamp + "Z"); // force UTC by adding "Z"
+
     const deltaSeconds = Math.floor((now - then) / 1000);
 
     const rtf = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
