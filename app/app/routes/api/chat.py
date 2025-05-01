@@ -157,9 +157,13 @@ async def stream_chat(
                         }
                     )
                     logger.info(f"Switched Docker context to: {context_name}")
-                    yield f"\n\n✅ Switched context to '{context_name}'"
+                    response_text += f"\n\n✅ Switched context to '{context_name}'"
+                    yield response_text
 
             await chat.add_message(conversation_id, "assistant", response_text)
+            logger.info(
+                f"Logged new assistant message in conversation: {conversation_id}"
+            )
 
         except Exception as e:
             logger.error(f"OpenAI streaming error: {e}")
