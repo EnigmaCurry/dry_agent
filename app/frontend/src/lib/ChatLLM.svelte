@@ -267,27 +267,37 @@
     }
   }
 
-  $effect(async () => {
-    await tick();
+  $effect(() => {
+    const observer = new MutationObserver(() => {
+      addClipboardButtons();
+    });
 
-    // Wait until assistant messages are visibly in DOM
-    const check = () => document.querySelectorAll(".assistant-message pre code").length > 0;
-
-    // Retry up to 10 times with a slight delay
-    for (let i = 0; i < 10; i++) {
-      if (check()) break;
-      await new Promise((res) => setTimeout(res, 50));
+    const chat = document.querySelector(".chat-box");
+    if (chat) {
+      observer.observe(chat, {
+        childList: true,
+        subtree: true,
+      });
     }
 
+    // Initial pass in case something already exists
+    tick().then(addClipboardButtons);
+
+    return () => observer.disconnect(); // cleanup
+  });
+
+  function addClipboardButtons() {
     const blocks = document.querySelectorAll(".assistant-message pre code");
 
     for (const codeBlock of blocks) {
-      if (codeBlock.parentElement?.querySelector(".copy-button")) continue;
+      const pre = codeBlock.parentElement;
+      if (!pre || pre.querySelector(".copy-button")) continue;
 
       const button = document.createElement("button");
       button.textContent = "📋";
       button.className = "copy-button is-size-5";
       button.title = "Copy to clipboard";
+
       button.onclick = () => {
         navigator.clipboard.writeText(codeBlock.innerText).then(() => {
           button.textContent = "✅";
@@ -295,10 +305,10 @@
         });
       };
 
-      codeBlock.parentElement?.style.setProperty("position", "relative");
-      codeBlock.parentElement?.appendChild(button);
+      pre.style.setProperty("position", "relative");
+      pre.appendChild(button);
     }
-  });
+  }
 
 </script>
 

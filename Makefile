@@ -75,7 +75,9 @@ install: deps expect-config build uninstall
 	       --label project=dry-agent \
            --hostname "dry-agent-$$(head /dev/urandom | tr -dc 'a-f0-9' | head -c8)" \
            -v dry-agent-workstation-data:/root \
-           -e PUBLIC_HOST=$${PUBLIC_HOST} -e PUBLIC_PORT=$${PUBLIC_PORT}  \
+           -e PUBLIC_HOST=$${PUBLIC_HOST} \
+           -e PUBLIC_PORT=$${PUBLIC_PORT}  \
+           -e OPENAI_API_KEY=$${OPENAI_API_KEY} \
            -p 127.0.0.1:$${APP_LOCALHOST_PORT}:8001 \
 	       -p 127.0.0.1:$${SSH_LOCALHOST_PORT}:22 \
 	       localhost/dry-agent/app; \

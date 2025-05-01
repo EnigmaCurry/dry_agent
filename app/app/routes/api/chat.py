@@ -20,8 +20,7 @@ logger = logging.getLogger("uvicorn.error")
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
 
-doc1: str = (Path(__file__).parent / "chat_example.md").read_text(encoding="utf-8")
-doc2: str = (Path(__file__).parent / "chat_example2.md").read_text(encoding="utf-8")
+client = openai.AsyncOpenAI()
 
 
 @router.post("/stream/{conversation_id}")
@@ -35,30 +34,47 @@ async def stream_chat(
     if not isinstance(user_message, str):
         raise HTTPException(status_code=422, detail="`message` must be a string")
 
-    # Fetch or create
-    if await chat.get_conversation(conversation_id) is None:
+    # Ensure the conversation exists
+    conversation = await chat.get_conversation(conversation_id)
+    if conversation is None:
         await chat.create_conversation(conversation_id)
+        conversation = []
         logger.info(f"Created new conversation: {conversation_id}")
     else:
         logger.info(f"Found existing conversation: {conversation_id}")
 
-    # Record user message
     await chat.add_message(conversation_id, "user", user_message)
-    logger.info(
-        f"Logging new user message in conversation: {conversation_id} - {user_message}"
-    )
+    logger.info(f"User: {user_message}")
 
-    # Stream & record assistant reply
+    if isinstance(conversation, dict):
+        messages = conversation.get("messages", [])
+    else:
+        messages = conversation  # assume it's already a list
+
+    messages += [{"role": "user", "content": user_message}]
+
     response_text = ""
 
     async def generate() -> AsyncGenerator[str, None]:
         nonlocal response_text
-        for token in tokenize_words(doc2):
-            response_text += token
-            yield token
-            # await asyncio.sleep(0.05)
+        try:
+            stream = await client.chat.completions.create(
+                model="gpt-4",
+                messages=messages,
+                stream=True,
+            )
+            async for chunk in stream:
+                delta = chunk.choices[0].delta.content or ""
+                response_text += delta
+                yield delta
+        except Exception as e:
+            logger.error(f"OpenAI streaming error: {e}")
+            # Let Starlette finish sending a partial response before raising
+            yield "\n\n[ERROR: LLM request failed]\n"
+            raise e
+
         await chat.add_message(conversation_id, "assistant", response_text)
-        logger.info(f"Logging new assistant message in conversation: {conversation_id}")
+        logger.info(f"Assistant: {response_text}")
 
     return StreamingResponse(generate(), media_type="text/plain")
 
