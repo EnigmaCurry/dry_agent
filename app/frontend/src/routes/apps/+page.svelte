@@ -31,7 +31,10 @@
           <li class:is-active={selectedTab === "configured_apps"}>
             <a
               href="#"
-              on:click|preventDefault={() => selectTab("configured_apps")}
+              onclick={(e) => {
+                e.preventDefault();
+                selectTab("configured_apps");
+              }}
             >
               <span class="is-small">
                 <i class="fas fa-image" aria-hidden="true"></i>
@@ -42,7 +45,10 @@
           <li class:is-active={selectedTab === "available_apps"}>
             <a
               href="#"
-              on:click|preventDefault={() => selectTab("available_apps")}
+              onclick={(e) => {
+                e.preventDefault();
+                selectTab("available_apps");
+              }}
             >
               <span class="is-small">
                 <i class="fas fa-music" aria-hidden="true"></i>

@@ -32,8 +32,32 @@ class ChatModel:
 
     async def get_conversation(self, conversation_id: str) -> Optional[dict]:
         async with self.connection() as conn:
-            row = await self.queries.get_conversation(conn=conn, id=conversation_id)
-        return dict(row) if row else None
+            conn.row_factory = aiosqlite.Row
+            rows = await self.queries.get_conversation_with_messages(
+                conn=conn, id=conversation_id
+            )
+
+        if not rows:
+            return None
+
+        # Extract conversation metadata from the first row
+        first = rows[0]
+        conversation = {
+            "id": first["conversation_id"],
+            "title": first["conversation_title"],
+            "created_at": first["conversation_created_at"],
+            "messages": [
+                {
+                    "role": row["message_role"],
+                    "content": row["message_content"],
+                    "created_at": row["message_created_at"],
+                }
+                for row in rows
+                if row["message_role"] is not None
+            ],
+        }
+
+        return conversation
 
     async def add_message(self, conversation_id: str, role: str, content: str) -> None:
         async with self.connection() as conn:
@@ -45,13 +69,12 @@ class ChatModel:
             )
             await conn.commit()
 
-    async def get_last_messages(
-        self, conversation_id: str, limit: int = 20
+    async def get_conversations_paginated(
+        self, offset: int = 0, page_size: int = 10
     ) -> List[dict]:
         async with self.connection() as conn:
-            rows = await self.queries.get_last_messages(
-                conn=conn,
-                conversation_id=conversation_id,
-                limit=limit,
+            conn.row_factory = aiosqlite.Row
+            rows = await self.queries.get_conversations_with_first_sentence_paginated(
+                conn=conn, offset=offset, page_size=page_size
             )
         return [dict(r) for r in rows]

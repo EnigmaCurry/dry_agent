@@ -18,7 +18,7 @@
   import "highlight.js/styles/github-dark.css";
   import rehypeHighlight from "rehype-highlight";
 
-  let conversationId;
+  let conversationId = $state(null);
   let messages = $state([
     { role: "system", content: "You are a helpful assistant." },
   ]);
@@ -38,69 +38,10 @@
   const AUTO_SCROLL_THRESHOLD = 10; // user scroll tolerance
   const SCROLL_BUTTON_DISPLAY_THRESHOLD = 100; // when to show the button
 
-  //TODO: placeholder:
-  const conversationHistory = [
-    {
-      id: "1",
-      title: "Docker issue",
-      synopsis: "Troubleshooting container networking...",
-    },
-    {
-      id: "2",
-      title: "Svelte help",
-      synopsis: "How to bind class dynamically...",
-    },
-    {
-      id: "3",
-      title: "Makefile pipeline",
-      synopsis: "Fixing a broken build step...",
-    },
-    {
-      id: "1",
-      title: "Docker issue",
-      synopsis: "Troubleshooting container networking...",
-    },
-    {
-      id: "2",
-      title: "Svelte help",
-      synopsis: "How to bind class dynamically...",
-    },
-    {
-      id: "3",
-      title: "Makefile pipeline",
-      synopsis: "Fixing a broken build step...",
-    },
-    {
-      id: "1",
-      title: "Docker issue",
-      synopsis: "Troubleshooting container networking...",
-    },
-    {
-      id: "2",
-      title: "Svelte help",
-      synopsis: "How to bind class dynamically...",
-    },
-    {
-      id: "3",
-      title: "Makefile pipeline",
-      synopsis: "Fixing a broken build step...",
-    },
-    {
-      id: "1",
-      title: "Docker issue",
-      synopsis: "Troubleshooting container networking...",
-    },
-    {
-      id: "2",
-      title: "Svelte help",
-      synopsis: "How to bind class dynamically...",
-    },
-    {
-      id: "3",
-      title: "Makefile pipeline",
-      synopsis: "Fixing a broken build step...",
-    },
-  ];
+  let conversationHistory = $state([]);
+  let currentHistoryPage = $state(1);
+  let hasMoreConversations = $state(true);
+  let loadingConversations = $state(false);
 
   const markdownPlugins = [
     gfmPlugin(),
@@ -134,6 +75,13 @@
 
   function toggleMenuModal() {
     showMenuModal = !showMenuModal;
+    if (showMenuModal) {
+      conversationHistory = [];
+      currentHistoryPage = 1;
+      hasMoreConversations = true;
+      loadingConversations = false;
+      fetchConversations();
+    }
   }
 
   function closeMenuModal() {
@@ -168,7 +116,35 @@
   }
 
   onMount(async () => {
-    conversationId = crypto.randomUUID();
+    const urlParams = new URLSearchParams(window.location.search);
+    const idParam = urlParams.get("id");
+
+    if (idParam) {
+      try {
+        const res = await fetch(`/api/chat/conversation/${idParam}`);
+        if (!res.ok)
+          throw new Error(`Failed to load conversation: ${res.status}`);
+        const data = await res.json();
+
+        conversationId = idParam;
+        messages = [
+          { role: "system", content: "You are a helpful assistant." },
+          ...(data.messages ?? []).map((m) => ({
+            role: m.role,
+            content: m.content,
+          })),
+        ];
+        await tick();
+        scrollToBottom();
+      } catch (err) {
+        console.error(err);
+        // fallback to new conversation
+        conversationId = crypto.randomUUID();
+      }
+    } else {
+      conversationId = crypto.randomUUID();
+    }
+
     await tick();
     adjustTextareaHeight();
     inputElement?.focus();
@@ -194,6 +170,8 @@
         body: JSON.stringify({ message: messages[index - 1].content }),
         signal: controller.signal,
       });
+      await tick();
+      scrollToBottom();
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder("utf-8");
@@ -213,6 +191,13 @@
     } finally {
       loading = false;
       controller = null;
+
+      // If conversationId is not in the URL, update it without reloading
+      const currentUrl = new URL(window.location.href);
+      if (!currentUrl.searchParams.get("id")) {
+        currentUrl.searchParams.set("id", conversationId);
+        window.history.replaceState({}, "", currentUrl);
+      }
     }
   }
 
@@ -235,20 +220,65 @@
     inputElement.style.height =
       Math.min(inputElement.scrollHeight, maxHeight) + "px";
   }
+
+  async function fetchConversations() {
+    if (loadingConversations || !hasMoreConversations) return;
+    loadingConversations = true;
+
+    try {
+      const res = await fetch(
+        `/api/chat/conversations?page=${currentHistoryPage}&page_size=10`,
+      );
+      const json = await res.json();
+      if (json.conversations.length > 0) {
+        conversationHistory = [...conversationHistory, ...json.conversations];
+        currentHistoryPage += 1;
+      } else {
+        hasMoreConversations = false;
+      }
+    } catch (err) {
+      console.error("Failed to load conversations:", err);
+    } finally {
+      loadingConversations = false;
+    }
+  }
+
+  function getRelativeTime(timestamp) {
+    const now = new Date();
+    const then = new Date(timestamp);
+    const deltaSeconds = Math.floor((now - then) / 1000);
+
+    const rtf = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
+    const thresholds = [
+      [60, "seconds", 1],
+      [3600, "minutes", 60],
+      [86400, "hours", 3600],
+      [604800, "days", 86400],
+      [2629800, "weeks", 604800],
+      [31557600, "months", 2629800],
+      [Infinity, "years", 31557600],
+    ];
+
+    for (const [limit, unit, divisor] of thresholds) {
+      if (deltaSeconds < limit) {
+        return rtf.format(-Math.floor(deltaSeconds / divisor), unit);
+      }
+    }
+  }
 </script>
 
 <div class="chat-wrapper">
   <div
     class="box chat-box chat-container"
-    on:scroll={handleScroll}
+    onscroll={handleScroll}
     bind:this={chatContainer}
   >
-    {#each messages as { role, content } (role + content)}
-      {#if role === "user"}
-        <div class="user-message">{content}</div>
-      {:else if role === "assistant"}
+    {#each messages as message, index (index)}
+      {#if message.role === "user"}
+        <div class="user-message">{message.content}</div>
+      {:else if message.role === "assistant"}
         <div class="assistant-message markdown-body">
-          <Markdown md={content} plugins={markdownPlugins} />
+          <Markdown md={message.content || ""} plugins={markdownPlugins} />
         </div>
       {/if}
     {/each}
@@ -266,14 +296,20 @@
     <button
       class="scroll-to-bottom"
       type="button"
-      on:click={scrollToBottom}
+      onclick={scrollToBottom}
       aria-label="Scroll to bottom"
     >
       ⬇️
     </button>
   {/if}
 
-  <form on:submit|preventDefault={send} class="chat-form">
+  <form
+    onsubmit={(e) => {
+      e.preventDefault();
+      send();
+    }}
+    class="chat-form"
+  >
     <div class="field is-grouped is-grouped-multiline">
       <div class="control is-expanded">
         <textarea
@@ -281,8 +317,8 @@
           bind:this={inputElement}
           bind:value={input}
           placeholder="Ask something..."
-          on:keydown={handleKeyDown}
-          on:input={adjustTextareaHeight}
+          onkeydown={handleKeyDown}
+          oninput={adjustTextareaHeight}
           rows="1"
           style="resize: none; overflow: hidden"
         />
@@ -295,14 +331,14 @@
       </div>
 
       <div class="control">
-        <button class="button is-info" type="button" on:click={toggleMenuModal}>
+        <button class="button is-info" type="button" onclick={toggleMenuModal}>
           Menu
         </button>
       </div>
 
       {#if loading}
         <div class="control">
-          <button class="button is-danger" type="button" on:click={stop}>
+          <button class="button is-danger" type="button" onclick={stop}>
             Stop
           </button>
         </div>
@@ -313,29 +349,49 @@
 
 {#if showMenuModal}
   <div class="menu modal is-active">
-    <div class="modal-background" on:click={closeMenuModal}></div>
+    <div class="modal-background" onclick={closeMenuModal}></div>
     <div class="modal-card">
       <header class="modal-card-head">
         <p class="modal-card-title">Conversations</p>
         <div class="pr-4">
-          <button class="button is-link">New Conversation</button>
+          <button
+            class="button is-link"
+            onclick={() => (window.location.href = "/agent/")}
+            >New Conversation</button
+          >
         </div>
-        <button class="delete" aria-label="close" on:click={closeMenuModal}
+        <button class="delete" aria-label="close" onclick={closeMenuModal}
         ></button>
       </header>
-      <section class="modal-card-body">
+      <section
+        class="modal-card-body"
+        onscroll={(e) => {
+          const el = e.target;
+          if (el.scrollTop + el.clientHeight >= el.scrollHeight - 50) {
+            fetchConversations();
+          }
+        }}
+      >
         <div class="buttons is-flex is-flex-direction-column">
-          {#each conversationHistory as { id, title, synopsis }}
+          {#each conversationHistory as { id, title, preview, created_at }}
             <button
               class="button is-dark is-fullwidth is-justify-content-flex-start history-item"
-              on:click={() => console.log("Selected conversation:", id)}
+              onclick={() => (window.location.href = `/agent/?id=${id}`)}
             >
               <div class="has-text-left">
                 <strong>{title}</strong><br />
-                <small class="has-text-grey">{synopsis}</small>
+                <small class="has-text-grey">{preview}</small><br />
+                <small class="has-text-grey is-size-7"
+                  >{getRelativeTime(created_at)}</small
+                >
               </div>
             </button>
           {/each}
+          {#if loadingConversations}
+            <div class="has-text-centered has-text-grey mt-2">
+              Loading more…
+            </div>
+          {/if}
         </div>
       </section>
       <footer class="modal-card-foot">
