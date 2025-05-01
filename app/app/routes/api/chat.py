@@ -55,7 +55,7 @@ async def stream_chat(
         for token in tokenize_words(doc1):
             response_text += token
             yield token
-            await asyncio.sleep(0.05)
+            # await asyncio.sleep(0.05)
         await chat.add_message(conversation_id, "assistant", response_text)
         logger.info(f"Logging new assistant message in conversation: {conversation_id}")
 
