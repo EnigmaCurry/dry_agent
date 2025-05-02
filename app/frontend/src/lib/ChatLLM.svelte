@@ -75,7 +75,7 @@
 
   function toggleSidebar() {
     sidebarOpen = !sidebarOpen;
-    if (sidebarOpen && conversationHistory.length === 0) fetchConversations();
+    if (sidebarOpen) fetchConversations();
   }
 
   onMount(async () => {
@@ -190,6 +190,10 @@
       if (!u.searchParams.get("id")) {
         u.searchParams.set("id", conversationId);
         window.history.replaceState({}, "", u);
+        conversationHistory = [];
+        currentHistoryPage = 1;
+        hasMoreConversations = true;
+        await fetchConversations();
       }
     }
   }
@@ -248,7 +252,6 @@
 
   <aside class="sidebar" class:collapsed={!sidebarOpen}>
     <div class="sidebar-header">
-      <h2 class="title is-5">Conversations</h2>
       <button
         class="button is-small is-link mt-2"
         on:click={() => (window.location.href = "/agent/")}
@@ -359,6 +362,8 @@
     z-index: 200;
   }
   aside.sidebar {
+    display: flex;
+    flex-direction: column;
     width: 300px;
     background: #222;
     color: #fff;
@@ -373,11 +378,17 @@
   }
   .sidebar-header {
     margin: 3.25rem 0 1rem 0;
+    position: sticky;
+    top: 0;
+    background: #222; /* same as your sidebar background */
+    z-index: 10; /* above the scrolling list */
+    padding-bottom: 1rem; /* preserve your spacing */
   }
   .sidebar-body {
     overflow-y: auto;
     max-height: calc(100vh-6rem);
-    margin-top: 3.25rem;
+    margin: 0 0 7rem 0;
+    flex: 1; /* take up the rest of the height */
   }
   .sidebar-item {
     text-align: left;
@@ -403,6 +414,7 @@
     display: flex;
     flex-direction: column;
     align-items: flex-start;
+    padding-left: 3rem;
   }
   .chat-container {
     position: fixed;
