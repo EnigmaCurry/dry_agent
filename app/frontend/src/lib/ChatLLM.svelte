@@ -302,12 +302,15 @@
 </script>
 
 <div class="chat-wrapper">
+  <!-- Sidebar -->
   <aside class="sidebar" class:collapsed={!sidebarOpen}>
     <div class="sidebar-header">
       <button
         class="button is-link mt-1 is-pulled-right"
-        on:click={newConversation}>New Conversation</button
+        on:click={newConversation}
       >
+        New Conversation
+      </button>
     </div>
     <div
       class="sidebar-body"
@@ -338,18 +341,23 @@
     </div>
   </aside>
 
+  <!-- Main area -->
   <main class="main-content" class:expanded={!sidebarOpen}>
-    <div class="top-bar">
-      <button class="button sidebar-toggle" on:click={toggleSidebar}>
-        {#if sidebarOpen}❌{:else}☰{/if}
-      </button>
+    <!-- Separate toggle, own blur wrapper -->
+    <button class="sidebar-toggle" on:click={toggleSidebar}>
+      {#if sidebarOpen}❌{:else}☰{/if}
+    </button>
 
+    <!-- Shifting blur + title -->
+    <div class="top-bar" style:left={sidebarOpen ? "300px" : "2rem"}>
       {#if conversationTitle}
-        <div class="chat-header" style:left={sidebarOpen ? "16rem" : "3rem"}>
+        <div class="chat-header">
           {conversationTitle}
         </div>
       {/if}
     </div>
+
+    <!-- Chat messages container -->
     <div
       class="box chat-box chat-container"
       style:left={sidebarOpen ? "300px" : "0px"}
@@ -371,17 +379,27 @@
           {/if}
         {/if}
       {/each}
-      {#if loading}<div class="mt-4 assistant-message loading-message">
+      {#if loading}
+        <div class="mt-4 assistant-message loading-message">
           Assistant is typing...
-        </div>{/if}
+        </div>
+      {/if}
       <div bind:this={scrollAnchor}></div>
     </div>
-    {#if showScrollButton}<button
+
+    <!-- Scroll‐to‐bottom button -->
+    {#if showScrollButton}
+      <button
         class="scroll-to-bottom"
         type="button"
         on:click={scrollToBottom}
-        aria-label="Scroll to bottom">⬇️</button
-      >{/if}
+        aria-label="Scroll to bottom"
+      >
+        ⬇️
+      </button>
+    {/if}
+
+    <!-- Input form -->
     <form on:submit|preventDefault={send} class="chat-form">
       <div class="field is-grouped is-grouped-multiline">
         <div class="control is-expanded">
@@ -397,15 +415,17 @@
           />
         </div>
         <div class="control">
-          <button class="button is-link" type="submit" disabled={loading}
-            >Send</button
-          >
+          <button class="button is-link" type="submit" disabled={loading}>
+            Send
+          </button>
         </div>
-        {#if loading}<div class="control">
-            <button class="button is-danger" type="button" on:click={stop}
-              >Stop</button
-            >
-          </div>{/if}
+        {#if loading}
+          <div class="control">
+            <button class="button is-danger" type="button" on:click={stop}>
+              Stop
+            </button>
+          </div>
+        {/if}
       </div>
     </form>
   </main>
@@ -466,40 +486,66 @@
   .main-content.expanded {
     margin-left: 0;
   }
-  /* A single fixed wrapper that spans the full width */
+
   .top-bar {
     position: fixed;
-    top: 4rem; /* same as .chat-container top */
-    left: 0;
+    top: 4rem;
+    height: 4rem;
     right: 0;
-    height: 3rem; /* same as chat-header height */
+    left: var(--top-bar-left);
     backdrop-filter: blur(4px);
     z-index: 200;
+    margin-right: 1em;
+    mask-image: linear-gradient(
+      to bottom,
+      black 0%,
+      black 50%,
+      transparent 100%
+    );
+    -webkit-mask-image: linear-gradient(
+      to bottom,
+      black 0%,
+      black 50%,
+      transparent 100%
+    );
   }
 
-  /* fixed‐position toggle inside the blur zone */
   .sidebar-toggle {
-    position: absolute;
-    top: 0.25rem;
-    left: 1rem; /* NEVER changes */
+    position: fixed;
+    top: 4.35rem;
+    left: 1rem;
+    z-index: 210;
     background: none;
+    backdrop-filter: blur(4px);
     border: none;
     color: #e0e0e0;
-    z-index: 210;
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+    mask-image: linear-gradient(
+      to bottom,
+      black 0%,
+      black 50%,
+      transparent 100%
+    );
+    -webkit-mask-image: linear-gradient(
+      to bottom,
+      black 0%,
+      black 50%,
+      transparent 100%
+    );
   }
 
-  /* your moving title inside the same blur zone */
   .chat-header {
     position: absolute;
     top: 0;
-    /* left is still controlled by sidebarOpen */
+    left: 1rem;
     padding: 0.75rem 1rem;
     color: #e0e0e0;
     font-size: 1.25rem;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    z-index: 200;
+    z-index: 201;
   }
   html,
   body {
@@ -516,12 +562,12 @@
   }
   .chat-container {
     position: fixed;
-    top: 4rem; /* navbar height */
+    top: 4rem;
     bottom: 0;
     left: 0;
     right: 0;
     overflow-y: auto;
-    padding-top: 3rem; /* equal to chat-header height */
+    padding-top: 3rem;
   }
   .chat-form {
     position: fixed;
