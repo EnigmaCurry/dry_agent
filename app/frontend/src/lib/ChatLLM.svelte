@@ -101,6 +101,15 @@
     scrollToBottom();
   });
 
+  // handle browser back/forward
+  onMount(() => {
+    window.addEventListener("popstate", () => {
+      const params = new URLSearchParams(window.location.search);
+      const id = params.get("id");
+      if (id) loadConversation(id);
+    });
+  });
+
   // Fetch and append conversation list pages
   async function fetchConversations() {
     if (loadingConversations || !hasMoreConversations) return;
@@ -121,6 +130,27 @@
       console.error("Error loading conversations");
     } finally {
       loadingConversations = false;
+    }
+  }
+
+  async function loadConversation(id) {
+    if (loading) return;
+    loading = true;
+    try {
+      const res = await fetch(`/api/chat/conversation/${id}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      messages = data.messages || [];
+      conversationId = id;
+      updateTitle(); // re-compute conversationTitle
+      // update the URL without a reload
+      const u = new URL(window.location.href);
+      u.searchParams.set("id", id);
+      window.history.pushState({}, "", u);
+    } catch (err) {
+      console.error("Failed loading conversation", err);
+    } finally {
+      loading = false;
     }
   }
 
@@ -279,14 +309,15 @@
       {#each conversationHistory as { id, title, preview, created_at }}
         <button
           class="button is-fullwidth sidebar-item"
-          on:click={() => (window.location.href = `/agent/?id=${id}`)}
+          on:click={() => loadConversation(id)}
+          disabled={loading}
         >
           <div>
             <strong>{title}</strong><br />
             <small class="has-text-grey">{preview}</small><br />
-            <small class="has-text-grey is-size-7"
-              >{getRelativeTime(created_at)}</small
-            >
+            <small class="has-text-grey is-size-7">
+              {getRelativeTime(created_at)}
+            </small>
           </div>
         </button>
       {/each}
