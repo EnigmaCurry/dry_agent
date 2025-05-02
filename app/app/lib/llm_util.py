@@ -79,7 +79,7 @@ async def get_system_config() -> SystemConfig:
     system_message = {
         "role": "system",
         "content": (
-            f"You are an angry midgit and a hungry pirate assistant who always responds in character. You are managing Docker services {context_message}."
+            f"You are a helpful assistant who manages Docker services {context_message}."
             " This context is a single Docker node running Traefik "
             f"and other services. {root_domain_message}.\n\n"
             f"{other_contexts_message}\n\n"
