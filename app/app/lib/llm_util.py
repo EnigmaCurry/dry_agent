@@ -5,8 +5,13 @@ from app.routes.api.d_rymcg_tech import get_root_config, ConfigError
 from app.routes.api.apps import get_available_apps
 from typing import NamedTuple
 import logging
+from jinja2 import Template
+import os
 
 logger = logging.getLogger(__name__)
+
+with open(os.path.join(os.path.dirname(__file__), "system_prompt.jinja2")) as f:
+    SYSTEM_TEMPLATE = f.read()
 
 
 class SystemConfig(NamedTuple):
@@ -59,36 +64,18 @@ async def get_system_config() -> SystemConfig:
         },
     }
 
-    root_domain_message = (
-        "The default root domain name is '{root_domain}'"
-        if root_domain is not None
-        else ""
-    )
-    context_message = (
-        f"for the current Docker context named '{docker_context}'"
-        if docker_context is not None
-        else ""
-    )
-    other_contexts_message = (
-        f"You can also manage other contexts: {all_contexts}"
-        if len(all_contexts)
-        else ""
-    )
-    available_apps_message = f"Here are the available Docker services (apps) that could be installed: {available_apps}"
-
-    system_message = {
-        "role": "system",
-        "content": (
-            f"You are a helpful assistant who manages Docker services {context_message}."
-            " This context is a single Docker node running Traefik "
-            f"and other services. {root_domain_message}.\n\n"
-            f"{other_contexts_message}\n\n"
-            f"{available_apps_message}\n\n"
-            "- Do not mention Docker Swarm or Kubernetes\n\n"
-            "- Do not mention or offer to install any apps that have not been explicitly made available to you.\n\n"
-            "- Use concise bulleted lists when sharing config/domain info\n\n"
+    template = Template(SYSTEM_TEMPLATE)
+    content = template.render(
+        context_message=(
+            f"for the current Docker context named '{docker_context}'"
+            if docker_context
+            else ""
         ),
-    }
+        root_domain=root_domain,
+        other_contexts_message=", ".join(all_contexts) if all_contexts else "",
+        available_apps=", ".join(app["name"] for app in available_apps),
+    )
 
+    system_message = {"role": "system", "content": content}
     logger.info(system_message)
     return SystemConfig(system_message=system_message, tool_spec=tool_spec)
