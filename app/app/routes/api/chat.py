@@ -14,7 +14,7 @@ from .d_rymcg_tech import get_root_config, ConfigError
 from app.lib.db import get_chat_model, ChatModel
 from app.broadcast import broadcast
 from .llm_util import generate_title
-from app.lib.llm_util import get_context_tool, get_system_message
+from app.lib.llm_util import get_system_config
 
 """
 LLM Chat API
@@ -57,9 +57,12 @@ async def stream_chat(
         messages = conversation
 
     # 🧠 Inject dynamic system message
-    system_message = get_system_message()
-    messages = [system_message] + messages + [{"role": "user", "content": user_message}]
-    context_tool = get_context_tool()
+    system_config = get_system_config()
+    messages = (
+        [system_config.system_message]
+        + messages
+        + [{"role": "user", "content": user_message}]
+    )
 
     response_text = ""
 
@@ -68,12 +71,18 @@ async def stream_chat(
         tool_call_args = ""
 
         try:
+            if system_config.tool_spec:
+                tools = [system_config.tool_spec]
+                tool_choice = "auto"
+            else:
+                tools = None
+                tool_choice = None
             stream = await client.chat.completions.create(
                 model="gpt-4",
                 messages=messages,
                 stream=True,
-                tools=[context_tool],
-                tool_choice="auto",
+                tools=tools,
+                tool_choice=tool_choice,
             )
 
             async for chunk in stream:
