@@ -93,6 +93,14 @@ install: deps expect-config build uninstall
 	       --network host \
 	       localhost/dry-agent/traefik;
 	@echo
+	@sleep 2; \
+	if ! podman exec dry-agent-app test -f /root/dry_agent/database/dry_agent.db; then \
+	    echo "Database not found, running migration..."; \
+	    make --no-print-directory migrate-db; \
+	else \
+	    echo "Database already exists."; \
+	fi
+	@echo
 	@podman ps --filter "label=project=dry-agent"
 
 .PHONY: uninstall # Remove the containers (but keep the volumes)

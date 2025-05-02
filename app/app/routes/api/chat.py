@@ -14,6 +14,7 @@ from .d_rymcg_tech import get_root_config, ConfigError
 from app.lib.db import get_chat_model, ChatModel
 from app.broadcast import broadcast
 from .llm_util import generate_title
+from app.lib.llm_util import get_context_tool, get_system_message
 
 """
 LLM Chat API
@@ -24,24 +25,6 @@ logger = logging.getLogger("uvicorn.error")
 router = APIRouter(prefix="/api/chat", tags=["chat"])
 
 client = openai.AsyncOpenAI()
-
-set_context_tool = {
-    "type": "function",
-    "function": {
-        "name": "set_default_context",
-        "description": "Switch the current Docker context",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "context": {
-                    "type": "string",
-                    "description": "The name of the Docker context to switch to",
-                }
-            },
-            "required": ["context"],
-        },
-    },
-}
 
 
 @router.post("/stream/{conversation_id}")
@@ -74,49 +57,9 @@ async def stream_chat(
         messages = conversation
 
     # 🧠 Inject dynamic system message
-    docker_context = get_docker_context()
-    all_contexts = get_docker_context_names()
-    try:
-        root_config = get_root_config(docker_context)
-    except ConfigError:
-        root_config = {}
-
-    try:
-        root_domain = root_config["ROOT_DOMAIN"]
-    except KeyError:
-        root_domain = None
-
-    if root_config == {}:
-        system_message = {
-            "role": "system",
-            "content": f"""You are a helpful assistant for managing
-            Docker services, except you have been misconfigured and
-            you do not have access to any configured Docker contexts.
-            If the user asks you to perform any actions, kindly inform
-            them that they must first create a new Docker context.""",
-        }
-    else:
-        system_message = {
-            "role": "system",
-            "content": f"""You are a helpful assistant managing Docker
-            services for the current Docker context named
-            '{docker_context}'. This context is a single Docker node
-            running Traefik and capable of running various other services.
-            The default root domain name configured for use by the
-            services is '{root_domain}'.
-
-            You can also potentially manage other contexts after switching
-            to them: {all_contexts}
-
-            Do not ever discuss (or even mention) Docker Swarm or
-            Kubernetes as these topics are irrelevant and will only lead
-            to confusion. Please answer any questions accordingly. When
-            presenting information related to the specific Docker context,
-            domain names, or service configurations, please prefer to
-            provide these as consise bulleted lists. """,
-        }
-
+    system_message = get_system_message()
     messages = [system_message] + messages + [{"role": "user", "content": user_message}]
+    context_tool = get_context_tool()
 
     response_text = ""
 
@@ -129,7 +72,7 @@ async def stream_chat(
                 model="gpt-4",
                 messages=messages,
                 stream=True,
-                tools=[set_context_tool],
+                tools=[context_tool],
                 tool_choice="auto",
             )
 
