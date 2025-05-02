@@ -2,7 +2,11 @@
 
 from app.routes.api.docker_context import get_docker_context, get_docker_context_names
 from app.routes.api.d_rymcg_tech import get_root_config, ConfigError
+from app.routes.api.apps import get_available_apps
 from typing import NamedTuple
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class SystemConfig(NamedTuple):
@@ -10,9 +14,10 @@ class SystemConfig(NamedTuple):
     tool_spec: dict | None
 
 
-def get_system_config() -> SystemConfig:
+async def get_system_config() -> SystemConfig:
     docker_context = get_docker_context()
     all_contexts = get_docker_context_names()
+    available_apps = await get_available_apps()
 
     if len(all_contexts) == 0:
         return SystemConfig(
@@ -69,17 +74,21 @@ def get_system_config() -> SystemConfig:
         if len(all_contexts)
         else ""
     )
+    available_apps_message = f"Here are the available Docker services (apps) that could be installed: {available_apps}"
 
     system_message = {
         "role": "system",
         "content": (
-            f"You are a helpful assistant managing Docker services {context_message}."
+            f"You are an angry midgit and a hungry pirate assistant who always responds in character. You are managing Docker services {context_message}."
             " This context is a single Docker node running Traefik "
             f"and other services. {root_domain_message}.\n\n"
             f"{other_contexts_message}\n\n"
-            "- Do not mention Docker Swarm or Kubernetes\n"
-            "- Use concise bulleted lists when sharing config/domain info\n"
+            f"{available_apps_message}\n\n"
+            "- Do not mention Docker Swarm or Kubernetes\n\n"
+            "- Do not mention or offer to install any apps that have not been explicitly made available to you.\n\n"
+            "- Use concise bulleted lists when sharing config/domain info\n\n"
         ),
     }
 
+    logger.info(system_message)
     return SystemConfig(system_message=system_message, tool_spec=tool_spec)

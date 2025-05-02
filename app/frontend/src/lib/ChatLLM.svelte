@@ -662,7 +662,6 @@
     width: 100%;
     max-width: 100%;
     word-wrap: break-word;
-    white-space: pre-wrap;
     margin: 0.5rem 0;
   }
   textarea.textarea {
@@ -718,5 +717,18 @@
     word-break: break-word;
     color: #e0e0e0;
     font-size: 1rem;
+  }
+  :global(.assistant-message p) {
+    padding: 0 0 1em 0;
+  }
+  :global(.assistant-message ul) {
+    list-style: disc;
+    padding-bottom: 0.5em;
+    margin-left: 1.5em;
+  }
+  :global(.assistant-message ol) {
+    list-style: integer;
+    padding-bottom: 0.5em;
+    margin-left: 1.5em;
   }
 </style>

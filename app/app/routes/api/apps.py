@@ -17,9 +17,16 @@ logger = logging.getLogger("uvicorn.error")
 
 router = APIRouter(prefix="/api/apps", tags=["apps"])
 
+from fastapi.responses import JSONResponse
+from fastapi import HTTPException
+import subprocess
+import traceback
+import logging
 
-@router.get("/available", response_class=JSONResponse)
-async def apps_available():
+logger = logging.getLogger("uvicorn.error")
+
+
+async def get_available_apps():
     command = [DRY_COMMAND, "list"]
 
     try:
@@ -58,10 +65,19 @@ async def apps_available():
                 else:
                     raise
 
-        return JSONResponse(content={"apps": app_data})
+        return app_data
 
-    except Exception as e:
+    except Exception:
         logger.error("Failed to load available apps:\n%s", traceback.format_exc())
+        raise
+
+
+@router.get("/apps")
+async def list_apps():
+    try:
+        app_data = await get_available_apps()
+        return JSONResponse(content={"apps": app_data})
+    except Exception as e:
         return JSONResponse(
             status_code=500,
             content={"detail": f"Internal Server Error: {str(e)}"},

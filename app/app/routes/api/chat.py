@@ -57,7 +57,7 @@ async def stream_chat(
         messages = conversation
 
     # 🧠 Inject dynamic system message
-    system_config = get_system_config()
+    system_config = await get_system_config()
     messages = (
         [system_config.system_message]
         + messages
