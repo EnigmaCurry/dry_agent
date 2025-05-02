@@ -21,6 +21,7 @@
   import "highlight.js/styles/github-dark.css";
 
   let sidebarOpen = $state(true);
+  let conversationTitle = $state("");
 
   let conversationId = $state(null);
   let messages = $state([]);
@@ -93,12 +94,14 @@
       }
     }
     await fetchConversations();
+    updateTitle();
     await tick();
     adjustTextareaHeight();
     inputElement?.focus();
     scrollToBottom();
   });
 
+  // Fetch and append conversation list pages
   async function fetchConversations() {
     if (loadingConversations || !hasMoreConversations) return;
     loadingConversations = true;
@@ -110,6 +113,7 @@
       if (json.conversations.length) {
         conversationHistory = [...conversationHistory, ...json.conversations];
         currentHistoryPage++;
+        updateTitle();
       } else {
         hasMoreConversations = false;
       }
@@ -118,6 +122,12 @@
     } finally {
       loadingConversations = false;
     }
+  }
+
+  // Update the displayed title when history loads
+  function updateTitle() {
+    const found = conversationHistory.find((c) => c.id === conversationId);
+    conversationTitle = found ? found.title : "";
   }
 
   function getRelativeTime(ts) {
@@ -252,6 +262,7 @@
 
   <aside class="sidebar" class:collapsed={!sidebarOpen}>
     <div class="sidebar-header">
+      <h2 class="title is-5">Conversations</h2>
       <button
         class="button is-small is-link mt-2"
         on:click={() => (window.location.href = "/agent/")}
@@ -287,6 +298,11 @@
   </aside>
 
   <main class="main-content" class:expanded={!sidebarOpen}>
+    <!-- Conversation title -->
+    {#if conversationTitle}
+      <div class="chat-header">{conversationTitle}</div>
+    {/if}
+
     <div
       class="box chat-box chat-container"
       style:left={sidebarOpen ? "300px" : "0px"}
@@ -380,15 +396,14 @@
     margin: 3.25rem 0 1rem 0;
     position: sticky;
     top: 0;
-    background: #222; /* same as your sidebar background */
-    z-index: 10; /* above the scrolling list */
-    padding-bottom: 1rem; /* preserve your spacing */
+    background: #222;
+    z-index: 10;
+    padding-bottom: 1rem;
   }
   .sidebar-body {
+    flex: 1;
     overflow-y: auto;
-    max-height: calc(100vh-6rem);
     margin: 0 0 7rem 0;
-    flex: 1; /* take up the rest of the height */
   }
   .sidebar-item {
     text-align: left;
@@ -402,6 +417,19 @@
   }
   .main-content.expanded {
     margin-left: 0;
+  }
+  .chat-header {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3rem;
+    padding: 0.75rem 1rem;
+    background: rgba(30, 30, 30, 0.85);
+    color: #e0e0e0;
+    font-size: 1.25rem;
+    z-index: 50;
+    backdrop-filter: blur(4px);
   }
   html,
   body {
@@ -418,11 +446,12 @@
   }
   .chat-container {
     position: fixed;
-    top: 4rem;
+    top: 4rem; /* navbar height */
     bottom: 0;
     left: 0;
     right: 0;
     overflow-y: auto;
+    padding-top: 3rem; /* equal to chat-header height */
   }
   .chat-form {
     position: fixed;
