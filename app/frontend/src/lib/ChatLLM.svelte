@@ -262,9 +262,8 @@
 
   <aside class="sidebar" class:collapsed={!sidebarOpen}>
     <div class="sidebar-header">
-      <h2 class="title is-5">Conversations</h2>
       <button
-        class="button is-small is-link mt-2"
+        class="button is-link mt-1 is-pulled-right"
         on:click={() => (window.location.href = "/agent/")}
         >New Conversation</button
       >
@@ -300,7 +299,9 @@
   <main class="main-content" class:expanded={!sidebarOpen}>
     <!-- Conversation title -->
     {#if conversationTitle}
-      <div class="chat-header">{conversationTitle}</div>
+      <div class="chat-header" style:left={sidebarOpen ? "16rem" : "2rem"}>
+        {conversationTitle}
+      </div>
     {/if}
 
     <div
@@ -393,7 +394,7 @@
     overflow: hidden;
   }
   .sidebar-header {
-    margin: 3.25rem 0 1rem 0;
+    margin: 0 0 1rem 0;
     position: sticky;
     top: 0;
     background: #222;
@@ -404,6 +405,9 @@
     flex: 1;
     overflow-y: auto;
     margin: 0 0 7rem 0;
+  }
+  .sidebar-body .button div {
+    width: 100%;
   }
   .sidebar-item {
     text-align: left;
@@ -420,16 +424,21 @@
   }
   .chat-header {
     position: absolute;
-    top: 0;
-    left: 0;
+    top: 1rem;
+    left: 1rem;
     right: 0;
     height: 3rem;
     padding: 0.75rem 1rem;
-    background: rgba(30, 30, 30, 0.85);
     color: #e0e0e0;
     font-size: 1.25rem;
     z-index: 50;
     backdrop-filter: blur(4px);
+    background: none;
+    width: fit-content;
+    max-width: 75%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   html,
   body {
