@@ -460,7 +460,6 @@
     top: 0;
     background: #222;
     z-index: 10;
-    padding-bottom: 1rem;
   }
   .sidebar-header button {
     z-index: 210;

@@ -33,6 +33,10 @@ a:hover {
   padding: 0;
 }
 
+nav {
+  z-index: 400 !important;
+}
+
 .navbar-brand {
   font-size: 2em;
 }
