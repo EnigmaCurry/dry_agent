@@ -5,15 +5,14 @@ create table conversation (
     title text not null
 );
 
--- Messages within a conversation
 create table message (
-    id integer primary key autoincrement,
+    id integer primary key AUTOINCREMENT,
     conversation_id text not null,
-    role text not null check (role in ('user', 'assistant')),
-    message_index integer not null, -- Order within the conversation
-    content text not null, -- Text or markdown
+    role TEXT not null check (role in ('user', 'assistant')),
+    message_index integer not null,
+    content text not null,
     created_at timestamp not null default current_timestamp,
-    foreign key (conversation_id) references conversation (id),
+    foreign key (conversation_id) references conversation (id) on delete cascade,
     unique (conversation_id, message_index)
 );
 

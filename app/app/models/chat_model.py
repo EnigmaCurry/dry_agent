@@ -78,3 +78,11 @@ class ChatModel:
                 conn=conn, offset=offset, page_size=page_size
             )
         return [dict(r) for r in rows]
+
+    async def delete_conversation(self, conversation_id: str) -> None:
+        async with self.connection() as conn:
+            await self.queries.delete_conversation(
+                conn=conn,
+                conversation_id=conversation_id,
+            )
+            await conn.commit()

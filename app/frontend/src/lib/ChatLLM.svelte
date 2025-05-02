@@ -141,6 +141,7 @@
     messages = [];
     conversationId = crypto.randomUUID();
     conversationTitle = "New Conversation";
+    convoIdStore.set(null);
     // drop the `id` param from the URL
     const u = new URL(window.location.href);
     u.searchParams.delete("id");
@@ -172,6 +173,19 @@
       console.error("Failed loading conversation", err);
     } finally {
       loading = false;
+    }
+  }
+
+  async function deleteConversation(id) {
+    try {
+      const res = await fetch(`/api/chat/conversation/${id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error(`Failed to delete conversation: ${res.status}`);
+      conversationHistory = conversationHistory.filter((c) => c.id !== id);
+    } catch (e) {
+      console.error("Error deleting conversation:", e);
+      alert("Failed to delete conversation.");
     }
   }
 
@@ -250,6 +264,21 @@
         hasMoreConversations = true;
         await fetchConversations();
         convoIdStore.set(conversationId);
+        await updateTitle();
+      }
+    }
+  }
+
+  async function updateTitle() {
+    if (conversationId != null) {
+      try {
+        const res = await fetch(`/api/chat/conversation/${conversationId}`);
+        if (res.ok) {
+          const data = await res.json();
+          conversationTitle = data.title;
+        }
+      } catch (e) {
+        console.error("Failed to fetch conversation title:", e);
       }
     }
   }
@@ -321,19 +350,28 @@
       }}
     >
       {#each conversationHistory as { id, title, preview, created_at }}
-        <button
-          class="button is-fullwidth sidebar-item"
-          on:click={() => loadConversation(id)}
-          disabled={loading}
-        >
-          <div>
-            <strong>{title}</strong><br />
-            <small class="has-text-grey">{preview}</small><br />
-            <small class="has-text-grey is-size-7">
-              {getRelativeTime(created_at)}
-            </small>
-          </div>
-        </button>
+        <div class="sidebar-item-wrapper">
+          <button
+            class="button is-fullwidth sidebar-item"
+            on:click={() => loadConversation(id)}
+            disabled={loading}
+          >
+            <div>
+              <strong>{title}</strong><br />
+              <small class="has-text-grey">{preview}</small><br />
+              <small class="has-text-grey is-size-7">
+                {getRelativeTime(created_at)}
+              </small>
+            </div>
+          </button>
+          <button
+            class="delete-button"
+            on:click={() => deleteConversation(id)}
+            title="Delete conversation"
+          >
+            ✕
+          </button>
+        </div>
       {/each}
       {#if loadingConversations}
         <div class="has-text-centered has-text-grey mt-2">Loading…</div>
@@ -477,6 +515,28 @@
     margin-bottom: 0.5rem;
     white-space: normal;
   }
+
+  .sidebar-item-wrapper {
+    position: relative;
+  }
+
+  .sidebar-item-wrapper .delete-button {
+    position: absolute;
+    top: 0.4rem;
+    right: 0.4rem;
+    background: transparent;
+    border: none;
+    color: #f14668;
+    font-weight: bold;
+    font-size: 1.2rem;
+    cursor: pointer;
+    z-index: 5;
+  }
+
+  .sidebar-item-wrapper .delete-button:hover {
+    color: #ff3860;
+  }
+
   .main-content {
     flex: 1;
     overflow: hidden;

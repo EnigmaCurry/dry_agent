@@ -58,3 +58,7 @@ order by
     c.created_at desc
 limit :page_size offset :offset;
 
+-- name: delete_conversation!
+delete from conversation
+where id = :conversation_id;
+

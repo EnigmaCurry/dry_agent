@@ -13,6 +13,7 @@ from .docker_context import (
 from .d_rymcg_tech import get_root_config, ConfigError
 from app.lib.db import get_chat_model, ChatModel
 from app.broadcast import broadcast
+from .llm_util import generate_title
 
 """
 LLM Chat API
@@ -57,7 +58,8 @@ async def stream_chat(
 
     conversation = await chat.get_conversation(conversation_id)
     if conversation is None:
-        await chat.create_conversation(conversation_id)
+        summary_title = await generate_title(user_message)
+        await chat.create_conversation(conversation_id, title=summary_title)
         conversation = []
         logger.info(f"Created new conversation: {conversation_id}")
     else:
@@ -77,36 +79,42 @@ async def stream_chat(
     try:
         root_config = get_root_config(docker_context)
     except ConfigError:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Could not retrieve the config file for context: {docker_context}",
-        )
+        root_config = {}
+
     try:
         root_domain = root_config["ROOT_DOMAIN"]
     except KeyError:
-        raise HTTPException(
-            status_code=400,
-            detail=f"`ROOT_DOMAIN` not found in config for context {docker_context}",
-        )
-    system_message = {
-        "role": "system",
-        "content": f"""You are a helpful assistant managing Docker
-        services for the current Docker context named
-        '{docker_context}'. This context is a single Docker node
-        running Traefik and capable of running various other services.
-        The default root domain name configured for use by the
-        services is '{root_domain}'.
+        root_domain = None
 
-        You can also potentially manage other contexts after switching
-        to them: {all_contexts}
+    if root_config == {}:
+        system_message = {
+            "role": "system",
+            "content": f"""You are a helpful assistant for managing
+            Docker services, except you have been misconfigured and
+            you do not have access to any configured Docker contexts.
+            If the user asks you to perform any actions, kindly inform
+            them that they must first create a new Docker context.""",
+        }
+    else:
+        system_message = {
+            "role": "system",
+            "content": f"""You are a helpful assistant managing Docker
+            services for the current Docker context named
+            '{docker_context}'. This context is a single Docker node
+            running Traefik and capable of running various other services.
+            The default root domain name configured for use by the
+            services is '{root_domain}'.
 
-        Do not ever discuss (or even mention) Docker Swarm or
-        Kubernetes as these topics are irrelevant and will only lead
-        to confusion. Please answer any questions accordingly. When
-        presenting information related to the specific Docker context,
-        domain names, or service configurations, please prefer to
-        provide these as consise bulleted lists. """,
-    }
+            You can also potentially manage other contexts after switching
+            to them: {all_contexts}
+
+            Do not ever discuss (or even mention) Docker Swarm or
+            Kubernetes as these topics are irrelevant and will only lead
+            to confusion. Please answer any questions accordingly. When
+            presenting information related to the specific Docker context,
+            domain names, or service configurations, please prefer to
+            provide these as consise bulleted lists. """,
+        }
 
     messages = [system_message] + messages + [{"role": "user", "content": user_message}]
 
@@ -193,5 +201,14 @@ async def get_conversation(id: str, chat_model: ChatModel = Depends(get_chat_mod
         if conversation is None:
             raise HTTPException(status_code=404, detail="Conversation not found")
         return JSONResponse(content=conversation)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/conversation/{id}")
+async def delete_conversation(id: str, chat_model: ChatModel = Depends(get_chat_model)):
+    try:
+        await chat_model.delete_conversation(conversation_id=id)
+        return JSONResponse(content={"deleted": id})
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
