@@ -1,7 +1,11 @@
 <script>
   import { onMount, tick } from "svelte";
   import Markdown from "svelte-exmarkdown";
-  import { currentContext, dockerContexts } from "$lib/stores";
+  import {
+    currentContext,
+    dockerContexts,
+    conversationId as convoIdStore,
+  } from "$lib/stores";
   import { get } from "svelte/store";
 
   import langPython from "highlight.js/lib/languages/python";
@@ -20,7 +24,7 @@
   import rehypeHighlight from "rehype-highlight";
   import "highlight.js/styles/github-dark.css";
 
-  let sidebarOpen = $state(true);
+  let sidebarOpen = $state(false);
   let conversationTitle = $state("");
 
   let conversationId = $state(null);
@@ -81,20 +85,21 @@
 
   onMount(async () => {
     const params = new URLSearchParams(window.location.search);
-    const id = params.get("id");
-    conversationId = id || crypto.randomUUID();
-    if (id) {
-      try {
-        const res = await fetch(`/api/chat/conversation/${id}`);
-        if (!res.ok) throw new Error(res.status);
-        const data = await res.json();
-        messages = data.messages || [];
-      } catch {
-        messages = [];
+    const idParam = params.get("id");
+    if (idParam) {
+      // 1) URL says “?id=…” → load that
+      await loadConversation(idParam);
+    } else {
+      // 2) no URL → see if our store already has one
+      const stored = get(convoIdStore);
+      if (stored) {
+        await loadConversation(stored);
+      } else {
+        newConversation();
       }
     }
+    // now load your history (for the sidebar), then do your usual focus/scroll/tick magic
     await fetchConversations();
-    updateTitle();
     await tick();
     adjustTextareaHeight();
     inputElement?.focus();
@@ -122,7 +127,6 @@
       if (json.conversations.length) {
         conversationHistory = [...conversationHistory, ...json.conversations];
         currentHistoryPage++;
-        updateTitle();
       } else {
         hasMoreConversations = false;
       }
@@ -133,17 +137,34 @@
     }
   }
 
+  function newConversation() {
+    messages = [];
+    conversationId = crypto.randomUUID();
+    conversationTitle = "New Conversation";
+    // drop the `id` param from the URL
+    const u = new URL(window.location.href);
+    u.searchParams.delete("id");
+    window.history.pushState({}, "", u);
+    // reset focus/scroll if you like
+    inputElement?.focus();
+    scrollToBottom();
+  }
+
   async function loadConversation(id) {
     if (loading) return;
     loading = true;
+
     try {
       const res = await fetch(`/api/chat/conversation/${id}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
       const data = await res.json();
       messages = data.messages || [];
+      conversationTitle = data.title ?? "Untitled";
       conversationId = id;
-      updateTitle(); // re-compute conversationTitle
-      // update the URL without a reload
+      convoIdStore.set(id);
+
+      // Update URL without reloading
       const u = new URL(window.location.href);
       u.searchParams.set("id", id);
       window.history.pushState({}, "", u);
@@ -152,12 +173,6 @@
     } finally {
       loading = false;
     }
-  }
-
-  // Update the displayed title when history loads
-  function updateTitle() {
-    const found = conversationHistory.find((c) => c.id === conversationId);
-    conversationTitle = found ? found.title : "";
   }
 
   function getRelativeTime(ts) {
@@ -234,6 +249,7 @@
         currentHistoryPage = 1;
         hasMoreConversations = true;
         await fetchConversations();
+        convoIdStore.set(conversationId);
       }
     }
   }
@@ -286,16 +302,11 @@
 </script>
 
 <div class="chat-wrapper">
-  <button class="button sidebar-toggle" on:click={toggleSidebar}>
-    {#if sidebarOpen}❌{:else}☰{/if}
-  </button>
-
   <aside class="sidebar" class:collapsed={!sidebarOpen}>
     <div class="sidebar-header">
       <button
         class="button is-link mt-1 is-pulled-right"
-        on:click={() => (window.location.href = "/agent/")}
-        >New Conversation</button
+        on:click={newConversation}>New Conversation</button
       >
     </div>
     <div
@@ -328,13 +339,17 @@
   </aside>
 
   <main class="main-content" class:expanded={!sidebarOpen}>
-    <!-- Conversation title -->
-    {#if conversationTitle}
-      <div class="chat-header" style:left={sidebarOpen ? "16rem" : "2rem"}>
-        {conversationTitle}
-      </div>
-    {/if}
+    <div class="top-bar">
+      <button class="button sidebar-toggle" on:click={toggleSidebar}>
+        {#if sidebarOpen}❌{:else}☰{/if}
+      </button>
 
+      {#if conversationTitle}
+        <div class="chat-header" style:left={sidebarOpen ? "16rem" : "3rem"}>
+          {conversationTitle}
+        </div>
+      {/if}
+    </div>
     <div
       class="box chat-box chat-container"
       style:left={sidebarOpen ? "300px" : "0px"}
@@ -403,12 +418,7 @@
     overflow: hidden;
     margin: -3.25rem 0 0 -3.25rem;
   }
-  .sidebar-toggle {
-    position: fixed;
-    top: 4.25rem;
-    left: 1rem;
-    z-index: 200;
-  }
+
   aside.sidebar {
     display: flex;
     flex-direction: column;
@@ -432,6 +442,9 @@
     z-index: 10;
     padding-bottom: 1rem;
   }
+  .sidebar-header button {
+    z-index: 210;
+  }
   .sidebar-body {
     flex: 1;
     overflow-y: auto;
@@ -453,23 +466,40 @@
   .main-content.expanded {
     margin-left: 0;
   }
+  /* A single fixed wrapper that spans the full width */
+  .top-bar {
+    position: fixed;
+    top: 4rem; /* same as .chat-container top */
+    left: 0;
+    right: 0;
+    height: 3rem; /* same as chat-header height */
+    backdrop-filter: blur(4px);
+    z-index: 200;
+  }
+
+  /* fixed‐position toggle inside the blur zone */
+  .sidebar-toggle {
+    position: absolute;
+    top: 0.25rem;
+    left: 1rem; /* NEVER changes */
+    background: none;
+    border: none;
+    color: #e0e0e0;
+    z-index: 210;
+  }
+
+  /* your moving title inside the same blur zone */
   .chat-header {
     position: absolute;
-    top: 1rem;
-    left: 1rem;
-    right: 0;
-    height: 3rem;
+    top: 0;
+    /* left is still controlled by sidebarOpen */
     padding: 0.75rem 1rem;
     color: #e0e0e0;
     font-size: 1.25rem;
-    z-index: 50;
-    backdrop-filter: blur(4px);
-    background: none;
-    width: fit-content;
-    max-width: 75%;
+    white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    white-space: nowrap;
+    z-index: 200;
   }
   html,
   body {

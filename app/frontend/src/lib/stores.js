@@ -3,6 +3,8 @@ import { writable } from "svelte/store";
 
 export const currentContext = writable(null);
 export const dockerContexts = writable([]);
+export const conversationId = writable(null);
+
 
 export async function refreshDockerContexts() {
   try {
