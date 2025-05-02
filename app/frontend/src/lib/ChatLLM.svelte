@@ -181,8 +181,14 @@
       const res = await fetch(`/api/chat/conversation/${id}`, {
         method: "DELETE",
       });
-      if (!res.ok) throw new Error(`Failed to delete conversation: ${res.status}`);
+      if (!res.ok)
+        throw new Error(`Failed to delete conversation: ${res.status}`);
+
       conversationHistory = conversationHistory.filter((c) => c.id !== id);
+
+      if (id === conversationId) {
+        newConversation();
+      }
     } catch (e) {
       console.error("Error deleting conversation:", e);
       alert("Failed to delete conversation.");
@@ -383,7 +389,7 @@
   <main class="main-content" class:expanded={!sidebarOpen}>
     <!-- Separate toggle, own blur wrapper -->
     <button class="sidebar-toggle" on:click={toggleSidebar}>
-      {#if sidebarOpen}❌{:else}☰{/if}
+      {#if sidebarOpen}◀{:else}☰{/if}
     </button>
 
     <!-- Shifting blur + title -->
