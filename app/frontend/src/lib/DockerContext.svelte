@@ -1,7 +1,11 @@
 <script>
   import { onMount } from "svelte";
   import ModalTerminal from "./ModalTerminal.svelte";
-  import { currentContext, dockerContexts, refreshDockerContexts } from "$lib/stores";
+  import {
+    currentContext,
+    dockerContexts,
+    refreshDockerContexts,
+  } from "$lib/stores";
 
   /**
    * @typedef {Object} SSHConfig
@@ -199,7 +203,6 @@
     }
   }
 
-
   /**
    * Tests (or creates then tests) a Docker context for the given host alias.
    * @param {string} host The host alias to test.
@@ -299,9 +302,10 @@
 
       // 🔔 After all, if docker delete failed, warn user
       if (dockerDeleteFailed) {
-        alert(`Warning: SSH config was deleted, but failed to delete Docker context for ${host}.`);
+        alert(
+          `Warning: SSH config was deleted, but failed to delete Docker context for ${host}.`,
+        );
       }
-
     } catch (err) {
       alert(err instanceof Error ? err.message : String(err));
       console.error("Error deleting configuration:", err);
@@ -325,7 +329,8 @@
       });
       const data = await response.json();
       if (!response.ok) {
-        formError = data.detail || "An error occurred while adding the SSH connection.";
+        formError =
+          data.detail || "An error occurred while adding the SSH connection.";
         return;
       }
 
@@ -341,7 +346,6 @@
         await testDockerContext(firstHost);
         await setDefaultContext(firstHost);
       }
-
     } catch (err) {
       formError = err instanceof Error ? err.message : String(err);
       console.error("Error adding SSH configuration:", err);
@@ -394,7 +398,10 @@
         alert("Failed to set default Docker context.");
       }
     } catch (err) {
-      alert("Error setting default context: " + (err instanceof Error ? err.message : String(err)));
+      alert(
+        "Error setting default context: " +
+          (err instanceof Error ? err.message : String(err)),
+      );
     }
   }
 
@@ -405,7 +412,7 @@
   });
 </script>
 
-<div class="container">
+<div class="is-flex is-flex-direction-column is-justify-content-space-between">
   {#if error}
     <div class="notification is-danger">{error}</div>
   {:else if sshConfigs === null}
@@ -413,126 +420,140 @@
   {:else if sshConfigs.length === 0}
     <div class="notification is-warning">No SSH connections defined.</div>
   {:else}
-    <table class="table is-striped is-hoverable">
-      <thead>
-        <tr>
-          <th>Host</th>
-          <th>HostName</th>
-          <th>User</th>
-          <th>Port</th>
-          <th class="has-text-centered">Status</th>
-          <th>Manage</th>
-        </tr>
-      </thead>
-      <tbody>
-        {#each sshConfigs as config}
+    <div
+      class="is-flex is-align-items-center is-justify-content-space-between m-4"
+    >
+      <h1 class="title m-0">SSH Config and Docker Contexts</h1>
+      <div class="field has-addons">
+        <p class="control">
+          <button class="button is-link" onclick={openAddForm}>
+            Add new context
+          </button>
+        </p>
+      </div>
+    </div>
+    <div class="is-scrollable-y">
+      <table class="table is-striped is-hoverable">
+        <thead>
           <tr>
-            <td>{config.Host[0]}</td>
-            <td>{config.HostName}</td>
-            <td>{config.User}</td>
-            <td>{config.Port}</td>
-            <td class="has-text-centered">
-              {#if statuses[config.Host[0]] === "pending"}
-                <span
-                  role="img"
-                  aria-label="Pending check"
-                  title="Pending check">🕑</span
-                >
-              {:else if statuses[config.Host[0]] === "success"}
-                {#if dockerStatuses[config.Host[0]] === "error"}
-                  <!-- If the Docker test fails, replace the checkmark with a quarter moon,
-                       using the error detail in the aria-label and title -->
-                  <span
-                    role="img"
-                    aria-label={dockerDetails[config.Host[0]] ||
-                      "Docker context failed"}
-                    title={dockerDetails[config.Host[0]] ||
-                      "Docker context failed"}>🌓</span
-                  >
-                {:else}
-                  <span
-                    role="img"
-                    aria-label="Connection successful"
-                    title="Connection successful">✅</span
-                  >
-                  {#if dockerStatuses[config.Host[0]] === "success"}
-                    <span
-                      role="img"
-                      aria-label="Docker context successful"
-                      title="Docker context successful">🐋</span
-                    >
+            <th>Host</th>
+            <th>HostName</th>
+            <th>User</th>
+            <th>Port</th>
+            <th class="has-text-centered">Status</th>
+            <th>Manage</th>
+          </tr>
+        </thead>
+        <tbody>
+          {#each sshConfigs as config}
+            <tr>
+              <td
+                >{config.Host[0]}
+                {#if dockerStatuses[config.Host[0]] === "success"}
+                  {#if defaultContext === config.Host[0]}
+                    <span class="tag ml-2 is-dark no-pointer">🏁 Default</span>
                   {/if}
                 {/if}
-              {:else if statuses[config.Host[0]] === "error"}
-                <span
-                  role="img"
-                  aria-label="Connection failed"
-                  title="Connection failed">❌</span
-                >
-              {/if}
-            </td>
-            <td>
-              <button
-                class="button is-danger is-small"
-                onclick={() => deleteSSHConfig(config.Host[0])}
-              >
-                Delete
-              </button>
-              {#if statuses[config.Host[0]] === "success"}
+              </td>
+              <td>{config.HostName}</td>
+              <td>{config.User}</td>
+              <td>{config.Port}</td>
+              <td class="has-text-centered">
+                {#if statuses[config.Host[0]] === "pending"}
+                  <span
+                    role="img"
+                    aria-label="Pending check"
+                    title="Pending check">🕑</span
+                  >
+                {:else if statuses[config.Host[0]] === "success"}
+                  {#if dockerStatuses[config.Host[0]] === "error"}
+                    <!-- If the Docker test fails, replace the checkmark with a quarter moon,
+                       using the error detail in the aria-label and title -->
+                    <span
+                      role="img"
+                      aria-label={dockerDetails[config.Host[0]] ||
+                        "Docker context failed"}
+                      title={dockerDetails[config.Host[0]] ||
+                        "Docker context failed"}>🌓</span
+                    >
+                  {:else}
+                    <span
+                      role="img"
+                      aria-label="Connection successful"
+                      title="Connection successful">✅</span
+                    >
+                    {#if dockerStatuses[config.Host[0]] === "success"}
+                      <span
+                        role="img"
+                        aria-label="Docker context successful"
+                        title="Docker context successful">🐋</span
+                      >
+                    {/if}
+                  {/if}
+                {:else if statuses[config.Host[0]] === "error"}
+                  <span
+                    role="img"
+                    aria-label="Connection failed"
+                    title="Connection failed">❌</span
+                  >
+                {/if}
+              </td>
+              <td>
                 <button
-                  class="button is-info is-small"
-                  onclick={() =>
-                    openTerminal(
-                      config.Host[0],
-                      `ssh -t ${config.Host[0]}`,
-                      "true",
-                    )}
+                  class="button is-danger is-small"
+                  onclick={() => deleteSSHConfig(config.Host[0])}
                 >
-                  Connect
+                  Delete
                 </button>
-                <button
-                  class="button is-light is-small"
-                  onclick={() => openInfoModal(config.Host[0])}
-                >
-                  Info
-                </button>
-                {#if dockerStatuses[config.Host[0]] === "error"}
+                {#if statuses[config.Host[0]] === "success"}
                   <button
-                    class="button is-warning is-small"
+                    class="button is-info is-small"
                     onclick={() =>
                       openTerminal(
                         config.Host[0],
-                        `ssh -t ${config.Host[0]} "curl -sSL https://get.docker.com | sh"`,
-                        "false",
+                        `ssh -t ${config.Host[0]}`,
+                        "true",
                       )}
                   >
-                    Install Docker
+                    Connect
                   </button>
-                {/if}
-                {#if dockerStatuses[config.Host[0]] === "success"}
-                  {#if defaultContext === config.Host[0]}
-                    <span class="tag is-success is-light">🏁 Default</span>
-                  {:else}
-                    <button
-                      class="button is-primary is-small"
-                      onclick={() => setDefaultContext(config.Host[0])}
+                  <button
+                    class="button is-light is-small"
+                    onclick={() => openInfoModal(config.Host[0])}
+                  >
+                    Info
+                  </button>
+                  {#if dockerStatuses[config.Host[0]] === "success"}
+                    {#if defaultContext != config.Host[0]}
+                      <button
+                        class="button is-primary is-small"
+                        onclick={() => setDefaultContext(config.Host[0])}
                       >
-                      Set Default
+                        Set Default
+                      </button>
+                    {/if}
+                  {/if}
+                  {#if dockerStatuses[config.Host[0]] === "error"}
+                    <button
+                      class="button is-warning is-small"
+                      onclick={() =>
+                        openTerminal(
+                          config.Host[0],
+                          `ssh -t ${config.Host[0]} "curl -sSL https://get.docker.com | sh"`,
+                          "false",
+                        )}
+                    >
+                      Install Docker
                     </button>
                   {/if}
                 {/if}
-              {/if}
-            </td>
-          </tr>
-        {/each}
-      </tbody>
-    </table>
+              </td>
+            </tr>
+          {/each}
+        </tbody>
+      </table>
+    </div>
   {/if}
-  <div class="has-text-centered" style="margin-top: 1rem;">
-    <button class="button is-link" onclick={openAddForm}>
-      Add new context
-    </button>
-  </div>
 </div>
 
 <!-- Modal for adding a new SSH connection -->
@@ -559,8 +580,7 @@
       >
         <pre
           onclick={selectPre}
-          style="background: #371d1d; padding: 1em; border-radius: 4px; flex-grow: 1; font-weight: bold;"
-        >{clientKey}</pre>
+          style="background: #371d1d; padding: 1em; border-radius: 4px; flex-grow: 1; font-weight: bold;">{clientKey}</pre>
         <button type="button" class="button is-small" onclick={copyClientKey}>
           {copyIcon}
         </button>
@@ -656,12 +676,7 @@
             </button>
           </p>
           <p class="control">
-            <button
-              type="submit"
-              class="button is-primary"
-            >
-              Add
-            </button>
+            <button type="submit" class="button is-primary"> Add </button>
           </p>
         </div>
       </form>
@@ -674,9 +689,8 @@
   title={activeTerminalHost}
   restartable={terminalRestartable}
   visible={showTerminal}
-  on:close={() => showTerminal = false}
+  on:close={() => (showTerminal = false)}
 />
-
 
 {#if showInfoModal}
   <div class="modal is-active">

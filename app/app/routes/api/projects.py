@@ -10,12 +10,12 @@ from fastapi.responses import JSONResponse
 from .lib import parse_docker_compose_services
 
 """
-General information about available apps and default configs.
+General information about available projects and default configs.
 """
 
 logger = logging.getLogger("uvicorn.error")
 
-router = APIRouter(prefix="/api/apps", tags=["apps"])
+router = APIRouter(prefix="/api/projects", tags=["projects"])
 
 from fastapi.responses import JSONResponse
 from fastapi import HTTPException
@@ -26,7 +26,7 @@ import logging
 logger = logging.getLogger("uvicorn.error")
 
 
-async def get_available_apps():
+async def get_available_projects():
     command = [DRY_COMMAND, "list"]
 
     try:
@@ -40,14 +40,14 @@ async def get_available_apps():
 
         lines = result.stdout.strip().splitlines()
         service_lines = lines[1:]  # skip header
-        apps = []
+        projects = []
         for line in service_lines:
-            apps.extend(line.strip().split())
+            projects.extend(line.strip().split())
 
         descriptions = parse_readme_descriptions()
         app_data = []
 
-        for app in sorted(apps):
+        for app in sorted(projects):
             try:
                 # Only include if instantiable
                 await api_routes.env_dist.get_env_dist_data(app)
@@ -68,15 +68,15 @@ async def get_available_apps():
         return app_data
 
     except Exception:
-        logger.error("Failed to load available apps:\n%s", traceback.format_exc())
+        logger.error("Failed to load available projects:\n%s", traceback.format_exc())
         raise
 
 
 @router.get("/available/")
-async def get_apps_available():
+async def get_projects_available():
     try:
-        app_data = await get_available_apps()
-        return JSONResponse(content={"apps": app_data})
+        app_data = await get_available_projects()
+        return JSONResponse(content={"projects": app_data})
     except Exception as e:
         return JSONResponse(
             status_code=500,
@@ -110,7 +110,7 @@ def parse_readme_descriptions():
     if not os.path.exists(readme_path):
         return {}
 
-    apps_with_descriptions = {}
+    projects_with_descriptions = {}
 
     try:
         with open(readme_path, "r", encoding="utf-8") as file:
@@ -141,7 +141,7 @@ def parse_readme_descriptions():
                     link_name = link_name.strip().lower()
 
                     if description:
-                        apps_with_descriptions[link_name] = description.strip()
+                        projects_with_descriptions[link_name] = description.strip()
                         current_app = None
                     else:
                         current_app = link_name
@@ -149,11 +149,11 @@ def parse_readme_descriptions():
                     continue
 
                 if current_app and expecting_description and line.startswith("*"):
-                    apps_with_descriptions[current_app] = line.lstrip("*- ").strip()
+                    projects_with_descriptions[current_app] = line.lstrip("*- ").strip()
                     current_app = None
                     expecting_description = False
 
     except Exception as e:
         print(f"Error reading README.md: {e}")
 
-    return apps_with_descriptions
+    return projects_with_descriptions

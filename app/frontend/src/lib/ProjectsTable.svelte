@@ -10,7 +10,7 @@
 
   let { show_all } = $props();
 
-  let apps = $state([]);
+  let projects = $state([]);
   let loading = $state(true);
   let error = $state(null);
   let configApp = $state(null);
@@ -30,11 +30,11 @@
     "🔟",
   ];
 
-  async function fetchApps() {
-    const res = await fetch("/api/apps/available/");
-    if (!res.ok) throw new Error(`Error fetching apps: ${res.statusText}`);
+  async function fetchProjects() {
+    const res = await fetch("/api/projects/available/");
+    if (!res.ok) throw new Error(`Error fetching projects: ${res.statusText}`);
     const data = await res.json();
-    apps = data.apps;
+    projects = data.projects;
   }
 
   async function fetchInstanceCounts() {
@@ -72,7 +72,7 @@
     error = null;
 
     try {
-      await Promise.all([fetchApps(), fetchInstanceCounts()]);
+      await Promise.all([fetchProjects(), fetchInstanceCounts()]);
     } catch (err) {
       error = /** @type {Error} */ (err).message;
     } finally {
@@ -82,13 +82,13 @@
 </script>
 
 {#if loading}
-  <div class="notification is-info">Loading apps…</div>
+  <div class="notification is-info">Loading projects…</div>
 {:else if error}
   <div class="notification is-danger">❌ {error}</div>
 {:else if show_all != true && Object.keys(instanceCounts).length === 0}
-  <div class="notification is-warning">No apps configured.</div>
+  <div class="notification is-warning">No projects configured.</div>
 {:else}
-  <div class="apps-table is-scrollable-y">
+  <div class="projects-table is-scrollable-y">
     <table class="table is-striped is-hoverable is-fullwidth">
       <thead>
         <tr>
@@ -98,7 +98,7 @@
         </tr>
       </thead>
       <tbody>
-        {#each apps.filter((app) => show_all || (instanceCounts[app.name] || 0) > 0) as app}
+        {#each projects.filter((app) => show_all || (instanceCounts[app.name] || 0) > 0) as app}
           <tr>
             <td>
               <a

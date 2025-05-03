@@ -159,13 +159,13 @@
       </div>
 
       <a
-        class="navbar-item is-deep-red {'/apps/' === $page.url.pathname
+        class="navbar-item is-deep-red {'/projects/' === $page.url.pathname
           ? 'is-active'
           : ''}"
         onclick={handleDropdownItemClick}
-        href="/apps/"
+        href="/projects/"
       >
-        Apps
+        Projects
       </a>
       <a
         class="navbar-item is-deep-red {'/workstation/' === $page.url.pathname

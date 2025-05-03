@@ -4,7 +4,7 @@ from . import (
     repo,
     terminal,
     env_dist,
-    apps,
+    projects,
     d_rymcg_tech,
     instances,
     chat,

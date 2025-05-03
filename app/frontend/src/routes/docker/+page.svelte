@@ -9,7 +9,6 @@
   <title>dry_agent - Context</title>
 </svelte:head>
 
-<h1 class="title">SSH Config and Docker Contexts</h1>
 {#key contextKey}
   <DockerContext />
 {/key}

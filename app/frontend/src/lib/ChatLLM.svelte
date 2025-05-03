@@ -352,7 +352,7 @@
   <aside class="sidebar" class:collapsed={!sidebarOpen}>
     <div class="sidebar-header">
       <button
-        class="button is-link mt-2 is-pulled-right"
+        class="button is-link m-2 is-pulled-right"
         on:click={newConversation}
       >
         New Conversation
@@ -493,7 +493,6 @@
     display: flex;
     height: 100vh;
     overflow: hidden;
-    margin: -3.25rem 0 0 -3.25rem;
   }
 
   aside.sidebar {
@@ -502,7 +501,7 @@
     width: 300px;
     background: #222;
     color: #fff;
-    padding: 1rem 0 0 0;
+    padding: 0;
     overflow-y: auto;
     transition: width 0.3s ease;
   }

@@ -26,6 +26,8 @@ body > div {
   flex-direction: column;
   flex: 1;
   overflow-y: auto;
+  margin: 0;
+  padding: 0;
 }
 
 /* body.no-scroll { */
@@ -235,6 +237,11 @@ table td a.has-text-link:hover {
 
 hr.is-light-red {
   background-color: #fca5a5;
+}
+
+.no-pointer {
+  pointer-events: none;
+  user-select: none;
 }
 
 .loader {

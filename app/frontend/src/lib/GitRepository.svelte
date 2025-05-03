@@ -97,7 +97,7 @@
   }
 </script>
 
-<div class="space-y-2">
+<div class="space-y-2 m-4">
   {#if $branches.length > 0}
     <label for="branch-select" class="block font-semibold">Switch Branch</label>
     <select

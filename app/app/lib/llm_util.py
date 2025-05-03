@@ -2,7 +2,7 @@
 
 from app.routes.api.docker_context import get_docker_context, get_docker_context_names
 from app.routes.api.d_rymcg_tech import get_root_config, ConfigError
-from app.routes.api.apps import get_available_apps
+from app.routes.api.projects import get_available_projects
 from app.routes.api.instances import get_instances
 from typing import NamedTuple
 import logging
@@ -23,11 +23,11 @@ class SystemConfig(NamedTuple):
 async def get_system_config() -> SystemConfig:
     docker_context = get_docker_context()
     all_contexts = get_docker_context_names()
-    available_apps = await get_available_apps()
+    available_projects = await get_available_projects()
     app_instances = get_instances(include_status=True)
 
     # Gather known project and instance names
-    project_names = [app["name"] for app in available_apps]
+    project_names = [app["name"] for app in available_projects]
     instance_names = list({inst.instance for inst in app_instances})
 
     if len(all_contexts) == 0:
@@ -140,7 +140,7 @@ async def get_system_config() -> SystemConfig:
         root_domain=root_domain,
         app_instances=app_instances,
         other_contexts_message=", ".join(all_contexts) if all_contexts else "",
-        available_apps=", ".join(app["name"] for app in available_apps),
+        available_projects=", ".join(app["name"] for app in available_projects),
     )
 
     system_message = {"role": "system", "content": content}
