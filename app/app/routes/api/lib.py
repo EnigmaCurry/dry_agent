@@ -6,6 +6,9 @@ from typing import Dict, Tuple
 import re
 import yaml
 from typing import Iterator
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def run_command(
@@ -20,6 +23,7 @@ def run_command(
     instead of raising an exception.
     """
     try:
+        logging.info(f"run_command: {cmd}")
         result = subprocess.run(
             cmd,
             stdout=subprocess.PIPE,

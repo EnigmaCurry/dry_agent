@@ -731,4 +731,56 @@
     padding-bottom: 0.5em;
     margin-left: 1.5em;
   }
+
+  :global(.markdown-body table),
+  :global(.markdown-body thead),
+  :global(.markdown-body tbody),
+  :global(.markdown-body tfoot),
+  :global(.markdown-body tr),
+  :global(.markdown-body th),
+  :global(.markdown-body td) {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    font: inherit;
+    vertical-align: top;
+    border-collapse: collapse;
+    border-spacing: 0;
+  }
+
+  :global(.markdown-body table) {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: #1e1e1e;
+    color: #e0e0e0;
+  }
+
+  :global(.markdown-body thead) {
+    background-color: #2a2a2a;
+  }
+
+  :global(.markdown-body th) {
+    text-align: left;
+    padding: 0.75rem;
+    font-weight: bold;
+    border-bottom: 1px solid #444;
+  }
+
+  :global(.markdown-body td) {
+    padding: 0.75rem;
+    border-bottom: 1px solid #333;
+  }
+
+  :global(.markdown-body tbody tr:nth-child(odd)) {
+    background-color: #1e1e1e;
+  }
+
+  :global(.markdown-body tbody tr:nth-child(even)) {
+    background-color: #2b2b2b;
+  }
+
+  :global(.markdown-body tbody tr:hover) {
+    background-color: #3a3a3a;
+  }
+
 </style>

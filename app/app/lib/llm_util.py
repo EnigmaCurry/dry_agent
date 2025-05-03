@@ -31,7 +31,7 @@ async def get_system_config() -> SystemConfig:
             system_message={
                 "role": "system",
                 "content": """You are a helpful assistant for managing
-                    Docker services, but you have been misconfigured
+                    Docker Compose projects, but you have been misconfigured
                     and do not have access to any configured Docker
                     contexts. Inform the user they must first create a
                     Docker context and set a root config before using
@@ -47,24 +47,52 @@ async def get_system_config() -> SystemConfig:
         root_config = None
         root_domain = None
 
-    tool_spec = {
-        "type": "function",
-        "function": {
-            "name": "set_default_context",
-            "description": "Switch the current Docker context",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "context": {
-                        "type": "string",
-                        "description": "The name of the Docker context to switch to",
-                        "enum": all_contexts if all_contexts is not None else [],
-                    }
+    tool_spec = [
+        {
+            "type": "function",
+            "function": {
+                "name": "set_default_context",
+                "description": "Switch the current Docker context",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "context": {
+                            "type": "string",
+                            "description": "The name of the Docker context to switch to",
+                            "enum": all_contexts if all_contexts is not None else [],
+                        }
+                    },
+                    "required": ["context"],
                 },
-                "required": ["context"],
             },
         },
-    }
+        {
+            "type": "function",
+            "function": {
+                "name": "control_docker_project",
+                "description": "Start or stop a Docker project by name.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "action": {
+                            "type": "string",
+                            "description": "The action to perform on the project. Must be 'start' or 'stop'.",
+                            "enum": ["start", "stop"],
+                        },
+                        "project": {
+                            "type": "string",
+                            "description": "The name of the Docker project to control.",
+                        },
+                        "instance": {
+                            "type": "string",
+                            "description": "The instance of the Docker project to control.",
+                        },
+                    },
+                    "required": ["action", "project", "instance"],
+                },
+            },
+        },
+    ]
 
     template = Template(SYSTEM_TEMPLATE)
     content = template.render(
