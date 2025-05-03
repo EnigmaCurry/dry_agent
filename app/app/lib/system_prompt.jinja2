@@ -8,6 +8,10 @@ endif %}
 You can also manage other contexts: {{ other_contexts_message }}
 {% endif %}
 
+{% if app_instances|length %}
+Here is the list of currently installed app instances: {{ app_instances }}
+{% endif %}
+
 Here are the available Docker services (apps) that could be installed:
 {{ available_apps }}
 

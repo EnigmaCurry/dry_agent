@@ -110,7 +110,7 @@
       if (!rootEnvRes.ok) {
         throw new Error(`Failed to fetch root env: ${rootEnvRes.status}`);
       }
-      rootEnv = (await rootEnvRes.json()).env;
+      rootEnv = (await rootEnvRes.json());
     } catch (err) {
       console.error(err);
       error = err.message;

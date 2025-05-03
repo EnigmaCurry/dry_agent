@@ -31,7 +31,7 @@
   ];
 
   async function fetchApps() {
-    const res = await fetch("/api/apps/available");
+    const res = await fetch("/api/apps/available/");
     if (!res.ok) throw new Error(`Error fetching apps: ${res.statusText}`);
     const data = await res.json();
     apps = data.apps;

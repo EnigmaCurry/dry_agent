@@ -72,8 +72,8 @@ async def get_available_apps():
         raise
 
 
-@router.get("/apps")
-async def list_apps():
+@router.get("/available/")
+async def get_apps_available():
     try:
         app_data = await get_available_apps()
         return JSONResponse(content={"apps": app_data})

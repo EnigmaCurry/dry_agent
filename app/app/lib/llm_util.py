@@ -3,6 +3,7 @@
 from app.routes.api.docker_context import get_docker_context, get_docker_context_names
 from app.routes.api.d_rymcg_tech import get_root_config, ConfigError
 from app.routes.api.apps import get_available_apps
+from app.routes.api.instances import get_instances
 from typing import NamedTuple
 import logging
 from jinja2 import Template
@@ -23,6 +24,7 @@ async def get_system_config() -> SystemConfig:
     docker_context = get_docker_context()
     all_contexts = get_docker_context_names()
     available_apps = await get_available_apps()
+    app_instances = get_instances(include_status=True)
 
     if len(all_contexts) == 0:
         return SystemConfig(
@@ -66,12 +68,15 @@ async def get_system_config() -> SystemConfig:
 
     template = Template(SYSTEM_TEMPLATE)
     content = template.render(
+        docker_context=docker_context,
+        all_contexts=all_contexts,
         context_message=(
             f"for the current Docker context named '{docker_context}'"
             if docker_context
             else ""
         ),
         root_domain=root_domain,
+        app_instances=app_instances,
         other_contexts_message=", ".join(all_contexts) if all_contexts else "",
         available_apps=", ".join(app["name"] for app in available_apps),
     )
