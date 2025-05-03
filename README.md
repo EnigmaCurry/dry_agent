@@ -153,3 +153,11 @@ There is an SSH server built in which is an alternative to using the
 webapp. The SSH server listens on localhost at `SSH_LOCALHOST_PORT`
 (35222) and Traefik proxies this port to `PUBLIC_SUBNET` on port
 `PUBLIC_SSH_PORT` (2225).
+
+### Development
+
+```
+make dev
+```
+
+(This target is simply a shortcut for `make install open logs`.)

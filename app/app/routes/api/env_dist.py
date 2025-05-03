@@ -5,7 +5,7 @@ from .lib import (
     parse_makefile_open_hook_path,
 )
 
-router = APIRouter(prefix="/api/apps/env-dist", tags=["apps"])
+router = APIRouter(prefix="/api/projects/env-dist", tags=["projects"])
 
 
 async def get_env_dist_data(app: str) -> dict:

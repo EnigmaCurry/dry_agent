@@ -418,6 +418,18 @@
   {:else if sshConfigs === null}
     <div class="notification is-info">Loading SSH connections...</div>
   {:else if sshConfigs.length === 0}
+    <div
+      class="is-flex is-align-items-center is-justify-content-space-between m-4"
+    >
+      <h1 class="title m-0">SSH Config and Docker Contexts</h1>
+      <div class="field has-addons">
+        <p class="control">
+          <button class="button is-link" onclick={openAddForm}>
+            Add new context
+          </button>
+        </p>
+      </div>
+    </div>
     <div class="notification is-warning">No SSH connections defined.</div>
   {:else}
     <div

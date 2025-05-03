@@ -10,7 +10,7 @@
   let instances = $state([]);
   let rootEnv = $state(null);
   let envDist = $state(null);
-  let appServices = $state([]);
+  let projectServices = $state([]);
   let loading = $state(true);
   let error = $state(null);
   let validationErrors = $state({});
@@ -89,24 +89,24 @@
       }
 
       const envDistRes = await fetch(
-        `/api/apps/env-dist/?app=${encodeURIComponent(app)}`,
+        `/api/projects/env-dist/?app=${encodeURIComponent(app)}`,
       );
       if (!envDistRes.ok) {
         throw new Error(`Failed to fetch env_dist: ${envDistRes.status}`);
       }
       envDist = await envDistRes.json();
 
-      const appServicesRes = await fetch(
-        `/api/apps/services/?app=${encodeURIComponent(app)}`,
+      const projectServicesRes = await fetch(
+        `/api/projects/services/?app=${encodeURIComponent(app)}`,
       );
-      if (!appServicesRes.ok) {
+      if (!projectServicesRes.ok) {
         throw new Error(
-          `Failed to fetch app services: ${appServicesRes.status}`,
+          `Failed to fetch app services: ${projectServicesRes.status}`,
         );
       }
-      appServices = (await appServicesRes.json()).services;
+      projectServices = (await projectServicesRes.json()).services;
 
-      console.log("appServices", $state.snapshot(appServices));
+      console.log("projectServices", $state.snapshot(projectServices));
       const rootEnvRes = await fetch(`/api/d.rymcg.tech/config`);
       if (!rootEnvRes.ok) {
         throw new Error(`Failed to fetch root env: ${rootEnvRes.status}`);
@@ -351,7 +351,7 @@
             on:click={() =>
               openTerminal(`d.rymcg.tech make ${app} cd`, false, true, false)}
           >
-            Terminal
+            Workstation
           </button>
         </p>
         <p class="control">
@@ -533,6 +533,18 @@
                           >
                             Logs
                           </button>
+                          <button
+                            class="button is-link"
+                            on:click={() =>
+                              openTerminal(
+                                `d.rymcg.tech make ${app} switch instance=${instance.instance}`,
+                                false,
+                                true,
+                                false,
+                              )}
+                          >
+                            Workstation
+                          </button>
                         {/if}
                         {#if statusMap[instance.instance] === "uninstalled"}
                           <button
@@ -664,7 +676,7 @@
             bind:value={terminalSelectedService}
           >
             <option value="all">all</option>
-            {#each $state.snapshot(appServices) as service}
+            {#each $state.snapshot(projectServices) as service}
               <option value={service}>{service}</option>
             {/each}
           </select>
