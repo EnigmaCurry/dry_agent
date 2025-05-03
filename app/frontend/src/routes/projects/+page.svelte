@@ -1,11 +1,29 @@
 <script>
   import { invalidateAll } from "$app/navigation";
+  import { page } from "$app/stores";
   import ProjectsTable from "$lib/ProjectsTable.svelte";
   import { currentContext } from "$lib/stores";
   let { data } = $props();
   const ConfigKey = $derived(currentContext);
 
+  // Default fallback
   let selectedTab = $state("configured_projects");
+
+  // Check for selected_tab query param
+  $effect(() => {
+    const tab = $page.url.searchParams.get("t");
+    if (tab === "configured_projects" || tab === "available_projects") {
+      selectedTab = tab;
+    }
+  });
+
+  $effect(() => {
+    const url = new URL(window.location);
+    if (url.searchParams.get("t") !== selectedTab) {
+      url.searchParams.set("t", selectedTab);
+      history.replaceState(null, "", url);
+    }
+  });
 
   function selectTab(tab) {
     selectedTab = tab;
@@ -14,7 +32,7 @@
   $effect(() => {
     if ($currentContext != null) {
       console.log("invalidate page");
-      invalidateAll(); // 🔥 re-run load(), refresh props!
+      invalidateAll();
     }
   });
 </script>
