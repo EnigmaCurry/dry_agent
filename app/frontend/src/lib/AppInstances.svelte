@@ -30,7 +30,8 @@
   let fetchedServiceStatus = $state(false);
   let terminalSelectedService = $state("all");
 
-  const cidrRegex = /^(?:(?:25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)\.){3}(?:25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)\/(?:[0-9]|[1-2][0-9]|3[0-2])$/;
+  const cidrRegex =
+    /^(?:(?:25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)\.){3}(?:25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)\/(?:[0-9]|[1-2][0-9]|3[0-2])$/;
   const domainRegex = /^(?!-)(?:[a-zA-Z0-9-]{1,63}(?<!-)\.)+[a-zA-Z]{2,}$/;
 
   let terminalControls;
@@ -110,7 +111,7 @@
       if (!rootEnvRes.ok) {
         throw new Error(`Failed to fetch root env: ${rootEnvRes.status}`);
       }
-      rootEnv = (await rootEnvRes.json());
+      rootEnv = await rootEnvRes.json();
     } catch (err) {
       console.error(err);
       error = err.message;
@@ -278,7 +279,7 @@
       validationErrors = {
         ...validationErrors,
         [key]: isValid ? null : "Must not start or end with whitespace",
-      }
+      };
       return isValid;
     } else if (key === `${envDist.meta.PREFIX}_IP_SOURCERANGE`) {
       const isValid = cidrRegex.test(value);
@@ -294,7 +295,11 @@
         [key]: isValid ? null : "Must be a valid domain (e.g. foo.example.com)",
       };
       return isValid;
-    } else if (key.endsWith("_UID") || key.endsWith("_GID") || key.endsWith("_PORT")) {
+    } else if (
+      key.endsWith("_UID") ||
+      key.endsWith("_GID") ||
+      key.endsWith("_PORT")
+    ) {
       const n = Number(value);
       const isValid = Number.isInteger(n) && n >= 0 && n <= 65535;
       validationErrors = {
@@ -326,19 +331,44 @@
 {#key ContextKey}
   {#if $currentContext != "default" && $currentContext != null}
     <div
-      class="is-flex is-align-items-center is-justify-content-space-between mb-4"
+      class="is-flex is-align-items-center is-justify-content-space-between m-4"
     >
-      <h1 class="title">{appTitle}</h1>
-      <button
-        class="button is-info"
-        on:click={() =>
-          openTerminal(
-            `d.rymcg.tech make ${app} instance-new`,
-            false,
-            true,
-            false,
-          )}>New Instance</button
-      >
+      <h1 class="title m-0">
+        {appTitle}
+        <span class="subtitle is-6 ml-4"
+          ><a
+            href="https://github.com/EnigmaCurry/d.rymcg.tech/blob/master/{app}/README.md"
+            target="_blank"
+          >
+            README</a
+          ></span
+        >
+      </h1>
+      <div class="field has-addons">
+        <p class="control">
+          <button
+            class="button is-link"
+            on:click={() =>
+              openTerminal(`d.rymcg.tech make ${app} cd`, false, true, false)}
+          >
+            Terminal
+          </button>
+        </p>
+        <p class="control">
+          <button
+            class="button is-primary"
+            on:click={() =>
+              openTerminal(
+                `d.rymcg.tech make ${app} instance-new`,
+                false,
+                true,
+                false,
+              )}
+          >
+            New Instance
+          </button>
+        </p>
+      </div>
     </div>
 
     {#if loading}

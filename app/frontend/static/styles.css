@@ -13,21 +13,38 @@ body {
   padding-top: 3.25rem;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+  height: 100vh;
 }
 
-body.no-scroll {
-  overflow: hidden;
+body > div {
+  display: flex;
 }
+
+.is-scrollable-y {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow-y: auto;
+}
+
+/* body.no-scroll { */
+/*   overflow: hidden; */
+/* } */
 
 a:hover {
   color: #dddddd;
 }
 
 .section {
+  display: flex;
   min-height: 100vh;
+  padding: 1em 0 0 0;
 }
 
 .section > .container {
+  display: flex;
+  flex-direction: column;
   max-width: none !important;
   width: 100% !important;
   padding: 0;

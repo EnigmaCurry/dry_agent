@@ -88,45 +88,47 @@
 {:else if show_all != true && Object.keys(instanceCounts).length === 0}
   <div class="notification is-warning">No apps configured.</div>
 {:else}
-  <table class="table is-striped is-hoverable is-fullwidth">
-    <thead>
-      <tr>
-        <th>Configure</th>
-        <th>Instances</th>
-        <th>README</th>
-      </tr>
-    </thead>
-    <tbody>
-      {#each apps.filter((app) => show_all || (instanceCounts[app.name] || 0) > 0) as app}
+  <div class="apps-table is-scrollable-y">
+    <table class="table is-striped is-hoverable is-fullwidth">
+      <thead>
         <tr>
-          <td>
-            <a
-              href="/instances/?app={app.name}"
-              class="button is-dark is-fullwidth"
-            >
-              {app.name}
-            </a>
-          </td>
-          <td>
-            <span
-              title="{app.name} has {instanceCounts[app.name] ||
-                0} configured instances"
-              style="font-size: 1.5em;"
-              class="noselect">{@html renderInstanceEmojis(app.name)}</span
-            >
-          </td>
-          <td>
-            <a
-              href={`https://github.com/EnigmaCurry/d.rymcg.tech/blob/master/${app.name}/README.md`}
-              target="_blank"
-              rel="noopener noreferrer"
-              class="is-link"
-            >
-              {app.description}
-            </a>
-          </td>
+          <th>Configure</th>
+          <th>Instances</th>
+          <th>README</th>
         </tr>
-      {/each}
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+        {#each apps.filter((app) => show_all || (instanceCounts[app.name] || 0) > 0) as app}
+          <tr>
+            <td>
+              <a
+                href="/instances/?app={app.name}"
+                class="button is-dark is-fullwidth"
+              >
+                {app.name}
+              </a>
+            </td>
+            <td>
+              <span
+                title="{app.name} has {instanceCounts[app.name] ||
+                  0} configured instances"
+                style="font-size: 1.5em;"
+                class="noselect">{@html renderInstanceEmojis(app.name)}</span
+              >
+            </td>
+            <td>
+              <a
+                href={`https://github.com/EnigmaCurry/d.rymcg.tech/blob/master/${app.name}/README.md`}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="is-link"
+              >
+                {app.description}
+              </a>
+            </td>
+          </tr>
+        {/each}
+      </tbody>
+    </table>
+  </div>
 {/if}

@@ -26,7 +26,7 @@
 {#key ConfigKey}
   {#if $currentContext != "default" && $currentContext != null}
     {#if data.configExists}
-      <div class="tabs is-toggle">
+      <div class="tabs is-toggle m-4">
         <ul>
           <li class:is-active={selectedTab === "configured_apps"}>
             <a
