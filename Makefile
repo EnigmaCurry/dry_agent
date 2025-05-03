@@ -204,3 +204,6 @@ ssh-authorize:
 .PHONY: migrate-db # Run database migrations
 migrate-db:
 	podman exec -i -w /app/app dry-agent-app python -m alembic upgrade head
+
+.PHONY: dev # Run development loop
+dev: install open logs

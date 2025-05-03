@@ -18,7 +18,7 @@
   let activeDropdown = $state(null);
 
   $effect(() => {
-    const isAgent = $page.url.pathname === "/agent/";
+    const isAgent = $page.url.pathname === "/";
     document.body.classList.toggle("no-scroll", isAgent);
   });
 
@@ -175,15 +175,6 @@
         href="/workstation/"
       >
         Workstation
-      </a>
-      <a
-        class="navbar-item is-deep-red {'/agent/' === $page.url.pathname
-          ? 'is-active'
-          : ''}"
-        onclick={handleDropdownItemClick}
-        href="/agent/"
-      >
-        Agent
       </a>
 
       <!-- <\!-- Dropdown Example -\-> -->

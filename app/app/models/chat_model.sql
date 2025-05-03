@@ -33,6 +33,7 @@ select
     c.id,
     c.title,
     c.created_at,
+    latest.latest_message_time as modified_at,
     case when length(first_sentence) > 100 then
         substr(first_sentence, 1, 100) || '...'
     else
@@ -54,8 +55,16 @@ from
                     message m2
                 where
                     m2.conversation_id = m1.conversation_id)) m on m.conversation_id = c.id
+    join (
+        select
+            conversation_id,
+            max(created_at) as latest_message_time
+        from
+            message
+        group by
+            conversation_id) latest on latest.conversation_id = c.id
 order by
-    c.created_at desc
+    latest.latest_message_time desc
 limit :page_size offset :offset;
 
 -- name: delete_conversation!

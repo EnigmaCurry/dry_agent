@@ -31,6 +31,7 @@
   let messages = $state([]);
   let input = $state("");
   let loading = $state(false);
+  let isNew = $state(true);
   let controller;
   let scrollAnchor;
   let inputElement;
@@ -141,6 +142,7 @@
     messages = [];
     conversationId = crypto.randomUUID();
     conversationTitle = "New Conversation";
+    isNew = true;
     convoIdStore.set(null);
     // drop the `id` param from the URL
     const u = new URL(window.location.href);
@@ -163,12 +165,12 @@
       messages = data.messages || [];
       conversationTitle = data.title ?? "Untitled";
       conversationId = id;
-      convoIdStore.set(id);
 
       // Update URL without reloading
       const u = new URL(window.location.href);
       u.searchParams.set("id", id);
       window.history.pushState({}, "", u);
+      isNew = false;
     } catch (err) {
       console.error("Failed loading conversation", err);
     } finally {
@@ -259,18 +261,27 @@
         e.name === "AbortError" ? "\n\n_⛔️ Stopped_" : `\n\n❌ ${e.message}`;
       messages[idx].is_error = true;
     } finally {
+      const storedId = get(convoIdStore);
       loading = false;
       controller = null;
       const u = new URL(window.location.href);
       if (!u.searchParams.get("id")) {
+        // New conversation saved
         u.searchParams.set("id", conversationId);
         window.history.replaceState({}, "", u);
         conversationHistory = [];
         currentHistoryPage = 1;
         hasMoreConversations = true;
-        await fetchConversations();
         convoIdStore.set(conversationId);
+        await fetchConversations();
         await updateTitle();
+      } else if (conversationId != storedId) {
+        // Saved existing conversation that wasn't the last one we saved to
+        convoIdStore.set(conversationId);
+        conversationHistory = [];
+        currentHistoryPage = 1;
+        hasMoreConversations = true;
+        await fetchConversations();
       }
     }
   }
@@ -341,7 +352,7 @@
   <aside class="sidebar" class:collapsed={!sidebarOpen}>
     <div class="sidebar-header">
       <button
-        class="button is-link mt-1 is-pulled-right"
+        class="button is-link mt-2 is-pulled-right"
         on:click={newConversation}
       >
         New Conversation
@@ -355,7 +366,7 @@
           fetchConversations();
       }}
     >
-      {#each conversationHistory as { id, title, preview, created_at }}
+      {#each conversationHistory as { id, title, preview, modified_at }}
         <div class="sidebar-item-wrapper">
           <button
             class="button is-fullwidth sidebar-item"
@@ -366,12 +377,12 @@
               <strong>{title}</strong><br />
               <small class="has-text-grey">{preview}</small><br />
               <small class="has-text-grey is-size-7">
-                {getRelativeTime(created_at)}
+                {getRelativeTime(modified_at)}
               </small>
             </div>
           </button>
           <button
-            class="delete-button"
+            class="delete-button mr-2"
             on:click={() => deleteConversation(id)}
             title="Delete conversation"
           >
@@ -396,7 +407,9 @@
     <div class="top-bar" style:left={sidebarOpen ? "300px" : "2rem"}>
       {#if conversationTitle}
         <div class="chat-header">
-          {conversationTitle}
+          {#if !isNew}
+            {conversationTitle}
+          {/if}
         </div>
       {/if}
     </div>
@@ -489,7 +502,7 @@
     width: 300px;
     background: #222;
     color: #fff;
-    padding: 1rem;
+    padding: 1rem 0 0 0;
     overflow-y: auto;
     transition: width 0.3s ease;
   }
@@ -532,7 +545,7 @@
     right: 0.4rem;
     background: transparent;
     border: none;
-    color: #f14668;
+    color: #b58690;
     font-weight: bold;
     font-size: 1.2rem;
     cursor: pointer;
@@ -782,5 +795,4 @@
   :global(.markdown-body tbody tr:hover) {
     background-color: #3a3a3a;
   }
-
 </style>

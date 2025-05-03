@@ -26,6 +26,10 @@ async def get_system_config() -> SystemConfig:
     available_apps = await get_available_apps()
     app_instances = get_instances(include_status=True)
 
+    # Gather known project and instance names
+    project_names = [app["name"] for app in available_apps]
+    instance_names = list({inst.instance for inst in app_instances})
+
     if len(all_contexts) == 0:
         return SystemConfig(
             system_message={
@@ -47,6 +51,7 @@ async def get_system_config() -> SystemConfig:
         root_config = None
         root_domain = None
 
+    # Define available tools
     tool_spec = [
         {
             "type": "function",
@@ -89,6 +94,35 @@ async def get_system_config() -> SystemConfig:
                         },
                     },
                     "required": ["action", "project", "instance"],
+                },
+            },
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "projects_status",
+                "description": "Get the current status of some or all Docker projects",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "projects": {
+                            "type": ["array", "null"],
+                            "description": "List of Docker project names to query. Pass null to query all.",
+                            "items": {
+                                "type": "string",
+                                "enum": project_names,
+                            },
+                        },
+                        "instances": {
+                            "type": ["array", "null"],
+                            "description": "List of instance names to filter by. Pass null to include all.",
+                            "items": {
+                                "type": "string",
+                                "enum": instance_names,
+                            },
+                        },
+                    },
+                    "required": ["projects", "instances"],
                 },
             },
         },
