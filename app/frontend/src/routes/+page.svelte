@@ -1,9 +1,6 @@
 <script>
-  import ChatLLM from "$lib/ChatLLM.svelte";
 </script>
 
 <svelte:head>
-  <title>dry_agent - Agent</title>
+  <title>dry_agent - main</title>
 </svelte:head>
-
-<ChatLLM />

@@ -96,8 +96,6 @@
 
     resizeObserver = new ResizeObserver(() => {
       if (get(isPaneDragging)) return;
-      console.log("observer fitting");
-
       fit();
     });
     resizeObserver.observe(terminalContainer);

@@ -490,8 +490,9 @@
 
 <style>
   .chat-wrapper {
+    posotion: relative;
     display: flex;
-    height: 100vh;
+    flex-grow: 1;
     overflow: hidden;
   }
 
@@ -565,7 +566,7 @@
   }
 
   .top-bar {
-    position: fixed;
+    position: absolute;
     top: 4rem;
     height: 4rem;
     right: 0;
@@ -588,8 +589,8 @@
   }
 
   .sidebar-toggle {
-    position: fixed;
-    top: 4.35rem;
+    position: absolute;
+    top: 1rem;
     left: 1rem;
     z-index: 210;
     background: none;
@@ -638,16 +639,11 @@
     padding-left: 3rem;
   }
   .chat-container {
-    position: fixed;
-    top: 4rem;
-    bottom: 0;
-    left: 0;
-    right: 0;
     overflow-y: auto;
     padding-top: 3rem;
   }
   .chat-form {
-    position: fixed;
+    position: absolute;
     bottom: 0;
     left: 0;
     right: 0;
@@ -685,7 +681,7 @@
     width: 100%;
   }
   .scroll-to-bottom {
-    position: fixed;
+    position: absolute;
     bottom: 6.5rem;
     right: 1.5rem;
     background: #209cee;

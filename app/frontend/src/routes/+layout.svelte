@@ -6,6 +6,7 @@
   import { PaneGroup, Pane, PaneResizer } from "paneforge";
   import "bulma/css/bulma.min.css";
   import "../../static/styles.css";
+  import ChatLLM from "$lib/ChatLLM.svelte";
   import {
     currentContext,
     dockerContexts,
@@ -241,11 +242,17 @@
 
 <section class="section">
   <div class="container">
-    <PaneGroup direction="horizontal" class="w-full rounded-lg">
-      <Pane defaultSize={50} class="is-flex rounded-lg bg-muted">
-        <div class="is-flex h-[400px] items-center justify-center">
-          <span class="font-semibold">Left</span>
-        </div>
+    <PaneGroup
+      direction="horizontal"
+      class="w-full rounded-lg"
+      style="margin-top: 4em;"
+    >
+      <Pane
+        defaultSize={50}
+        class="is-flex rounded-lg bg-muted"
+        style="position: relative;"
+      >
+        <ChatLLM />
       </Pane>
       <PaneResizer
         class="relative is-flex w-2 items-center justify-center bg-background"
