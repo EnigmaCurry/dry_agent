@@ -398,22 +398,6 @@
 
   <!-- Main area -->
   <main class="main-content" class:expanded={!sidebarOpen}>
-    <!-- Separate toggle, own blur wrapper -->
-    <button class="sidebar-toggle" on:click={toggleSidebar}>
-      {#if sidebarOpen}◀{:else}☰{/if}
-    </button>
-
-    <!-- Shifting blur + title -->
-    <div class="top-bar" style:left={sidebarOpen ? "300px" : "2rem"}>
-      {#if conversationTitle}
-        <div class="chat-header">
-          {#if !isNew}
-            {conversationTitle}
-          {/if}
-        </div>
-      {/if}
-    </div>
-
     <!-- Chat messages container -->
     <div
       class="box chat-box chat-container"
@@ -421,21 +405,40 @@
       on:scroll={handleScroll}
       bind:this={chatContainer}
     >
-      {#each messages as message, idx (idx)}
-        {#if message.role === "user"}
-          <div class="user-message">{message.content}</div>
-        {:else if message.role === "assistant"}
-          {#if message.is_error}
-            <div class="notification is-danger" data-msg-index={idx}>
-              {message.content}
-            </div>
-          {:else}
-            <div class="assistant-message markdown-body" data-msg-index={idx}>
-              <Markdown md={message.content} plugins={markdownPlugins} />
+      <div class="is-flex is-flex-direction-row">
+        <!-- Separate toggle, own blur wrapper -->
+        <button class="sidebar-toggle" on:click={toggleSidebar}>
+          {#if sidebarOpen}◀{:else}☰{/if}
+        </button>
+
+        <!-- Shifting blur + title -->
+        <div class="top-bar" style:left={sidebarOpen ? "300px" : "2rem"}>
+          {#if conversationTitle}
+            <div class="chat-header">
+              {#if !isNew}
+                {conversationTitle}
+              {/if}
             </div>
           {/if}
-        {/if}
-      {/each}
+        </div>
+      </div>
+      <div id="messages" class="is-flex is-flex-grow-1">
+        {#each messages as message, idx (idx)}
+          {#if message.role === "user"}
+            <div class="user-message">{message.content}</div>
+          {:else if message.role === "assistant"}
+            {#if message.is_error}
+              <div class="notification is-danger" data-msg-index={idx}>
+                {message.content}
+              </div>
+            {:else}
+              <div class="assistant-message markdown-body" data-msg-index={idx}>
+                <Markdown md={message.content} plugins={markdownPlugins} />
+              </div>
+            {/if}
+          {/if}
+        {/each}
+      </div>
       {#if loading}
         <div class="mt-4 assistant-message loading-message">
           Assistant is typing...
@@ -557,6 +560,7 @@
   }
 
   .main-content {
+    display: flex;
     flex: 1;
     overflow: hidden;
     transition: margin-left 0.3s ease;
@@ -567,7 +571,7 @@
 
   .top-bar {
     position: absolute;
-    top: 4rem;
+    top: 0.5rem;
     height: 4rem;
     right: 0;
     left: var(--top-bar-left);
@@ -635,12 +639,12 @@
     padding-bottom: 130px;
     display: flex;
     flex-direction: column;
+    flex-grow: 1;
     align-items: flex-start;
-    padding-left: 3rem;
   }
   .chat-container {
     overflow-y: auto;
-    padding-top: 3rem;
+    padding: 0;
   }
   .chat-form {
     position: absolute;
@@ -654,6 +658,13 @@
     z-index: 100;
     box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.25);
   }
+
+  #messages {
+    margin: 4rem 0 0 0;
+    flex-direction: column;
+    width: 100%;
+  }
+
   .user-message {
     align-self: flex-end;
     background-color: #209cee;
@@ -670,7 +681,8 @@
     width: 100%;
     max-width: 100%;
     word-wrap: break-word;
-    margin: 0.5rem 0;
+    margin: 0.5rem;
+    padding: 1rem;
   }
   textarea.textarea {
     font-family: inherit;
