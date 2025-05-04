@@ -6,4 +6,9 @@
   <title>dry_agent - Terminal</title>
 </svelte:head>
 
-<Terminal fullscreen={true} fontSize={20} restartable=true command="cd ~/git/vendor/enigmacurry/d.rymcg.tech && tmux new-session -A -s work"/>
+<Terminal
+  fullscreen={false}
+  fontSize={20}
+  restartable="true"
+  command="cd ~/git/vendor/enigmacurry/d.rymcg.tech && tmux new-session -A -s work"
+/>

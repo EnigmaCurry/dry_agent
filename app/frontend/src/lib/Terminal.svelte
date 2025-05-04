@@ -33,6 +33,7 @@
   }
 
   onMount(() => {
+    console.log("fullscreen", fullscreen);
     window.addEventListener("keydown", handleKeydown);
   });
 
@@ -42,7 +43,10 @@
 </script>
 
 {#key terminalKey}
-  <div class={fullscreen ? 'inline-terminal-fullscreen' : 'inline-terminal-wrapper'}>
+  <div
+    class:inline-terminal-fullscreen={fullscreen === true}
+    class:inline-terminal-wrapper={fullscreen != true}
+  >
     <TerminalView
       {command}
       {fontSize}

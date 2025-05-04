@@ -4,13 +4,12 @@ body {
   height: 100%;
   margin: 0;
   padding: 0;
-  background-color: #1e1e1e;
+  background-color: #000;
   color: #e0e0e0;
 }
 
-/* Account for fixed navbar height (Bulma is ~3.25rem = 52px) */
 body {
-  padding-top: 3.25rem;
+  padding-top: 4rem;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -41,7 +40,7 @@ a:hover {
 .section {
   display: flex;
   min-height: 100vh;
-  padding: 1em 0 0 0;
+  padding: 0;
 }
 
 .section > .container {
@@ -280,4 +279,14 @@ hr.is-light-red {
   21%, 100% {
     opacity: 1;
   }
+}
+.items-center {
+  align-items: center;
+}
+.justify-center {
+  justify-content: center;
+}
+.bg-muted {
+  --tw-bg-opacity: 1;
+  background-color: #1e1e1e;
 }

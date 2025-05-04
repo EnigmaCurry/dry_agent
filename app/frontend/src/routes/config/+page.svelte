@@ -14,12 +14,14 @@
   {#key terminalInstanceKey}
     <Terminal
       restartable="true"
-      fullscreen=true
-      fontSize=20
+      fullscreen="false"
+      fontSize="20"
       command="/bin/bash -c 'while :; do d.rymcg.tech config; done'"
-      />
-    {/key}
+    />
+  {/key}
 {:else}
   <h1 class="title">No Context</h1>
-  <a href="/docker" class="button is-link">Create and/or set a default Docker context</a>
+  <a href="/docker" class="button is-link"
+    >Create and/or set a default Docker context</a
+  >
 {/if}

@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import { page } from "$app/stores";
   import { listenToServerEvents } from "$lib/listenToEvents.js";
+  import { PaneGroup, Pane, PaneResizer } from "paneforge";
 
   import "bulma/css/bulma.min.css";
   import "../../static/styles.css";
@@ -240,6 +241,26 @@
 
 <section class="section">
   <div class="container">
-    <slot />
+    <PaneGroup direction="horizontal" class="w-full rounded-lg">
+      <Pane defaultSize={50} class="is-flex rounded-lg bg-muted">
+        <div class="is-flex h-[400px] items-center justify-center">
+          <span class="font-semibold">Left</span>
+        </div>
+      </Pane>
+      <PaneResizer
+        class="relative is-flex w-2 items-center justify-center bg-background"
+      >
+        <div
+          class="z-10 is-flex h-7 w-5 items-center justify-center rounded-sm border bg-brand"
+        >
+          🗡️
+        </div>
+      </PaneResizer>
+      <Pane defaultSize={50} class="is-flex rounded-lg bg-muted">
+        <div class="is-flex is-flex-direction-column">
+          <slot />
+        </div>
+      </Pane>
+    </PaneGroup>
   </div>
 </section>
