@@ -398,6 +398,9 @@
 
   <!-- Main area -->
   <main class="main-content" class:expanded={!sidebarOpen}>
+    {#if sidebarOpen}
+      <button class="sidebar-toggle" on:click={toggleSidebar}> ◀ </button>
+    {/if}
     <!-- Chat messages container -->
     <div
       class="box chat-box chat-container"
@@ -406,13 +409,15 @@
       bind:this={chatContainer}
     >
       <div class="is-flex is-flex-direction-row">
-        <!-- Separate toggle, own blur wrapper -->
-        <button class="sidebar-toggle" on:click={toggleSidebar}>
-          {#if sidebarOpen}◀{:else}☰{/if}
-        </button>
-
         <!-- Shifting blur + title -->
-        <div class="top-bar" style:left={sidebarOpen ? "300px" : "2rem"}>
+        <div class="top-bar" style:left={sidebarOpen ? "300px" : "0px"}>
+          <!-- Separate toggle, own blur wrapper -->
+          {#if !sidebarOpen}
+            <button class="sidebar-toggle" on:click={toggleSidebar}>
+              ☰
+            </button>
+          {/if}
+
           {#if conversationTitle}
             <div class="chat-header">
               {#if !isNew}
@@ -571,13 +576,12 @@
 
   .top-bar {
     position: absolute;
-    top: 0.5rem;
+    top: 0;
     height: 4rem;
     right: 0;
     left: var(--top-bar-left);
     backdrop-filter: blur(4px);
     z-index: 200;
-    margin-right: 1em;
     mask-image: linear-gradient(
       to bottom,
       black 0%,
@@ -594,8 +598,8 @@
 
   .sidebar-toggle {
     position: absolute;
-    top: 1rem;
-    left: 1rem;
+    top: 0.5rem;
+    left: 0;
     z-index: 210;
     background: none;
     backdrop-filter: blur(4px);
