@@ -353,7 +353,10 @@
     <div class="sidebar-header">
       <button
         class="button is-link m-2 is-pulled-right"
-        on:click={newConversation}
+        on:click={() => {
+          newConversation();
+          toggleSidebar();
+        }}
       >
         New Conversation
       </button>
@@ -370,7 +373,10 @@
         <div class="sidebar-item-wrapper">
           <button
             class="button is-fullwidth sidebar-item"
-            on:click={() => loadConversation(id)}
+            on:click={() => {
+              loadConversation(id);
+              toggleSidebar();
+            }}
             disabled={loading}
           >
             <div>
@@ -466,7 +472,7 @@
 
     <!-- Input form -->
     <form on:submit|preventDefault={send} class="chat-form">
-      <div class="field is-grouped is-grouped-multiline">
+      <div class="field is-grouped">
         <div class="control is-expanded">
           <textarea
             class="textarea"
@@ -578,7 +584,7 @@
     position: absolute;
     top: 0;
     height: 4rem;
-    right: 0;
+    right: 0.5rem;
     left: var(--top-bar-left);
     backdrop-filter: blur(4px);
     z-index: 200;
@@ -677,7 +683,7 @@
     border-radius: 1rem;
     max-width: 70%;
     word-wrap: break-word;
-    margin: 0.25rem 0;
+    margin: 0.5rem;
     border-bottom-right-radius: 0;
     white-space: pre-wrap;
   }
@@ -700,7 +706,7 @@
     position: absolute;
     bottom: 6.5rem;
     right: 1.5rem;
-    background: #209cee;
+    background: #000;
     color: white;
     border: none;
     border-radius: 50%;
@@ -710,9 +716,11 @@
     z-index: 150;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.4);
     transition: opacity 0.2s ease;
+    opacity: 0.5;
   }
   .scroll-to-bottom:hover {
     background: #1075c2;
+    opacity: 1;
   }
   :global(.assistant-message pre) {
     position: relative;

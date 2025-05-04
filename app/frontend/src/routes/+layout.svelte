@@ -18,6 +18,7 @@
 
   let burgerActive = $state(false);
   let activeDropdown = $state(null);
+  let minSizePercent = (300 / window.innerWidth) * 100;
 
   $effect(() => {
     const isAgent = $page.url.pathname === "/";
@@ -50,6 +51,15 @@
   onMount(() => {
     const cleanup = listenToServerEvents();
     return cleanup;
+  });
+
+  $effect(() => {
+    const onResize = () => {
+      width = window.innerWidth;
+      minSizePercent = (300 / width) * 100;
+    };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
   });
 
   async function setDefaultContext(context) {
@@ -251,6 +261,7 @@
         defaultSize={50}
         class="is-flex rounded-lg bg-muted"
         style="position: relative;"
+        minSize={minSizePercent}
       >
         <ChatLLM />
       </Pane>
