@@ -1,9 +1,9 @@
 <script>
   import { onMount } from "svelte";
   import { page } from "$app/stores";
+  import { isPaneDragging } from "$lib/stores";
   import { listenToServerEvents } from "$lib/listenToEvents.js";
   import { PaneGroup, Pane, PaneResizer } from "paneforge";
-
   import "bulma/css/bulma.min.css";
   import "../../static/styles.css";
   import {
@@ -249,6 +249,7 @@
       </Pane>
       <PaneResizer
         class="relative is-flex w-2 items-center justify-center bg-background"
+        onDraggingChange={(dragging) => isPaneDragging.set(dragging)}
       >
         <div
           class="z-10 is-flex h-7 w-5 items-center justify-center rounded-sm border bg-brand"
@@ -257,7 +258,7 @@
         </div>
       </PaneResizer>
       <Pane defaultSize={50} class="is-flex rounded-lg bg-muted">
-        <div class="is-flex is-flex-direction-column">
+        <div class="is-flex is-flex-direction-column is-flex-grow-1">
           <slot />
         </div>
       </Pane>

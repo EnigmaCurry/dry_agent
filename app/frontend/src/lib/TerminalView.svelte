@@ -2,9 +2,10 @@
   import { onMount, onDestroy, createEventDispatcher } from "svelte";
   import { Terminal } from "@xterm/xterm";
   import { FitAddon } from "@xterm/addon-fit";
+  import { get } from "svelte/store";
+  import { tick } from "svelte";
   import "@xterm/xterm/css/xterm.css";
-  import { debounce } from "$lib/utils";
-
+  import { isPaneDragging } from "$lib/stores";
   export let command = "/bin/bash";
   export let fontSize = 14;
   export let height = "300px";
@@ -16,14 +17,13 @@
   let socket;
   let term;
   let terminalContainer;
-  let fitAddon;
+  const fitAddon = new FitAddon();
   let resizeObserver;
 
-  const debouncedFit = debounce(() => {
-    console.log("debouncedFit");
+  const fit = () => {
     fitAddon.fit();
     sendResize();
-  }, 300);
+  };
 
   const beforeUnloadHandler = (event) => {
     event.preventDefault();
@@ -44,7 +44,6 @@
       fontFamily,
     });
 
-    fitAddon = new FitAddon();
     term.loadAddon(fitAddon);
     term.open(terminalContainer);
 
@@ -95,15 +94,18 @@
     };
 
     resizeObserver = new ResizeObserver(() => {
-      debouncedFit();
-    });
+      if (get(isPaneDragging)) return;
+      console.log("observer fitting");
 
+      fit();
+    });
     resizeObserver.observe(terminalContainer);
+  });
 
-    requestAnimationFrame(() => {
-      fitAddon.fit();
-      term.focus();
-    });
+  const paneDragUnsubscribe = isPaneDragging.subscribe((dragging) => {
+    if (!dragging) {
+      fit();
+    }
   });
 
   onDestroy(() => {
@@ -120,7 +122,9 @@
   id="inline-terminal-container"
   bind:this={terminalContainer}
   class:inline-terminal-default-style={!fullscreen}
-  style={fullscreen ? "width: 100%; height: 100%;" : `--terminal-height: ${height}`}
+  style={fullscreen
+    ? "width: 100%; height: 100%;"
+    : `--terminal-height: ${height}`}
 ></div>
 
 <style>
