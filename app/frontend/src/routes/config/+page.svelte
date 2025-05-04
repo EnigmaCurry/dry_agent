@@ -13,8 +13,8 @@
 {#if $currentContext != "default" && $currentContext != null}
   {#key terminalInstanceKey}
     <Terminal
-      restartable="true"
-      fullscreen="false"
+      restartable={true}
+      fullscreen={true}
       fontSize="20"
       command="/bin/bash -c 'while :; do d.rymcg.tech config; done'"
     />

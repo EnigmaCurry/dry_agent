@@ -44,6 +44,7 @@
 
 {#key terminalKey}
   <div
+    class="is-flex-grow-1"
     class:inline-terminal-fullscreen={fullscreen === true}
     class:inline-terminal-wrapper={fullscreen != true}
   >
@@ -53,7 +54,7 @@
       height={fullscreen ? "100%" : height}
       {fontFamily}
       {lineHeight}
-      {fullscreen}
+      fullscreen={fullscreen === true}
       on:exit={() => {
         if (isRestartable) {
           showRestart = true;
@@ -81,11 +82,6 @@
   }
 
   .inline-terminal-fullscreen {
-    position: fixed;
-    top: 4rem;
-    bottom: 0;
-    left: 0;
-    right: 0;
     z-index: 5;
     background: black;
   }

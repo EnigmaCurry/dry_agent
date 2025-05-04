@@ -7,8 +7,8 @@
 </svelte:head>
 
 <Terminal
-  fullscreen={false}
-  fontSize={20}
-  restartable="true"
+  restartable={true}
+  fullscreen={true}
+  fontSize="20"
   command="cd ~/git/vendor/enigmacurry/d.rymcg.tech && tmux new-session -A -s work"
 />

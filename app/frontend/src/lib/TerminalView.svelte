@@ -6,6 +6,7 @@
   import { tick } from "svelte";
   import "@xterm/xterm/css/xterm.css";
   import { isPaneDragging } from "$lib/stores";
+
   export let command = "/bin/bash";
   export let fontSize = 14;
   export let height = "300px";
@@ -122,9 +123,7 @@
   id="inline-terminal-container"
   bind:this={terminalContainer}
   class:inline-terminal-default-style={!fullscreen}
-  style={fullscreen
-    ? "width: 100%; height: 100%;"
-    : `--terminal-height: ${height}`}
+  style={fullscreen === true ? "height: calc(100vh - 4rem);" : ""}
 ></div>
 
 <style>
