@@ -15,31 +15,69 @@
 
   let showDockerDropdown = $state(false);
   let unsubscribe;
+  let paneKey = $state(0);
 
-  const DEFAULT_SIZES = [100, 25, 0];
   const MIN_SIZES = [0, 0, 0];
-  const STATE_ICONS = ["🗣️","🏝️","🏜️️"];
-
+  const STATE_ICONS = ["🗣️", "🏝️", "🏜️️"];
   let burgerActive = $state(false);
   let activeDropdown = $state(null);
   let agentViewState = $state(1);
-  let defaultAgentSizePercent = DEFAULT_SIZES[agentViewState];
   let minAgentSizePercent = MIN_SIZES[agentViewState];
   let width = window.innerWidth;
   let snapStateThreshold = 15;
   let leftPaneRef;
-  let splitPaneToolIcon = $state("🫥");
+  let splitPaneToolIcon = $state(STATE_ICONS[agentViewState]);
+  let defaultAgentSizePercent = $state(getDefaultSize(agentViewState));
+
+  function getDefaultSize(state) {
+    if (state === 0) {
+      return 100;
+    } else if (state === 1) {
+      return (window.innerHeight > window.innerWidth ? 50 : 25);
+    } else {
+      return 0;
+    }
+  }
 
   function cycleAgentView() {
-    agentViewState = (agentViewState + 1) % DEFAULT_SIZES.length;
-    defaultAgentSizePercent = DEFAULT_SIZES[agentViewState];
+    agentViewState = (agentViewState + 1) % MIN_SIZES.length;
+    defaultAgentSizePercent = getDefaultSize(agentViewState);
     minAgentSizePercent = MIN_SIZES[agentViewState];
+    splitPaneToolIcon = STATE_ICONS[agentViewState];
+    paneKey = paneKey + 1;
+
+    console.log("agent state", agentViewState);
+    console.log("default size", defaultAgentSizePercent);
+    console.log("min size", minAgentSizePercent);
+    console.log("icon", splitPaneToolIcon);
+    console.log("-------");
   }
 
   function setAgentView(state) {
     agentViewState = state;
-    defaultAgentSizePercent = DEFAULT_SIZES[agentViewState];
     minAgentSizePercent = MIN_SIZES[agentViewState];
+    if (state === 1) {
+      defaultAgentSizePercent = leftPaneRef.getSize();
+    } else {
+      defaultAgentSizePercent = getDefaultSize(agentViewState);
+    }
+    paneKey = paneKey + 1;
+  }
+
+  function handleSplitToolIcon() {
+    let splitPercent = leftPaneRef.getSize();
+    if ($isPaneDragging) {
+      splitPaneToolIcon = " ";
+    } else {
+      // Stopped dragging
+      if (splitPercent > 85) {
+        splitPaneToolIcon = STATE_ICONS[0];
+      } else if (splitPercent < 15) {
+        splitPaneToolIcon = STATE_ICONS[2];
+      } else {
+        splitPaneToolIcon = STATE_ICONS[1];
+      }
+    }
   }
 
   function handlePaneDrag(dragging) {
@@ -47,24 +85,17 @@
     let splitPercent = leftPaneRef.getSize();
     if (dragging) {
       // Start dragging
-      splitPaneToolIcon = "🗡️";
-      if (agentViewState === 0 || agentViewState === 2) {
-        setAgentView(1);
-      }
     } else {
       // Stopped dragging
       if (splitPercent > 85) {
         setAgentView(0);
-        splitPaneToolIcon = STATE_ICONS[0];
       } else if (splitPercent < 15) {
         setAgentView(2);
-        splitPaneToolIcon = STATE_ICONS[2];
       } else {
         setAgentView(1);
-        splitPaneToolIcon = STATE_ICONS[1];
       }
     }
-    console.log("splitPaneToolIcon", splitPaneToolIcon);
+    handleSplitToolIcon();
   }
 
   $effect(() => {
@@ -283,7 +314,7 @@
 
 <section class="section">
   <div class="container">
-    {#key agentViewState}
+    {#key paneKey}
       <PaneGroup
         direction="horizontal"
         class="w-full rounded-lg"
