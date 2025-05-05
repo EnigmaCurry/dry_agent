@@ -1,9 +1,9 @@
-import preprocess from 'svelte-preprocess';
+import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 import adapter from '@sveltejs/adapter-static';
 
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
-  preprocess: preprocess({
+  preprocess: vitePreprocess({
     scss: {
       // optionally let `@use "bulma"` resolve to node_modules
       includePaths: ['src', 'node_modules']
