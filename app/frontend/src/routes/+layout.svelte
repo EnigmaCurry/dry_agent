@@ -4,8 +4,7 @@
   import { isPaneDragging } from "$lib/stores";
   import { listenToServerEvents } from "$lib/listenToEvents.js";
   import { PaneGroup, Pane, PaneResizer } from "paneforge";
-  import "bulma/css/bulma.min.css";
-  import "../../static/styles.css";
+  import "../app.scss";
   import ChatLLM from "$lib/ChatLLM.svelte";
   import {
     currentContext,
@@ -44,12 +43,6 @@
     minAgentSizePercent = MIN_SIZES[agentViewState];
     splitPaneToolIcon = STATE_ICONS[agentViewState];
     leftPaneRef.resize(defaultAgentSizePercent);
-
-    console.log("agent state", agentViewState);
-    console.log("default size", defaultAgentSizePercent);
-    console.log("min size", minAgentSizePercent);
-    console.log("icon", splitPaneToolIcon);
-    console.log("-------");
   }
 
   function setAgentView(state) {

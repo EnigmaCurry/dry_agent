@@ -603,7 +603,7 @@
         <div class="columns">
           <div class="column">
             <div class="field">
-              <label for="host" class="label">Host Alias</label>
+              <label for="host" class="label">Context</label>
               <div class="control">
                 <input
                   id="host"
@@ -612,7 +612,7 @@
                   type="text"
                   minlength="2"
                   bind:value={newSSHConfig.Host}
-                  placeholder="Enter host alias"
+                  placeholder="Enter short host alias (context)"
                   required
                 />
               </div>
@@ -629,7 +629,7 @@
                   type="text"
                   minlength="1"
                   bind:value={newSSHConfig.Hostname}
-                  placeholder="Enter hostname or IP address"
+                  placeholder="Enter fully qualified hostname or IP address"
                   required
                 />
               </div>

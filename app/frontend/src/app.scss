@@ -1,3 +1,8 @@
+@use "bulma/sass/components/navbar" with (
+  $navbar-breakpoint: 800px
+);
+@use "bulma/bulma" as *;
+
 /* Make the page take up the full height */
 html,
 body {
