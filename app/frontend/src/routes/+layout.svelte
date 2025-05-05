@@ -15,7 +15,6 @@
 
   let showDockerDropdown = $state(false);
   let unsubscribe;
-  let paneKey = $state(0);
 
   const MIN_SIZES = [0, 0, 0];
   const STATE_ICONS = ["🗣️", "🏝️", "🏜️️"];
@@ -33,7 +32,7 @@
     if (state === 0) {
       return 100;
     } else if (state === 1) {
-      return (window.innerHeight > window.innerWidth ? 50 : 25);
+      return window.innerHeight > window.innerWidth ? 50 : 25;
     } else {
       return 0;
     }
@@ -44,7 +43,7 @@
     defaultAgentSizePercent = getDefaultSize(agentViewState);
     minAgentSizePercent = MIN_SIZES[agentViewState];
     splitPaneToolIcon = STATE_ICONS[agentViewState];
-    paneKey = paneKey + 1;
+    leftPaneRef.resize(defaultAgentSizePercent);
 
     console.log("agent state", agentViewState);
     console.log("default size", defaultAgentSizePercent);
@@ -61,7 +60,7 @@
     } else {
       defaultAgentSizePercent = getDefaultSize(agentViewState);
     }
-    paneKey = paneKey + 1;
+    leftPaneRef.resize(defaultAgentSizePercent);
   }
 
   function handleSplitToolIcon() {
@@ -314,41 +313,39 @@
 
 <section class="section">
   <div class="container">
-    {#key paneKey}
-      <PaneGroup
-        direction="horizontal"
-        class="w-full rounded-lg"
-        style="margin-top: 4em;"
+    <PaneGroup
+      direction="horizontal"
+      class="w-full rounded-lg"
+      style="margin-top: 4em;"
+    >
+      <Pane
+        bind:pane={leftPaneRef}
+        defaultSize={defaultAgentSizePercent}
+        minSize={minAgentSizePercent}
+        class="is-flex rounded-lg bg-muted"
+        style="position: relative;"
       >
-        <Pane
-          bind:pane={leftPaneRef}
-          defaultSize={defaultAgentSizePercent}
-          minSize={minAgentSizePercent}
-          class="is-flex rounded-lg bg-muted"
-          style="position: relative;"
+        <ChatLLM autofocus={agentViewState === 2} />
+      </Pane>
+      <PaneResizer
+        class="relative is-flex w-2 items-center justify-center bg-background"
+        onDraggingChange={handlePaneDrag}
+      >
+        <div
+          class="z-10 is-flex h-7 w-5 items-center justify-center rounded-sm border bg-brand"
         >
-          <ChatLLM />
-        </Pane>
-        <PaneResizer
-          class="relative is-flex w-2 items-center justify-center bg-background"
-          onDraggingChange={handlePaneDrag}
-        >
-          <div
-            class="z-10 is-flex h-7 w-5 items-center justify-center rounded-sm border bg-brand"
-          >
-            {splitPaneToolIcon}
-          </div>
-        </PaneResizer>
-        <Pane
-          defaultSize={100 - defaultAgentSizePercent}
-          class="is-flex rounded-lg bg-muted"
-        >
-          <div class="is-flex is-flex-direction-column is-flex-grow-1">
-            <slot />
-          </div>
-        </Pane>
-      </PaneGroup>
-    {/key}
+          {splitPaneToolIcon}
+        </div>
+      </PaneResizer>
+      <Pane
+        defaultSize={100 - defaultAgentSizePercent}
+        class="is-flex rounded-lg bg-muted"
+      >
+        <div class="is-flex is-flex-direction-column is-flex-grow-1">
+          <slot />
+        </div>
+      </Pane>
+    </PaneGroup>
   </div>
 </section>
 

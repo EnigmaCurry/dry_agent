@@ -24,6 +24,8 @@
   import rehypeHighlight from "rehype-highlight";
   import "highlight.js/styles/github-dark.css";
 
+  let { autofocus } = $props();
+
   let sidebarOpen = $state(false);
   let conversationTitle = $state("");
 
@@ -103,7 +105,7 @@
     await fetchConversations();
     await tick();
     adjustTextareaHeight();
-    inputElement?.focus();
+    if (autofocus) inputElement?.focus();
     scrollToBottom();
   });
 
@@ -166,7 +168,7 @@
       messages = data.messages || [];
       conversationTitle = data.title ?? "Untitled";
       conversationId = id;
-      inputElement?.focus();
+      if (autofocus) inputElement?.focus();
 
       // Update URL without reloading
       const u = new URL(window.location.href);

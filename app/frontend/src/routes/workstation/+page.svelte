@@ -9,6 +9,6 @@
 <Terminal
   restartable={true}
   fullscreen={true}
-  fontSize="20"
+  fontSize={20}
   command="cd ~/git/vendor/enigmacurry/d.rymcg.tech && tmux new-session -A -s work"
 />
