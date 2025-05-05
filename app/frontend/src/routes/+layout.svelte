@@ -16,12 +16,12 @@
   let showDockerDropdown = $state(false);
   let unsubscribe;
 
-  const DEFAULT_SIZES = [0, 25, 100];
+  const DEFAULT_SIZES = [100, 25, 0];
   const MIN_SIZES = [0, 25, 0];
 
   let burgerActive = $state(false);
   let activeDropdown = $state(null);
-  let agentViewState = $state(1);
+  let agentViewState = $state(0);
   let defaultAgentSizePercent = DEFAULT_SIZES[agentViewState];
   let minAgentSizePercent = MIN_SIZES[agentViewState];
   let width = window.innerWidth;
@@ -140,7 +140,13 @@
       class:split-logo={agentViewState === 1}
       class:all-app-logo={agentViewState === 2}
     >
-      🏜️️ dry_agent
+      {#if agentViewState === 1}
+        🏝️ dry_agent
+      {:else if agentViewState === 2}
+        🌃 dry_agent
+      {:else}
+        🏜️️ dry_agent
+      {/if}
     </a>
     <button
       type="button"
@@ -318,14 +324,14 @@
 <style>
   .navbar-item.just-agent-logo {
     /* 135deg makes the “cut” run from bottom-left to top-right */
-    background: #370e0e;
+    background: #822222;
   }
   .navbar-item.split-logo {
     /* 135deg makes the “cut” run from bottom-left to top-right */
-    background: linear-gradient(135deg, #370e0e 50%, #822222 50%);
+    background: linear-gradient(135deg, #822222 50%, #370e0e 50%);
   }
   .navbar-item.all-app-logo {
     /* 135deg makes the “cut” run from bottom-left to top-right */
-    background: #822222;
+    background: #290b0b;
   }
 </style>
