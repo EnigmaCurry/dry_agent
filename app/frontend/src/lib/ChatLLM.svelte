@@ -670,6 +670,7 @@
     padding: 1rem;
     z-index: 100;
     box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.25);
+    container-type: inline-size;
   }
 
   #messages {
@@ -724,6 +725,23 @@
   .scroll-to-bottom:hover {
     background: #1075c2;
     opacity: 1;
+  }
+
+  .chat-form field.is-grouped {
+    flex-wrap: nowrap;
+  }
+
+  @container (max-width: 300px) {
+    .chat-form .field.is-grouped {
+      flex-wrap: wrap;
+    }
+    textarea.textarea {
+      font-size: 0.75em;
+    }
+  }
+
+  .chat-form .control.is-expanded {
+    min-width: 0;
   }
   :global(.assistant-message pre) {
     position: relative;
