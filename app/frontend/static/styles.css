@@ -68,28 +68,20 @@ nav {
   background-color: #7b1c1c;
 }
 
-.navbar.is-deep-red .navbar-brand,
-.navbar.is-deep-red .navbar-brand:active,
-.navbar.is-deep-red .navbar-brand:hover,
-.navbar.is-deep-red .navbar-brand *:active,
-.navbar.is-deep-red .navbar-brand *:hover,
-.navbar.is-deep-red .navbar-brand *:focus-within {
-  background-color: #4f1818;
-}
-
-.navbar-dropdown a.navbar-item:not(.is-active, .is-selected),
-.navbar.is-deep-red .navbar-item:active,
-.navbar.is-deep-red .navbar-item:focus-within {
+.navbar-dropdown #main-navbar a.navbar-item:not(.is-active, .is-selected),
+.navbar.is-deep-red #main-navbar .navbar-item:active,
+.navbar.is-deep-red #main-navbar .navbar-item:focus-within {
   background-color: #5e1515;
 }
-.navbar.is-deep-red .navbar-item,
-.navbar.is-deep-red .navbar-item:visited,
-.navbar.is-deep-red .navbar-link {
+.navbar.is-deep-red #main-navbar .navbar-item,
+.navbar.is-deep-red #main-navbar .navbar-item:visited,
+.navbar.is-deep-red #main-navbar .navbar-link {
   color: #fff;
 }
 .navbar.is-deep-red .navbar-burger span {
   background-color: #ffffff;
 }
+
 /* Make the expanded menu background a darker red */
 .navbar.is-deep-red .navbar-menu {
   background-color: #5e1515;
@@ -114,17 +106,17 @@ nav {
   color: #ffffff;
 }
 /* Fix "More" link background when hovered or active */
-.navbar.is-deep-red .navbar-link,
-.navbar.is-deep-red .navbar-link:focus {
+.navbar.is-deep-red #main-navbar .navbar-link,
+.navbar.is-deep-red #main-navbar .navbar-link:focus {
   background-color: #5e1515;
   color: #ffffff;
 }
-.navbar.is-deep-red .navbar-link:hover:not(.is-active),
-.navbar.is-deep-red .navbar-item:hover:not(.is-active) {
+.navbar.is-deep-red #main-navbar .navbar-link:hover:not(.is-active),
+.navbar.is-deep-red #main-navbar .navbar-item:hover:not(.is-active) {
   background-color: #771c1c;
 }
-.navbar.is-deep-red .navbar-link:hover,
-.navbar.is-deep-red .navbar-item:hover,
+.navbar.is-deep-red #main-navbar .navbar-link:hover,
+.navbar.is-deep-red #main-navbar .navbar-item:hover,
  {
   background-color: #5e1515;
 }
@@ -240,6 +232,10 @@ hr.is-light-red {
 
 .no-pointer {
   pointer-events: none;
+  user-select: none;
+}
+
+.no-select {
   user-select: none;
 }
 

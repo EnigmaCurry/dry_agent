@@ -151,6 +151,7 @@
     // reset focus/scroll if you like
     inputElement?.focus();
     scrollToBottom();
+    input = "";
   }
 
   async function loadConversation(id) {
@@ -165,6 +166,7 @@
       messages = data.messages || [];
       conversationTitle = data.title ?? "Untitled";
       conversationId = id;
+      inputElement?.focus();
 
       // Update URL without reloading
       const u = new URL(window.location.href);
@@ -376,6 +378,7 @@
             on:click={() => {
               loadConversation(id);
               toggleSidebar();
+              input = "";
             }}
             disabled={loading}
           >

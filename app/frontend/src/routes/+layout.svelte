@@ -16,9 +16,25 @@
   let showDockerDropdown = $state(false);
   let unsubscribe;
 
+  const DEFAULT_SIZES = [0, 25, 100];
+  const MIN_SIZES = [0, 25, 0];
+
   let burgerActive = $state(false);
   let activeDropdown = $state(null);
-  let minSizePercent = (300 / window.innerWidth) * 100;
+  let agentViewState = $state(1);
+  let defaultAgentSizePercent = DEFAULT_SIZES[agentViewState];
+  let minAgentSizePercent = MIN_SIZES[agentViewState];
+  let width = window.innerWidth;
+
+  function cycleAgentView() {
+    agentViewState = (agentViewState + 1) % DEFAULT_SIZES.length;
+    defaultAgentSizePercent = DEFAULT_SIZES[agentViewState];
+    minAgentSizePercent = MIN_SIZES[agentViewState];
+
+    console.log("agent state", agentViewState);
+    console.log("default size", defaultAgentSizePercent);
+    console.log("min size", minAgentSizePercent);
+  }
 
   $effect(() => {
     const isAgent = $page.url.pathname === "/";
@@ -26,6 +42,7 @@
   });
 
   onMount(async () => {
+    //cycleAgentView();
     await refreshDockerContexts();
     try {
       const defaultRes = await fetch("/api/docker_context/default");
@@ -56,7 +73,6 @@
   $effect(() => {
     const onResize = () => {
       width = window.innerWidth;
-      minSizePercent = (300 / width) * 100;
     };
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
@@ -115,7 +131,17 @@
 
 <nav class="navbar is-deep-red is-fixed-top" aria-label="main navigation">
   <div class="navbar-brand">
-    <a class="navbar-item" href="/"> 🏜️️ dry_agent </a>
+    <a
+      class="navbar-item no-select"
+      role="button"
+      aria-label="Toggle agent view"
+      onclick={cycleAgentView}
+      class:just-agent-logo={agentViewState === 0}
+      class:split-logo={agentViewState === 1}
+      class:all-app-logo={agentViewState === 2}
+    >
+      🏜️️ dry_agent
+    </a>
     <button
       type="button"
       class="navbar-burger"
@@ -252,34 +278,54 @@
 
 <section class="section">
   <div class="container">
-    <PaneGroup
-      direction="horizontal"
-      class="w-full rounded-lg"
-      style="margin-top: 4em;"
-    >
-      <Pane
-        defaultSize={50}
-        class="is-flex rounded-lg bg-muted"
-        style="position: relative;"
-        minSize={minSizePercent}
+    {#key agentViewState}
+      <PaneGroup
+        direction="horizontal"
+        class="w-full rounded-lg"
+        style="margin-top: 4em;"
       >
-        <ChatLLM />
-      </Pane>
-      <PaneResizer
-        class="relative is-flex w-2 items-center justify-center bg-background"
-        onDraggingChange={(dragging) => isPaneDragging.set(dragging)}
-      >
-        <div
-          class="z-10 is-flex h-7 w-5 items-center justify-center rounded-sm border bg-brand"
+        <Pane
+          defaultSize={defaultAgentSizePercent}
+          minSize={minAgentSizePercent}
+          class="is-flex rounded-lg bg-muted"
+          style="position: relative;"
         >
-          🗡️
-        </div>
-      </PaneResizer>
-      <Pane defaultSize={50} class="is-flex rounded-lg bg-muted">
-        <div class="is-flex is-flex-direction-column is-flex-grow-1">
-          <slot />
-        </div>
-      </Pane>
-    </PaneGroup>
+          <ChatLLM />
+        </Pane>
+        <PaneResizer
+          class="relative is-flex w-2 items-center justify-center bg-background"
+          onDraggingChange={(dragging) => isPaneDragging.set(dragging)}
+        >
+          <div
+            class="z-10 is-flex h-7 w-5 items-center justify-center rounded-sm border bg-brand"
+          >
+            🗡️
+          </div>
+        </PaneResizer>
+        <Pane
+          defaultSize={100 - defaultAgentSizePercent}
+          class="is-flex rounded-lg bg-muted"
+        >
+          <div class="is-flex is-flex-direction-column is-flex-grow-1">
+            <slot />
+          </div>
+        </Pane>
+      </PaneGroup>
+    {/key}
   </div>
 </section>
+
+<style>
+  .navbar-item.just-agent-logo {
+    /* 135deg makes the “cut” run from bottom-left to top-right */
+    background: #370e0e;
+  }
+  .navbar-item.split-logo {
+    /* 135deg makes the “cut” run from bottom-left to top-right */
+    background: linear-gradient(135deg, #370e0e 50%, #822222 50%);
+  }
+  .navbar-item.all-app-logo {
+    /* 135deg makes the “cut” run from bottom-left to top-right */
+    background: #822222;
+  }
+</style>
