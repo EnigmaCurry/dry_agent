@@ -1,5 +1,5 @@
 <script>
-  import { onMount } from "svelte";
+  import { onMount, onDestroy, tick } from "svelte";
   import { page } from "$app/stores";
   import { isPaneDragging } from "$lib/stores";
   import { listenToServerEvents } from "$lib/listenToEvents.js";
@@ -17,23 +17,54 @@
   let unsubscribe;
 
   const DEFAULT_SIZES = [100, 25, 0];
-  const MIN_SIZES = [0, 25, 0];
+  const MIN_SIZES = [0, 0, 0];
+  const STATE_ICONS = ["🗣️","🏝️","🏜️️"];
 
   let burgerActive = $state(false);
   let activeDropdown = $state(null);
-  let agentViewState = $state(0);
+  let agentViewState = $state(1);
   let defaultAgentSizePercent = DEFAULT_SIZES[agentViewState];
   let minAgentSizePercent = MIN_SIZES[agentViewState];
   let width = window.innerWidth;
+  let snapStateThreshold = 15;
+  let leftPaneRef;
+  let splitPaneToolIcon = $state("🫥");
 
   function cycleAgentView() {
     agentViewState = (agentViewState + 1) % DEFAULT_SIZES.length;
     defaultAgentSizePercent = DEFAULT_SIZES[agentViewState];
     minAgentSizePercent = MIN_SIZES[agentViewState];
+  }
 
-    console.log("agent state", agentViewState);
-    console.log("default size", defaultAgentSizePercent);
-    console.log("min size", minAgentSizePercent);
+  function setAgentView(state) {
+    agentViewState = state;
+    defaultAgentSizePercent = DEFAULT_SIZES[agentViewState];
+    minAgentSizePercent = MIN_SIZES[agentViewState];
+  }
+
+  function handlePaneDrag(dragging) {
+    isPaneDragging.set(dragging);
+    let splitPercent = leftPaneRef.getSize();
+    if (dragging) {
+      // Start dragging
+      splitPaneToolIcon = "🗡️";
+      if (agentViewState === 0 || agentViewState === 2) {
+        setAgentView(1);
+      }
+    } else {
+      // Stopped dragging
+      if (splitPercent > 85) {
+        setAgentView(0);
+        splitPaneToolIcon = STATE_ICONS[0];
+      } else if (splitPercent < 15) {
+        setAgentView(2);
+        splitPaneToolIcon = STATE_ICONS[2];
+      } else {
+        setAgentView(1);
+        splitPaneToolIcon = STATE_ICONS[1];
+      }
+    }
+    console.log("splitPaneToolIcon", splitPaneToolIcon);
   }
 
   $effect(() => {
@@ -41,41 +72,9 @@
     document.body.classList.toggle("no-scroll", isAgent);
   });
 
-  onMount(async () => {
-    //cycleAgentView();
-    await refreshDockerContexts();
-    try {
-      const defaultRes = await fetch("/api/docker_context/default");
-      if (defaultRes.ok) {
-        const data = await defaultRes.json();
-        currentContext.set(data.default_context);
-      }
-
-      const res = await fetch("/api/docker_context/");
-      if (res.ok) {
-        const contexts = (await res.json()).filter((ctx) => ctx !== "default");
-        dockerContexts.set(contexts);
-        // fallback in case default context not yet set
-        if (!$currentContext && contexts.length > 0) {
-          currentContext.set(contexts[0]);
-        }
-      }
-    } catch (err) {
-      console.error("Failed to fetch docker contexts", err);
-    }
-  });
-
   onMount(() => {
     const cleanup = listenToServerEvents();
     return cleanup;
-  });
-
-  $effect(() => {
-    const onResize = () => {
-      width = window.innerWidth;
-    };
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
   });
 
   async function setDefaultContext(context) {
@@ -143,9 +142,9 @@
       {#if agentViewState === 1}
         🏝️ dry_agent
       {:else if agentViewState === 2}
-        🌃 dry_agent
-      {:else}
         🏜️️ dry_agent
+      {:else}
+        🗣️ dry_agent
       {/if}
     </a>
     <button
@@ -291,6 +290,7 @@
         style="margin-top: 4em;"
       >
         <Pane
+          bind:pane={leftPaneRef}
           defaultSize={defaultAgentSizePercent}
           minSize={minAgentSizePercent}
           class="is-flex rounded-lg bg-muted"
@@ -300,12 +300,12 @@
         </Pane>
         <PaneResizer
           class="relative is-flex w-2 items-center justify-center bg-background"
-          onDraggingChange={(dragging) => isPaneDragging.set(dragging)}
+          onDraggingChange={handlePaneDrag}
         >
           <div
             class="z-10 is-flex h-7 w-5 items-center justify-center rounded-sm border bg-brand"
           >
-            🗡️
+            {splitPaneToolIcon}
           </div>
         </PaneResizer>
         <Pane
@@ -324,14 +324,14 @@
 <style>
   .navbar-item.just-agent-logo {
     /* 135deg makes the “cut” run from bottom-left to top-right */
-    background: #822222;
+    background: #290b0b;
   }
   .navbar-item.split-logo {
     /* 135deg makes the “cut” run from bottom-left to top-right */
-    background: linear-gradient(135deg, #822222 50%, #370e0e 50%);
+    background: linear-gradient(135deg, #370e0e 50%, #822222 50%);
   }
   .navbar-item.all-app-logo {
     /* 135deg makes the “cut” run from bottom-left to top-right */
-    background: #290b0b;
+    background: #822222;
   }
 </style>
