@@ -15,14 +15,18 @@
   let showDockerDropdown = $state(false);
   let unsubscribe;
 
+  let innerWidth = $state(window.innerWidth);
+  let innerHeight = $state(window.innerHeight);
+
   const MIN_SIZES = [0, 0, 0];
   const STATE_ICONS = ["🗣️", "🏝️", "🏜️️"];
   let burgerActive = $state(false);
   let activeDropdown = $state(null);
   let agentViewState = $state(1);
   let minAgentSizePercent = MIN_SIZES[agentViewState];
-  let width = window.innerWidth;
   let snapStateThreshold = 15;
+  let isLandscape = $state(true);
+  let paneGroupRef;
   let leftPaneRef;
   let splitPaneToolIcon = $state(STATE_ICONS[agentViewState]);
   let defaultAgentSizePercent = $state(getDefaultSize(agentViewState));
@@ -31,7 +35,7 @@
     if (state === 0) {
       return 100;
     } else if (state === 1) {
-      return window.innerHeight > window.innerWidth ? 50 : 25;
+      return (innerHeight > innerWidth) || (innerWidth < 650) ? 50 : 25;
     } else {
       return 0;
     }
@@ -95,6 +99,19 @@
     document.body.classList.toggle("no-scroll", isAgent);
   });
 
+  $effect(() => {
+    function update() {
+      if (innerWidth >= innerHeight) {
+        isLandscape = true;
+      } else {
+        isLandscape = false;
+      }
+    }
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  });
+
   onMount(() => {
     const cleanup = listenToServerEvents();
     return cleanup;
@@ -141,6 +158,8 @@
 
   document.addEventListener("click", handleClickOutside);
 </script>
+
+<svelte:window bind:innerWidth bind:innerHeight />
 
 <svelte:head>
   <meta charset="UTF-8" />
@@ -307,7 +326,8 @@
 <section class="section">
   <div class="container">
     <PaneGroup
-      direction="horizontal"
+      bind:pane={paneGroupRef}
+      direction={innerWidth > innerHeight ? "horizontal" : "vertical"}
       class="w-full rounded-lg"
       style="margin-top: 4em;"
     >
