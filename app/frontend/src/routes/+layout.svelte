@@ -70,9 +70,9 @@
       splitPaneToolIcon = " ";
     } else {
       // Stopped dragging
-      if (splitPercent > 85) {
+      if (splitPercent > 100 - snapStateThreshold) {
         splitPaneToolIcon = STATE_ICONS[0];
-      } else if (splitPercent < 15) {
+      } else if (splitPercent < snapStateThreshold) {
         splitPaneToolIcon = STATE_ICONS[2];
       } else {
         splitPaneToolIcon = STATE_ICONS[1];
