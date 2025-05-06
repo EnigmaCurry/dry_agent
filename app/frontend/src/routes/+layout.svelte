@@ -103,10 +103,10 @@
       // Stopped dragging
       if (splitPercent > 100 - snapStateThreshold) {
         //  splitPaneToolIcon = directionIcon + STATE_ICONS[0];
-         splitPaneToolIcon = STATE_ICONS[2];
+        splitPaneToolIcon = STATE_ICONS[2];
       } else if (splitPercent < snapStateThreshold) {
         //  splitPaneToolIcon = directionIcon + STATE_ICONS[2];
-         splitPaneToolIcon = STATE_ICONS[0];
+        splitPaneToolIcon = STATE_ICONS[0];
       } else {
         splitPaneToolIcon = STATE_ICONS[1];
       }
@@ -377,7 +377,7 @@
         <ChatLLM autofocus={agentViewState === 2} />
       </Pane>
       <PaneResizer
-        class="relative is-flex w-2 items-center justify-center bg-background"
+        class="relative is-flex w-2 items-center justify-center pane-resizer"
         onDraggingChange={handlePaneDrag}
       >
         <div
@@ -394,7 +394,9 @@
         defaultSize={100 - defaultAgentSizePercent}
         class="is-flex rounded-lg bg-muted"
       >
-        <div class="is-flex is-flex-direction-column is-flex-grow-1">
+        <div
+          class="is-flex is-flex-direction-column is-flex-grow-1 is-scrollable-y"
+        >
           <slot />
         </div>
       </Pane>
@@ -414,5 +416,8 @@
   .navbar-item.all-app-logo {
     /* 135deg makes the “cut” run from bottom-left to top-right */
     background: #822222;
+  }
+  :global(.pane-resizer) {
+    background: radial-gradient(circle,#000,#31222a 53%,#000)
   }
 </style>

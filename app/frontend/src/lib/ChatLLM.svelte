@@ -657,6 +657,7 @@
     flex-grow: 1;
     align-items: flex-start;
     padding-bottom: 2rem;
+    --bulma-box-radius: 0;
   }
   .chat-container {
     container-type: inline-size;
@@ -708,12 +709,14 @@
     resize: none;
     overflow: hidden;
     max-height: 30vh;
+    min-height: 3em;
     width: 100%;
   }
   .scroll-to-bottom {
     position: absolute;
-    bottom: 6.5rem;
+    top: 0;
     right: 1.5rem;
+    z-index: 500;
     background: #000;
     color: white;
     border: none;g
@@ -721,7 +724,6 @@
     padding: 0.5rem 0.6rem;
     font-size: 1.5rem;
     cursor: pointer;
-    z-index: 150;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.4);
     transition: opacity 0.2s ease;
     opacity: 0.5;
