@@ -44,7 +44,6 @@
     }
     // subtract your agentSizePercent (with %!) from the viewport height
     terminalStyle = ``;
-    console.log(terminalStyle);
   });
 
   const fit = () => {

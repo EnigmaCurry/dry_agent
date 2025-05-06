@@ -33,7 +33,6 @@
   }
 
   onMount(() => {
-    console.log("fullscreen", fullscreen);
     window.addEventListener("keydown", handleKeydown);
   });
 

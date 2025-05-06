@@ -1,7 +1,12 @@
 <script>
   import { onMount, onDestroy, tick } from "svelte";
   import { page } from "$app/stores";
-  import { isPaneDragging, isLandscape, agentSizePercent, appSizePercent } from "$lib/stores";
+  import {
+    isPaneDragging,
+    isLandscape,
+    agentSizePercent,
+    appSizePercent,
+  } from "$lib/stores";
   import { listenToServerEvents } from "$lib/listenToEvents.js";
   import { PaneGroup, Pane, PaneResizer } from "paneforge";
   import "../app.scss";
@@ -20,9 +25,10 @@
 
   const MIN_SIZES = [0, 0, 0];
   const STATE_ICONS = ["🗣️", "🏝️", "🏜️️"];
+  const SPLIT_ICON = "🗺️";
   let burgerActive = $state(false);
   let activeDropdown = $state(null);
-  let agentViewState = $state(1);
+  let agentViewState = $state(0);
   let minAgentSizePercent = MIN_SIZES[agentViewState];
   let snapStateThreshold = 15;
   let paneGroupRef;
@@ -30,7 +36,6 @@
   let rightPaneRef;
   let splitPaneToolIcon = $state(STATE_ICONS[agentViewState]);
   let defaultAgentSizePercent = $state(getDefaultSize(agentViewState));
-
   function getDefaultSize(state) {
     if (state === 0) {
       return 100;
@@ -40,6 +45,7 @@
       return 0;
     }
   }
+  agentSizePercent.set(getDefaultSize(agentViewState));
 
   function cycleAgentView() {
     agentViewState = (agentViewState + 1) % MIN_SIZES.length;
@@ -60,18 +66,20 @@
       defaultAgentSizePercent = getDefaultSize(agentViewState);
     }
     leftPaneRef.resize(defaultAgentSizePercent);
+    agentSizePercent.set(defaultAgentSizePercent);
+    appSizePercent.set(100 - defaultAgentSizePercent);
   }
 
   function handleSplitToolIcon() {
     let splitPercent = leftPaneRef.getSize();
     if ($isPaneDragging) {
-      splitPaneToolIcon = " ";
+      splitPaneToolIcon = SPLIT_ICON;
     } else {
       // Stopped dragging
       if (splitPercent > 100 - snapStateThreshold) {
-        splitPaneToolIcon = STATE_ICONS[0];
-      } else if (splitPercent < snapStateThreshold) {
         splitPaneToolIcon = STATE_ICONS[2];
+      } else if (splitPercent < snapStateThreshold) {
+        splitPaneToolIcon = STATE_ICONS[0];
       } else {
         splitPaneToolIcon = STATE_ICONS[1];
       }
@@ -82,7 +90,7 @@
     isPaneDragging.set(dragging);
     let splitPercent = leftPaneRef.getSize();
     agentSizePercent.set(splitPercent);
-    agentSizePercent.set(rightPaneRef.getSize());
+    appSizePercent.set(rightPaneRef.getSize());
     if (dragging) {
       // Start dragging
     } else {
@@ -117,6 +125,7 @@
   });
 
   onMount(() => {
+    cycleAgentView();
     const cleanup = listenToServerEvents();
     return cleanup;
   });
@@ -131,7 +140,7 @@
     } else {
       console.error("Failed to set default Docker context");
     }
-    handleDropdownItemClick();
+    handleMenuItemClick();
   }
 
   function toggleBurger() {
@@ -142,9 +151,25 @@
     activeDropdown = activeDropdown === name ? null : name;
   }
 
-  function handleDropdownItemClick() {
+  function handleMenuItemClick() {
     activeDropdown = null;
     burgerActive = false;
+    if ($agentSizePercent === 100) {
+      setAgentView(2);
+    }
+  }
+
+  function handlePaneDoubleClick() {
+    if ($appSizePercent === 100) {
+      setAgentView(0);
+    } else if ($agentSizePercent === 100) {
+      setAgentView(2);
+    } if ($agentSizePercent > $appSizePercent) {
+      setAgentView(0);
+    } else {
+      setAgentView(2);
+    }
+    handleSplitToolIcon();
   }
 
   // Close dropdown when clicking outside
@@ -181,16 +206,14 @@
       role="button"
       aria-label="Toggle agent view"
       onclick={cycleAgentView}
-      class:just-agent-logo={agentViewState === 0}
-      class:split-logo={agentViewState === 1}
-      class:all-app-logo={agentViewState === 2}
+      class:just-agent-logo={agentViewState === 0 && !$isPaneDragging}
+      class:split-logo={agentViewState === 1 || $isPaneDragging}
+      class:all-app-logo={agentViewState === 2 && !$isPaneDragging}
     >
-      {#if agentViewState === 1}
-        🏝️ dry_agent
-      {:else if agentViewState === 2}
-        🏜️️ dry_agent
+      {#if $isPaneDragging === true}
+        {SPLIT_ICON} dry_agent
       {:else}
-        🗣️ dry_agent
+        {STATE_ICONS[agentViewState]} dry_agent
       {/if}
     </a>
     <button
@@ -226,21 +249,21 @@
           <a
             class="navbar-item is-deep-red"
             href="/docker"
-            onclick={handleDropdownItemClick}
+            onclick={handleMenuItemClick}
           >
             Docker
           </a>
           <a
             class="navbar-item is-deep-red"
             href="/repository/"
-            onclick={handleDropdownItemClick}
+            onclick={handleMenuItemClick}
           >
             Repository
           </a>
           <a
             class="navbar-item is-deep-red"
             href="/config/"
-            onclick={handleDropdownItemClick}
+            onclick={handleMenuItemClick}
           >
             Config (Traefik)
           </a>
@@ -251,7 +274,7 @@
         class="navbar-item is-deep-red {'/projects/' === $page.url.pathname
           ? 'is-active'
           : ''}"
-        onclick={handleDropdownItemClick}
+        onclick={handleMenuItemClick}
         href="/projects/"
       >
         Projects
@@ -260,34 +283,11 @@
         class="navbar-item is-deep-red {'/workstation/' === $page.url.pathname
           ? 'is-active'
           : ''}"
-        onclick={handleDropdownItemClick}
+        onclick={handleMenuItemClick}
         href="/workstation/"
       >
         Workstation
       </a>
-
-      <!-- <\!-- Dropdown Example -\-> -->
-      <!-- <div -->
-      <!--   class="navbar-item has-dropdown is-hoverable" -->
-      <!--   class:is-active={activeDropdown === "apps"} -->
-      <!-- > -->
-      <!--   <button -->
-      <!--     type="button" -->
-      <!--     class="navbar-link" -->
-      <!--     onclick={() => toggleDropdown("apps")} -->
-      <!--   > -->
-      <!--     Apps -->
-      <!--   </button> -->
-      <!--   <div class="navbar-dropdown"> -->
-      <!--     <a -->
-      <!--       class="navbar-item is-deep-red" -->
-      <!--       href="/apps" -->
-      <!--       onclick={handleDropdownItemClick} -->
-      <!--     > -->
-      <!--       Available Apps -->
-      <!--     </a> -->
-      <!--   </div> -->
-      <!-- </div> -->
     </div>
     <div class="navbar-end">
       <div
@@ -350,6 +350,7 @@
       >
         <div
           class="z-10 is-flex h-7 w-5 items-center justify-center rounded-sm border bg-brand"
+          ondblclick={handlePaneDoubleClick}
         >
           {splitPaneToolIcon}
         </div>
