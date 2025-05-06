@@ -5,6 +5,7 @@
     currentContext,
     dockerContexts,
     conversationId as convoIdStore,
+    isLandscape,
   } from "$lib/stores";
   import { get } from "svelte/store";
 
@@ -354,7 +355,7 @@
 <div class="chat-wrapper">
   <!-- Sidebar -->
   <aside class="sidebar" class:collapsed={!sidebarOpen}>
-    <div class="sidebar-header">
+    <div class="sidebar-header m-0">
       <button
         class="button is-link m-2 is-pulled-right"
         on:click={() => {
@@ -509,7 +510,7 @@
 
 <style>
   .chat-wrapper {
-    posotion: relative;
+    position: relative;
     display: flex;
     flex-grow: 1;
     overflow: hidden;
@@ -651,13 +652,14 @@
     height: 100%;
   }
   .box.chat-box {
-    padding-bottom: 130px;
     display: flex;
     flex-direction: column;
     flex-grow: 1;
     align-items: flex-start;
+    padding-bottom: 2rem;
   }
   .chat-container {
+    container-type: inline-size;
     overflow-y: auto;
     padding: 0;
   }
@@ -714,7 +716,7 @@
     right: 1.5rem;
     background: #000;
     color: white;
-    border: none;
+    border: none;g
     border-radius: 50%;
     padding: 0.5rem 0.6rem;
     font-size: 1.5rem;
@@ -739,6 +741,9 @@
     }
     textarea.textarea {
       font-size: 0.75em;
+    }
+    #messages {
+      padding-bottom: 5rem;
     }
   }
 

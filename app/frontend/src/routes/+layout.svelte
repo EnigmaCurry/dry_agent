@@ -6,6 +6,7 @@
     isLandscape,
     agentSizePercent,
     appSizePercent,
+    userSplitSizePercent
   } from "$lib/stores";
   import { listenToServerEvents } from "$lib/listenToEvents.js";
   import { PaneGroup, Pane, PaneResizer } from "paneforge";
@@ -36,16 +37,21 @@
   let rightPaneRef;
   let splitPaneToolIcon = $state(STATE_ICONS[agentViewState]);
   let defaultAgentSizePercent = $state(getDefaultSize(agentViewState));
+
   function getDefaultSize(state) {
     if (state === 0) {
       return 100;
     } else if (state === 1) {
-      return innerHeight > innerWidth || innerWidth < 650 ? 50 : 25;
+      if ($userSplitSizePercent === null) {
+        userSplitSizePercent.set(innerHeight > innerWidth || innerWidth < 650 ? 50 : 25);
+      }
+      return $userSplitSizePercent;
     } else {
       return 0;
     }
   }
   agentSizePercent.set(getDefaultSize(agentViewState));
+  userSplitSizePercent.set(getDefaultSize(1));
 
   function cycleAgentView() {
     agentViewState = (agentViewState + 1) % MIN_SIZES.length;
@@ -97,10 +103,13 @@
       // Stopped dragging
       if (splitPercent > 85) {
         setAgentView(0);
+        userSplitSizePercent.set(getDefaultSize(0));
       } else if (splitPercent < 15) {
         setAgentView(2);
+        userSplitSizePercent.set(getDefaultSize(2));
       } else {
         setAgentView(1);
+        userSplitSizePercent.set(splitPercent);
       }
     }
     handleSplitToolIcon();
