@@ -6,7 +6,7 @@
     isLandscape,
     agentSizePercent,
     appSizePercent,
-    userSplitSizePercent
+    userSplitSizePercent,
   } from "$lib/stores";
   import { listenToServerEvents } from "$lib/listenToEvents.js";
   import { PaneGroup, Pane, PaneResizer } from "paneforge";
@@ -25,8 +25,9 @@
   let innerHeight = $state(window.innerHeight);
 
   const MIN_SIZES = [0, 0, 0];
-  const STATE_ICONS = ["🗣️", "🏝️", "🏜️️"];
-  const SPLIT_ICON = "🗺️";
+  const STATE_ICONS = ["🌄", "🏝️", "🏜️️"];
+  const SPLIT_ICONS = ["🗺️", "🧭"];
+  const DIRECTION_ICONS = ["⬆️", "➡️", "⬇️", "⬅️"];
   let burgerActive = $state(false);
   let activeDropdown = $state(null);
   let agentViewState = $state(0);
@@ -42,8 +43,11 @@
     if (state === 0) {
       return 100;
     } else if (state === 1) {
-      if ($userSplitSizePercent === null) {
-        userSplitSizePercent.set(innerHeight > innerWidth || innerWidth < 650 ? 50 : 25);
+      let userSplit = $userSplitSizePercent;
+      if (userSplit === null || userSplit == 100 || userSplit == 0) {
+        userSplitSizePercent.set(
+          innerHeight > innerWidth || innerWidth < 650 ? 50 : 25,
+        );
       }
       return $userSplitSizePercent;
     } else {
@@ -61,6 +65,7 @@
     leftPaneRef.resize(defaultAgentSizePercent);
     agentSizePercent.set(getDefaultSize(agentViewState));
     appSizePercent.set(getDefaultSize(agentViewState));
+    handleSplitToolIcon();
   }
 
   function setAgentView(state) {
@@ -78,14 +83,30 @@
 
   function handleSplitToolIcon() {
     let splitPercent = leftPaneRef.getSize();
+    let directionIcon = DIRECTION_ICONS[0];
+    if ($isLandscape) {
+      if (agentViewState == 0) {
+        directionIcon = DIRECTION_ICONS[3];
+      } else if (agentViewState == 2) {
+        directionIcon = DIRECTION_ICONS[1];
+      }
+    } else {
+      if (agentViewState == 0) {
+        directionIcon = DIRECTION_ICONS[0];
+      } else if (agentViewState == 2) {
+        directionIcon = DIRECTION_ICONS[2];
+      }
+    }
     if ($isPaneDragging) {
-      splitPaneToolIcon = SPLIT_ICON;
+      splitPaneToolIcon = SPLIT_ICONS[1];
     } else {
       // Stopped dragging
       if (splitPercent > 100 - snapStateThreshold) {
-        splitPaneToolIcon = STATE_ICONS[2];
+        //  splitPaneToolIcon = directionIcon + STATE_ICONS[0];
+         splitPaneToolIcon = STATE_ICONS[2];
       } else if (splitPercent < snapStateThreshold) {
-        splitPaneToolIcon = STATE_ICONS[0];
+        //  splitPaneToolIcon = directionIcon + STATE_ICONS[2];
+         splitPaneToolIcon = STATE_ICONS[0];
       } else {
         splitPaneToolIcon = STATE_ICONS[1];
       }
@@ -127,6 +148,7 @@
       } else {
         isLandscape.set(false);
       }
+      handleSplitToolIcon();
     }
     update();
     window.addEventListener("resize", update);
@@ -173,7 +195,8 @@
       setAgentView(0);
     } else if ($agentSizePercent === 100) {
       setAgentView(2);
-    } if ($agentSizePercent > $appSizePercent) {
+    }
+    if ($agentSizePercent > $appSizePercent) {
       setAgentView(0);
     } else {
       setAgentView(2);
@@ -220,7 +243,7 @@
       class:all-app-logo={agentViewState === 2 && !$isPaneDragging}
     >
       {#if $isPaneDragging === true}
-        {SPLIT_ICON} dry_agent
+        {SPLIT_ICONS[0]} dry_agent
       {:else}
         {STATE_ICONS[agentViewState]} dry_agent
       {/if}
@@ -361,7 +384,9 @@
           class="z-10 is-flex h-7 w-5 items-center justify-center rounded-sm border bg-brand"
           ondblclick={handlePaneDoubleClick}
         >
-          {splitPaneToolIcon}
+          <span>
+            {splitPaneToolIcon}
+          </span>
         </div>
       </PaneResizer>
       <Pane
