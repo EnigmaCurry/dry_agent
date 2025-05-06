@@ -1,7 +1,7 @@
 <script>
   import { onMount, onDestroy, tick } from "svelte";
   import { page } from "$app/stores";
-  import { isPaneDragging } from "$lib/stores";
+  import { isPaneDragging, isLandscape, agentSizePercent, appSizePercent } from "$lib/stores";
   import { listenToServerEvents } from "$lib/listenToEvents.js";
   import { PaneGroup, Pane, PaneResizer } from "paneforge";
   import "../app.scss";
@@ -25,9 +25,9 @@
   let agentViewState = $state(1);
   let minAgentSizePercent = MIN_SIZES[agentViewState];
   let snapStateThreshold = 15;
-  let isLandscape = $state(true);
   let paneGroupRef;
   let leftPaneRef;
+  let rightPaneRef;
   let splitPaneToolIcon = $state(STATE_ICONS[agentViewState]);
   let defaultAgentSizePercent = $state(getDefaultSize(agentViewState));
 
@@ -35,7 +35,7 @@
     if (state === 0) {
       return 100;
     } else if (state === 1) {
-      return (innerHeight > innerWidth) || (innerWidth < 650) ? 50 : 25;
+      return innerHeight > innerWidth || innerWidth < 650 ? 50 : 25;
     } else {
       return 0;
     }
@@ -47,6 +47,8 @@
     minAgentSizePercent = MIN_SIZES[agentViewState];
     splitPaneToolIcon = STATE_ICONS[agentViewState];
     leftPaneRef.resize(defaultAgentSizePercent);
+    agentSizePercent.set(getDefaultSize(agentViewState));
+    appSizePercent.set(getDefaultSize(agentViewState));
   }
 
   function setAgentView(state) {
@@ -79,6 +81,8 @@
   function handlePaneDrag(dragging) {
     isPaneDragging.set(dragging);
     let splitPercent = leftPaneRef.getSize();
+    agentSizePercent.set(splitPercent);
+    agentSizePercent.set(rightPaneRef.getSize());
     if (dragging) {
       // Start dragging
     } else {
@@ -102,9 +106,9 @@
   $effect(() => {
     function update() {
       if (innerWidth >= innerHeight) {
-        isLandscape = true;
+        isLandscape.set(true);
       } else {
-        isLandscape = false;
+        isLandscape.set(false);
       }
     }
     update();
@@ -351,6 +355,7 @@
         </div>
       </PaneResizer>
       <Pane
+        bind:pane={rightPaneRef}
         defaultSize={100 - defaultAgentSizePercent}
         class="is-flex rounded-lg bg-muted"
       >

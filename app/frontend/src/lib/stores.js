@@ -5,6 +5,9 @@ export const currentContext = writable(null);
 export const dockerContexts = writable([]);
 export const conversationId = writable(null);
 export const isPaneDragging = writable(false);
+export const isLandscape = writable(true);
+export const agentSizePercent = writable(null);
+export const appSizePercent = writable(null);
 
 export async function refreshDockerContexts() {
   try {

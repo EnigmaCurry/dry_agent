@@ -4,29 +4,55 @@
   import { FitAddon } from "@xterm/addon-fit";
   import { get } from "svelte/store";
   import { tick } from "svelte";
+  import { isLandscape, agentSizePercent, appSizePercent } from "$lib/stores";
   import "@xterm/xterm/css/xterm.css";
   import { isPaneDragging } from "$lib/stores";
 
-  export let command = "/bin/bash";
-  export let fontSize = 14;
-  export let height = "300px";
-  export let fontFamily = "monospace";
-  export let lineHeight = 1.0;
-  export let fullscreen = false;
+  let {
+    command = "/bin/bash",
+    fontSize = 14,
+    height = "300px",
+    fontFamily = "monospace",
+    lineHeight = 1.0,
+    fullscreen = false,
+  } = $props();
 
   const dispatch = createEventDispatcher();
+  /**
+     * @type {WebSocket}
+     */
   let socket;
+  /**
+     * @type {Terminal}
+     */
   let term;
+  /**
+     * @type {HTMLElement}
+     */
   let terminalContainer;
   const fitAddon = new FitAddon();
+  /**
+     * @type {ResizeObserver}
+     */
   let resizeObserver;
+
+  let terminalStyle = $state("");
+  $effect(() => {
+    if (!fullscreen) {
+      terminalStyle = "";
+      return;
+    }
+    // subtract your agentSizePercent (with %!) from the viewport height
+    terminalStyle = ``;
+    console.log(terminalStyle);
+  });
 
   const fit = () => {
     fitAddon.fit();
     sendResize();
   };
 
-  const beforeUnloadHandler = (event) => {
+  const beforeUnloadHandler = (/** @type {{ preventDefault: () => void; returnValue: string; }} */ event) => {
     event.preventDefault();
     event.returnValue = "";
   };
@@ -120,8 +146,9 @@
 <div
   id="inline-terminal-container"
   bind:this={terminalContainer}
+  class="is-flex is-flex-grow-1"
+  style={terminalStyle}
   class:inline-terminal-default-style={!fullscreen}
-  style={fullscreen === true ? "height: calc(100vh - 4rem);" : ""}
 ></div>
 
 <style>

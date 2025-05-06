@@ -44,7 +44,7 @@
 
 {#key terminalKey}
   <div
-    class="is-flex-grow-1"
+    class="is-flex is-flex-grow-1"
     class:inline-terminal-fullscreen={fullscreen === true}
     class:inline-terminal-wrapper={fullscreen != true}
   >
@@ -84,6 +84,7 @@
   .inline-terminal-fullscreen {
     z-index: 5;
     background: black;
+    height: 0px; /*flex still grows this */
   }
 
   #inline-restart-overlay {
