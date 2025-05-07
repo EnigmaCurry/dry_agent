@@ -6,11 +6,13 @@ export const dockerContexts = writable([]);
 export const conversationId = writable(null);
 export const isPaneDragging = writable(false);
 export const isLandscape = writable(true);
+
 export const agentSizePercent = writable(null);
 export const appSizePercent = writable(null);
 export const userCurrentWorkingDirectory = writable(null);
 
 export const userSplitSizePercent = persisted('userSplitSizePercent', null)
+export const agentViewState = persisted('agentViewState', 1);
 
 /**
  * Create a writable store that persists to localStorage under `key`.

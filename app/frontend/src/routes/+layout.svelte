@@ -2,6 +2,7 @@
   import { onMount, onDestroy, tick } from "svelte";
   import { page } from "$app/stores";
   import {
+    agentViewState,
     isPaneDragging,
     isLandscape,
     agentSizePercent,
@@ -30,14 +31,13 @@
   const DIRECTION_ICONS = ["⬆️", "➡️", "⬇️", "⬅️"];
   let burgerActive = $state(false);
   let activeDropdown = $state(null);
-  let agentViewState = $state(0);
-  let minAgentSizePercent = MIN_SIZES[agentViewState];
+  let minAgentSizePercent = MIN_SIZES[$agentViewState];
   let snapStateThreshold = 15;
   let paneGroupRef;
   let leftPaneRef;
   let rightPaneRef;
-  let splitPaneToolIcon = $state(STATE_ICONS[agentViewState]);
-  let defaultAgentSizePercent = $state(getDefaultSize(agentViewState));
+  let splitPaneToolIcon = $state(STATE_ICONS[$agentViewState]);
+  let defaultAgentSizePercent = $state(getDefaultSize($agentViewState));
 
   function getDefaultSize(state) {
     if (state === 0) {
@@ -46,8 +46,8 @@
       let userSplit = $userSplitSizePercent;
       if (
         userSplit === null ||
-          userSplit > 100 - snapStateThreshold ||
-          userSplit < snapStateThreshold
+        userSplit > 100 - snapStateThreshold ||
+        userSplit < snapStateThreshold
       ) {
         userSplitSizePercent.set(
           innerHeight > innerWidth || innerWidth < 650 ? 50 : 25,
@@ -58,27 +58,27 @@
       return 0;
     }
   }
-  agentSizePercent.set(getDefaultSize(agentViewState));
+  agentSizePercent.set(getDefaultSize($agentViewState));
   userSplitSizePercent.set(getDefaultSize(1));
 
   function cycleAgentView() {
-    agentViewState = (agentViewState + 1) % MIN_SIZES.length;
-    defaultAgentSizePercent = getDefaultSize(agentViewState);
-    minAgentSizePercent = MIN_SIZES[agentViewState];
-    splitPaneToolIcon = STATE_ICONS[agentViewState];
+    agentViewState.set(($agentViewState + 1) % MIN_SIZES.length);
+    defaultAgentSizePercent = getDefaultSize($agentViewState);
+    minAgentSizePercent = MIN_SIZES[$agentViewState];
+    splitPaneToolIcon = STATE_ICONS[$agentViewState];
     leftPaneRef.resize(defaultAgentSizePercent);
-    agentSizePercent.set(getDefaultSize(agentViewState));
-    appSizePercent.set(100 - getDefaultSize(agentViewState));
+    agentSizePercent.set(getDefaultSize($agentViewState));
+    appSizePercent.set(100 - getDefaultSize($agentViewState));
     handleSplitToolIcon();
   }
 
   function setAgentView(state) {
-    agentViewState = state;
-    minAgentSizePercent = MIN_SIZES[agentViewState];
+    agentViewState.set(state);
+    minAgentSizePercent = MIN_SIZES[$agentViewState];
     if (state === 1) {
       defaultAgentSizePercent = leftPaneRef.getSize();
     } else {
-      defaultAgentSizePercent = getDefaultSize(agentViewState);
+      defaultAgentSizePercent = getDefaultSize($agentViewState);
     }
     leftPaneRef.resize(defaultAgentSizePercent);
     agentSizePercent.set(defaultAgentSizePercent);
@@ -89,15 +89,15 @@
     let splitPercent = leftPaneRef.getSize();
     let directionIcon = DIRECTION_ICONS[0];
     if ($isLandscape) {
-      if (agentViewState == 0) {
+      if ($agentViewState == 0) {
         directionIcon = DIRECTION_ICONS[3];
-      } else if (agentViewState == 2) {
+      } else if ($agentViewState == 2) {
         directionIcon = DIRECTION_ICONS[1];
       }
     } else {
-      if (agentViewState == 0) {
+      if ($agentViewState == 0) {
         directionIcon = DIRECTION_ICONS[0];
-      } else if (agentViewState == 2) {
+      } else if ($agentViewState == 2) {
         directionIcon = DIRECTION_ICONS[2];
       }
     }
@@ -160,6 +160,7 @@
   });
 
   onMount(() => {
+    agentViewState.set(($agentViewState - 1) % MIN_SIZES.length);
     cycleAgentView();
     const cleanup = listenToServerEvents();
     return cleanup;
@@ -243,14 +244,14 @@
       role="button"
       aria-label="Toggle agent view"
       onclick={cycleAgentView}
-      class:just-agent-logo={agentViewState === 0 && !$isPaneDragging}
-      class:split-logo={agentViewState === 1 || $isPaneDragging}
-      class:all-app-logo={agentViewState === 2 && !$isPaneDragging}
+      class:just-agent-logo={$agentViewState === 0 && !$isPaneDragging}
+      class:split-logo={$agentViewState === 1 || $isPaneDragging}
+      class:all-app-logo={$agentViewState === 2 && !$isPaneDragging}
     >
       {#if $isPaneDragging === true}
         {SPLIT_ICONS[0]} dry_agent
       {:else}
-        {STATE_ICONS[agentViewState]} dry_agent
+        {STATE_ICONS[$agentViewState]} dry_agent
       {/if}
     </a>
     <button
