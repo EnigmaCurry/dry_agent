@@ -9,6 +9,7 @@ export const isLandscape = writable(true);
 export const agentSizePercent = writable(null);
 export const appSizePercent = writable(null);
 export const userSplitSizePercent = writable(null);
+export const userCurrentWorkingDirectory = writable(null);
 
 export async function refreshDockerContexts() {
   try {

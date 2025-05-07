@@ -4,6 +4,7 @@ from fastapi.responses import JSONResponse, StreamingResponse
 import openai
 from typing import AsyncGenerator, Callable
 import json
+import os
 
 from .lib import run_command
 from .docker_context import (
@@ -32,9 +33,10 @@ client = openai.AsyncOpenAI()
 async def parse_request_body(request: Request) -> str:
     body = await request.json()
     user_message = body.get("message")
+    current_working_directory = body.get("cwd")
     if not isinstance(user_message, str):
         raise HTTPException(status_code=422, detail="`message` must be a string")
-    return user_message
+    return user_message, current_working_directory
 
 
 async def prepare_conversation(
@@ -220,11 +222,18 @@ async def stream_chat(
     request: Request,
     chat: ChatModel = Depends(get_chat_model),
 ) -> StreamingResponse:
-    user_message = await parse_request_body(request)
+    user_message, current_working_directory = await parse_request_body(request)
+    try:
+        if not os.path.isdir(current_working_directory):
+            current_working_directory = None
+    except TypeError:
+        current_working_directory = None
 
     conversation = await prepare_conversation(chat, conversation_id, user_message)
 
-    system_config = await get_system_config()
+    system_config = await get_system_config(
+        current_working_directory=current_working_directory
+    )
 
     messages = prepare_messages(system_config, conversation, user_message)
 

@@ -8,6 +8,7 @@ from typing import NamedTuple
 import logging
 from jinja2 import Template
 import os
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +21,9 @@ class SystemConfig(NamedTuple):
     tool_spec: dict | None
 
 
-async def get_system_config() -> SystemConfig:
+async def get_system_config(
+    current_working_directory: Optional[str] = None,
+) -> SystemConfig:
     docker_context = get_docker_context()
     all_contexts = get_docker_context_names()
     available_projects = await get_available_projects()
@@ -132,6 +135,7 @@ async def get_system_config() -> SystemConfig:
     content = template.render(
         docker_context=docker_context,
         all_contexts=all_contexts,
+        current_working_directory=current_working_directory,
         context_message=(
             f"for the current Docker context named '{docker_context}'"
             if docker_context

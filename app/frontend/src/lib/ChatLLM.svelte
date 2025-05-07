@@ -6,6 +6,7 @@
     dockerContexts,
     conversationId as convoIdStore,
     isLandscape,
+    userCurrentWorkingDirectory
   } from "$lib/stores";
   import { get } from "svelte/store";
 
@@ -234,7 +235,7 @@
     if (!input.trim()) return;
     messages = [
       ...messages,
-      { role: "user", content: input },
+      { role: "user", content: input, cwd: $userCurrentWorkingDirectory },
       { role: "assistant", content: "" },
     ];
     const idx = messages.length - 1;
@@ -244,10 +245,11 @@
     loading = true;
     controller = new AbortController();
     try {
+      console.log("cwd", $userCurrentWorkingDirectory);
       const res = await fetch(`/api/chat/stream/${conversationId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: messages[idx - 1].content }),
+        body: JSON.stringify({ message: messages[idx - 1].content, cwd: $userCurrentWorkingDirectory }),
         signal: controller.signal,
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);

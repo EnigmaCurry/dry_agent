@@ -14,9 +14,50 @@ import json
 import signal
 import errno
 import logging
+import subprocess
+from typing import Optional
 
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/terminal", tags=["terminal"])
+
+
+def get_tmux_pane_cwd_path(session: str) -> Optional[str]:
+    """
+    Return the procfs path to the cwd link of the active pane in the given tmux session,
+    e.g. "/proc/12345/cwd", or None if the session/pane isn’t found.
+    """
+    try:
+        # 1. Get the tmux‐internal pane ID of the active pane
+        pane_id = (
+            subprocess.check_output(
+                ["tmux", "display-message", "-p", "-t", session, "#{pane_id}"],
+                stderr=subprocess.DEVNULL,
+            )
+            .decode()
+            .strip()
+        )
+        if not pane_id:
+            return None
+
+        # 2. Get all panes in the session with their PIDs
+        lines = (
+            subprocess.check_output(
+                ["tmux", "list-panes", "-t", session, "-F", "#{pane_id} #{pane_pid}"],
+                stderr=subprocess.DEVNULL,
+            )
+            .decode()
+            .splitlines()
+        )
+
+        # 3. Find the PID for our active pane, then return the procfs path
+        for tid, pid_str in (line.split() for line in lines):
+            if tid == pane_id:
+                return f"/proc/{pid_str}/cwd"
+
+    except subprocess.CalledProcessError:
+        pass
+
+    return None
 
 
 @router.websocket("/ws")
@@ -119,6 +160,39 @@ async def terminal_ws(websocket: WebSocket):
 
         pty_task = asyncio.create_task(read_pty())
 
+        # ─── start a background task to watch /proc/<pane-pid>/cwd ───
+        async def watch_cwd():
+            last = None
+            # on connect, immediately try to send the current cwd
+            path_link = get_tmux_pane_cwd_path("work")
+            if path_link:
+                try:
+                    dest = os.readlink(path_link)
+                    last = dest
+                    await websocket.send_text(json.dumps({"type": "cwd", "path": dest}))
+                except Exception:
+                    pass
+            # then poll once a second, sending only on change
+            while True:
+                await asyncio.sleep(1)
+                path_link = get_tmux_pane_cwd_path("work")
+                if not path_link:
+                    continue
+                try:
+                    dest = os.readlink(path_link)
+                except Exception:
+                    continue
+                if dest != last:
+                    last = dest
+                    try:
+                        await websocket.send_text(
+                            json.dumps({"type": "cwd", "path": dest})
+                        )
+                    except Exception:
+                        break
+
+        cwd_task = asyncio.create_task(watch_cwd())
+
         try:
             while True:
                 msg = await websocket.receive_text()
@@ -157,6 +231,7 @@ async def terminal_ws(websocket: WebSocket):
                 pass
             pty_task.cancel()
             wait_task.cancel()
+            cwd_task.cancel()
             await asyncio.gather(pty_task, wait_task, return_exceptions=True)
 
 

@@ -4,7 +4,7 @@
   import { FitAddon } from "@xterm/addon-fit";
   import { get } from "svelte/store";
   import { tick } from "svelte";
-  import { isLandscape, agentSizePercent, appSizePercent } from "$lib/stores";
+  import { isLandscape, agentSizePercent, appSizePercent, userCurrentWorkingDirectory } from "$lib/stores";
   import "@xterm/xterm/css/xterm.css";
   import { isPaneDragging } from "$lib/stores";
 
@@ -105,6 +105,9 @@
           term.writeln("\n🛑 Process Finished.");
           term.blur();
           dispatch("exit");
+        } else if (message.type === "cwd") {
+          userCurrentWorkingDirectory.set(message.path);
+          console.log("received cwd: ", $userCurrentWorkingDirectory);
         } else {
           console.warn("Unhandled message type:", message);
         }
