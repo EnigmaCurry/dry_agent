@@ -46,8 +46,8 @@
       let userSplit = $userSplitSizePercent;
       if (
         userSplit === null ||
-        userSplit > 100 - snapStateThreshold ||
-        userSplit < snapStateThreshold
+          userSplit > 100 - snapStateThreshold ||
+          userSplit < snapStateThreshold
       ) {
         userSplitSizePercent.set(
           innerHeight > innerWidth || innerWidth < 650 ? 50 : 25,
@@ -128,10 +128,10 @@
       // Stopped dragging
       if (splitPercent > 85) {
         setAgentView(0);
-        userSplitSizePercent.set(getDefaultSize(0));
+        //userSplitSizePercent.set(getDefaultSize(0));
       } else if (splitPercent < 15) {
         setAgentView(2);
-        userSplitSizePercent.set(getDefaultSize(2));
+        //userSplitSizePercent.set(getDefaultSize(2));
       } else {
         setAgentView(1);
         userSplitSizePercent.set(splitPercent);
@@ -189,7 +189,8 @@
   function handleMenuItemClick() {
     activeDropdown = null;
     burgerActive = false;
-    if ($agentSizePercent === 100) {
+    if ($agentSizePercent == 100) {
+      console.log($agentSizePercent);
       setAgentView(1);
     }
   }
