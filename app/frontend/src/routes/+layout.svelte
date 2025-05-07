@@ -74,11 +74,9 @@
 
   function setAgentView(state) {
     agentViewState.set(state);
-    console.log("setAgentView", state);
     minAgentSizePercent = MIN_SIZES[$agentViewState];
 
     defaultAgentSizePercent = getDefaultSize($agentViewState);
-    console.log("defaultAgentSizePercent", defaultAgentSizePercent);
 
     leftPaneRef.resize(defaultAgentSizePercent);
     agentSizePercent.set(defaultAgentSizePercent);
@@ -133,8 +131,8 @@
         setAgentView(2);
         //userSplitSizePercent.set(getDefaultSize(2));
       } else {
-        setAgentView(1);
         userSplitSizePercent.set(splitPercent);
+        setAgentView(1);
       }
     }
     handleSplitToolIcon();
@@ -191,7 +189,6 @@
     activeDropdown = null;
     burgerActive = false;
     if ($agentSizePercent == 100) {
-      console.log($agentSizePercent);
       setAgentView(1);
     }
   }
