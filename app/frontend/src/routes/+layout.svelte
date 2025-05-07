@@ -74,12 +74,12 @@
 
   function setAgentView(state) {
     agentViewState.set(state);
+    console.log("setAgentView", state);
     minAgentSizePercent = MIN_SIZES[$agentViewState];
-    if (state === 1) {
-      defaultAgentSizePercent = leftPaneRef.getSize();
-    } else {
-      defaultAgentSizePercent = getDefaultSize($agentViewState);
-    }
+
+    defaultAgentSizePercent = getDefaultSize($agentViewState);
+    console.log("defaultAgentSizePercent", defaultAgentSizePercent);
+
     leftPaneRef.resize(defaultAgentSizePercent);
     agentSizePercent.set(defaultAgentSizePercent);
     appSizePercent.set(100 - defaultAgentSizePercent);
