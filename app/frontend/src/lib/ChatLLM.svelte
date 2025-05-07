@@ -1,12 +1,13 @@
 <script>
-  import { onMount, tick } from "svelte";
+  import { onMount, onDestroy, tick } from "svelte";
   import Markdown from "svelte-exmarkdown";
   import {
     currentContext,
     dockerContexts,
     conversationId as convoIdStore,
     isLandscape,
-    userCurrentWorkingDirectory
+    userCurrentWorkingDirectory,
+    agentSizePercent
   } from "$lib/stores";
   import { get } from "svelte/store";
 
@@ -25,8 +26,6 @@
   import rehypeExternalLinks from "rehype-external-links";
   import rehypeHighlight from "rehype-highlight";
   import "highlight.js/styles/github-dark.css";
-
-  let { autofocus } = $props();
 
   let sidebarOpen = $state(false);
   let conversationTitle = $state("");
@@ -49,6 +48,7 @@
   let currentHistoryPage = $state(1);
   let hasMoreConversations = $state(true);
   let loadingConversations = $state(false);
+  let autofocus = $state(false);
 
   const AUTO_SCROLL_THRESHOLD = 10;
   const SCROLL_BUTTON_DISPLAY_THRESHOLD = 100;
@@ -107,7 +107,6 @@
     await fetchConversations();
     await tick();
     adjustTextareaHeight();
-    if (autofocus) inputElement?.focus();
     scrollToBottom();
   });
 
@@ -352,6 +351,14 @@
       pre.appendChild(btn);
     });
   }
+
+  const splitSizeSubscriber = agentSizePercent.subscribe(split => {
+    autofocus = (split == 100);
+    if (autofocus) {
+      inputElement?.focus();
+    }
+  })
+  onDestroy(splitSizeSubscriber);
 </script>
 
 <div class="chat-wrapper">

@@ -25,8 +25,8 @@
   let innerHeight = $state(window.innerHeight);
 
   const MIN_SIZES = [0, 0, 0];
-  const STATE_ICONS = ["🌄", "🏝️", "🏜️️"];
-  const SPLIT_ICONS = ["🗺️", "🧭"];
+  const STATE_ICONS = ["⛵️", "🏝️", "🏜️️"];
+  const SPLIT_ICONS = ["⛺️", "🧭"];
   const DIRECTION_ICONS = ["⬆️", "➡️", "⬇️", "⬅️"];
   let burgerActive = $state(false);
   let activeDropdown = $state(null);
@@ -44,7 +44,11 @@
       return 100;
     } else if (state === 1) {
       let userSplit = $userSplitSizePercent;
-      if (userSplit === null || userSplit == 100 || userSplit == 0) {
+      if (
+        userSplit === null ||
+        userSplit > 100 - snapStateThreshold ||
+        userSplit < snapStateThreshold
+      ) {
         userSplitSizePercent.set(
           innerHeight > innerWidth || innerWidth < 650 ? 50 : 25,
         );
@@ -64,7 +68,7 @@
     splitPaneToolIcon = STATE_ICONS[agentViewState];
     leftPaneRef.resize(defaultAgentSizePercent);
     agentSizePercent.set(getDefaultSize(agentViewState));
-    appSizePercent.set(getDefaultSize(agentViewState));
+    appSizePercent.set(100 - getDefaultSize(agentViewState));
     handleSplitToolIcon();
   }
 
@@ -186,7 +190,7 @@
     activeDropdown = null;
     burgerActive = false;
     if ($agentSizePercent === 100) {
-      setAgentView(2);
+      setAgentView(1);
     }
   }
 
@@ -374,17 +378,17 @@
         class="is-flex rounded-lg bg-muted"
         style="position: relative;"
       >
-        <ChatLLM autofocus={agentViewState === 2} />
+        <ChatLLM />
       </Pane>
       <PaneResizer
         class="relative is-flex w-2 items-center justify-center pane-resizer"
         onDraggingChange={handlePaneDrag}
+        ondblclick={handlePaneDoubleClick}
       >
         <div
           class="z-10 is-flex h-7 w-5 items-center justify-center rounded-sm border bg-brand"
-          ondblclick={handlePaneDoubleClick}
         >
-          <span>
+          <span class:is-size-4={true}>
             {splitPaneToolIcon}
           </span>
         </div>
@@ -418,6 +422,6 @@
     background: #822222;
   }
   :global(.pane-resizer) {
-    background: radial-gradient(circle,#000,#31222a 53%,#000)
+    background: radial-gradient(circle, #000, #31222a 53%, #000);
   }
 </style>

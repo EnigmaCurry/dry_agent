@@ -4,9 +4,9 @@
   import { FitAddon } from "@xterm/addon-fit";
   import { get } from "svelte/store";
   import { tick } from "svelte";
-  import { isLandscape, agentSizePercent, appSizePercent, userCurrentWorkingDirectory } from "$lib/stores";
+  import { isPaneDragging, isLandscape, agentSizePercent,
+           appSizePercent, userCurrentWorkingDirectory } from "$lib/stores";
   import "@xterm/xterm/css/xterm.css";
-  import { isPaneDragging } from "$lib/stores";
 
   let {
     command = "/bin/bash",
@@ -143,6 +143,14 @@
     window.removeEventListener("beforeunload", beforeUnloadHandler);
     term?.dispose();
   });
+
+  const splitSizeSubscriber = appSizePercent.subscribe(split => {
+    if (split != 0) {
+      term?.focus();
+    }
+  })
+  onDestroy(splitSizeSubscriber);
+
 </script>
 
 <div
