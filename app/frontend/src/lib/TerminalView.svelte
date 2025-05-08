@@ -4,8 +4,13 @@
   import { FitAddon } from "@xterm/addon-fit";
   import { get } from "svelte/store";
   import { tick } from "svelte";
-  import { isPaneDragging, isLandscape, agentSizePercent,
-           appSizePercent, userCurrentWorkingDirectory } from "$lib/stores";
+  import {
+    isPaneDragging,
+    isLandscape,
+    agentSizePercent,
+    appSizePercent,
+    userCurrentWorkingDirectory,
+  } from "$lib/stores";
   import "@xterm/xterm/css/xterm.css";
 
   let {
@@ -19,21 +24,21 @@
 
   const dispatch = createEventDispatcher();
   /**
-     * @type {WebSocket}
-     */
+   * @type {WebSocket}
+   */
   let socket;
   /**
-     * @type {Terminal}
-     */
+   * @type {Terminal}
+   */
   let term;
   /**
-     * @type {HTMLElement}
-     */
+   * @type {HTMLElement}
+   */
   let terminalContainer;
   const fitAddon = new FitAddon();
   /**
-     * @type {ResizeObserver}
-     */
+   * @type {ResizeObserver}
+   */
   let resizeObserver;
 
   let terminalStyle = $state("");
@@ -51,7 +56,9 @@
     sendResize();
   };
 
-  const beforeUnloadHandler = (/** @type {{ preventDefault: () => void; returnValue: string; }} */ event) => {
+  const beforeUnloadHandler = (
+    /** @type {{ preventDefault: () => void; returnValue: string; }} */ event,
+  ) => {
     event.preventDefault();
     event.returnValue = "";
   };
@@ -84,7 +91,7 @@
       socket.send(JSON.stringify({ command }));
       fitAddon.fit();
       sendResize();
-      term.focus();
+      if ($appSizePercent != 0)  term.focus();
       window.addEventListener("beforeunload", beforeUnloadHandler);
     };
 
@@ -144,13 +151,12 @@
     term?.dispose();
   });
 
-  const splitSizeSubscriber = appSizePercent.subscribe(split => {
+  const splitSizeSubscriber = appSizePercent.subscribe((split) => {
     if (split != 0) {
       term?.focus();
     }
-  })
+  });
   onDestroy(splitSizeSubscriber);
-
 </script>
 
 <div

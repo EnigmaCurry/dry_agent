@@ -352,6 +352,12 @@
     });
   }
 
+  onMount(async () => {
+    if ($agentSizePercent == 100) {
+      await tick();
+      requestAnimationFrame(() => inputElement?.focus());
+    }});
+
   const splitSizeSubscriber = agentSizePercent.subscribe(split => {
     autofocus = (split == 100);
     if (autofocus) {
