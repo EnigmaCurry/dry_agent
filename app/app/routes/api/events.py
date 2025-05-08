@@ -7,6 +7,8 @@ from fastapi.responses import StreamingResponse
 from app.broadcast import subscribe, unsubscribe
 import json
 import logging
+from .docker_context import get_docker_context, get_docker_context_names
+from app.models.events import ContextChangedEvent, ContextListEvent
 
 router = APIRouter()
 
@@ -19,6 +21,20 @@ router = APIRouter(prefix="/api/events", tags=["events"])
 async def sse(request: Request):
     queue = await subscribe()
 
+    # Send initial events upon connection:
+    # - current docker context
+    # - list of docker contexts
+    await queue.put(
+        ContextChangedEvent(
+            new_context=get_docker_context(),
+        )
+    )
+    await queue.put(
+        ContextListEvent(
+            contexts=get_docker_context_names(),
+        )
+    )
+
     async def event_stream():
         try:
             while True:
@@ -26,8 +42,8 @@ async def sse(request: Request):
                 if await request.is_disconnected():
                     break
 
-                event = await queue.get()
-                yield f"event: {event['type']}\ndata: {json.dumps(event['data'])}\n\n"
+                event: Event = await queue.get()
+                yield f"event: {event.type}\ndata: {event.model_dump_json()}\n\n"
         finally:
             unsubscribe(queue)
 

@@ -12,6 +12,8 @@ from .middleware.auth import (
     admin_generate_auth_token,
 )
 import logging
+from app.lib.docker_context_watcher import monitor_docker_context
+import asyncio
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
@@ -62,3 +64,8 @@ app.mount(
     ),
     name="static",
 )
+
+
+@app.on_event("startup")
+async def start_background_tasks():
+    asyncio.create_task(monitor_docker_context())

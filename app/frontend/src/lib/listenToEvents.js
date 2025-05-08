@@ -1,5 +1,6 @@
 // src/lib/events/listenToEvents.js
-import { currentContext } from "$lib/stores";
+import { currentContext, dockerContexts } from "$lib/stores";
+import { get } from "svelte/store";
 
 /**
  * Starts listening to server-sent events from the backend.
@@ -10,11 +11,20 @@ import { currentContext } from "$lib/stores";
 export function listenToServerEvents() {
   setTimeout(() => {
     const source = new EventSource("/api/events/");
- 
+
     source.addEventListener("context_changed", (event) => {
       /** @type {{ new_context: string }} */
       const payload = JSON.parse(event.data);
+      console.log("context_changed", payload);
       currentContext.set(payload.new_context);
+
+    });
+
+    source.addEventListener("context_list", (event) => {
+      /** @type {{ new_context: string }} */
+      const payload = JSON.parse(event.data);
+      console.log("context_list", payload);
+      dockerContexts.set(payload.contexts);
     });
 
     source.onerror = (err) => {
@@ -26,6 +36,6 @@ export function listenToServerEvents() {
   //   source.close();
   // };
   return () => {
-    
+
   };
 }
