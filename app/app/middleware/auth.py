@@ -78,6 +78,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
             or request.url.path.startswith("/logout")
             or request.url.path.startswith("/static")
             or request.url.path.startswith("/admin/generate-auth-token")
+            or request.url.path.startswith("/admin/get-login-url")
             or request.url.path.startswith("/openapi.json")
             or request.url.path.startswith("/docs")
         ):
@@ -208,3 +209,14 @@ async def admin_generate_auth_token(request: Request):
     return PlainTextResponse(
         "New token generated. Retrieve it from current_token.txt on the filesystem. All existing clients have been logged out."
     )
+
+
+async def admin_get_login_url(request: Request):
+    host = request.headers.get("host")
+    auth_cookie = request.cookies.get(AUTH_COOKIE_NAME)
+    if auth_cookie and auth_cookie == current_token:
+        return JSONResponse(
+            content={"login_url": f"https://{host}/login#{current_token}"}
+        )
+    else:
+        return JSONResponse(content={"error": "Unauthorized"}, status_code=401)

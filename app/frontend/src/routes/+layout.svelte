@@ -283,6 +283,14 @@
         <div class="navbar-dropdown">
           <a
             class="navbar-item is-deep-red"
+            href="/settings"
+            onclick={handleMenuItemClick}
+          >
+            Settings
+          </a>
+
+          <a
+            class="navbar-item is-deep-red"
             href="/docker"
             onclick={handleMenuItemClick}
           >

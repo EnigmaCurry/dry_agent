@@ -1,7 +1,7 @@
 import os
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from app import routes
 from app.routes import api as api_routes
 from .middleware.auth import (
@@ -10,6 +10,7 @@ from .middleware.auth import (
     login_post,
     logout,
     admin_generate_auth_token,
+    admin_get_login_url,
 )
 import logging
 from app.lib.docker_context_watcher import monitor_docker_context
@@ -37,6 +38,13 @@ app.add_api_route(
     admin_generate_auth_token,
     methods=["POST"],
     response_class=HTMLResponse,
+    tags=["admin"],
+)
+app.add_api_route(
+    "/admin/get-login-url",
+    admin_get_login_url,
+    methods=["GET"],
+    response_class=JSONResponse,
     tags=["admin"],
 )
 

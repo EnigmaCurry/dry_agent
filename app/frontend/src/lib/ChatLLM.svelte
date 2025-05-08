@@ -688,7 +688,7 @@
     border-top: 1px solid #d90000;
     border-radius: 1rem 1rem 0 0;
     padding: 1rem;
-    z-index: 500;
+    z-index: 300;
     box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.25);
     container-type: inline-size;
   }
