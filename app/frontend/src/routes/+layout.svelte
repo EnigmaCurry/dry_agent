@@ -19,7 +19,6 @@
     refreshDockerContexts,
   } from "$lib/stores";
 
-  let showDockerDropdown = $state(false);
   let unsubscribe;
 
   let innerWidth = $state(window.innerWidth);
@@ -171,7 +170,6 @@
     });
     if (res.ok) {
       currentContext.set(context);
-      showDockerDropdown = false;
     } else {
       console.error("Failed to set default Docker context");
     }
@@ -212,7 +210,7 @@
   // Close dropdown when clicking outside
   function handleClickOutside(event) {
     const dropdownElements = document.querySelectorAll(
-      ".navbar-item.has-dropdown",
+      ".navbar-item.has-dropdown, .navbar-item.has-docker-dropdown",
     );
     const clickedInside = Array.from(dropdownElements).some((el) =>
       el.contains(event.target),
@@ -329,12 +327,9 @@
     <div class="navbar-end">
       <div
         class="navbar-item has-dropdown mr-2"
-        class:is-active={showDockerDropdown}
+        class:is-active={activeDropdown === "docker"}
       >
-        <a
-          class="navbar-link"
-          onclick={() => (showDockerDropdown = !showDockerDropdown)}
-        >
+        <a class="navbar-link" onclick={() => toggleDropdown("docker")}>
           {#if $dockerContexts.length > 0}
             {$currentContext}
           {:else}
