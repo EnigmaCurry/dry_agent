@@ -50,11 +50,11 @@
       counts[appName] = envFiles.length;
     }
     instanceCounts = counts;
-    console.log($state.snapshot(instanceCounts));
-    console.log(
-      "instance counts",
-      Object.keys($state.snapshot(instanceCounts)).length,
-    );
+    // console.log($state.snapshot(instanceCounts));
+    // console.log(
+    //   "instance counts",
+    //   Object.keys($state.snapshot(instanceCounts)).length,
+    // );
   }
 
   function renderInstanceEmojis(appName) {

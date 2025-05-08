@@ -107,7 +107,7 @@
           dispatch("exit");
         } else if (message.type === "cwd") {
           userCurrentWorkingDirectory.set(message.path);
-          console.log("received cwd: ", $userCurrentWorkingDirectory);
+          //console.log("received cwd: ", $userCurrentWorkingDirectory);
         } else {
           console.warn("Unhandled message type:", message);
         }
