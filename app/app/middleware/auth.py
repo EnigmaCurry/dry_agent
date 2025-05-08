@@ -11,6 +11,8 @@ from fastapi.responses import (
 from starlette.middleware.base import BaseHTTPMiddleware
 from dicewarepy import diceware
 from app.dependencies import templates
+from app.models.events import LogoutEvent
+from app.broadcast import broadcast
 
 
 def token():
@@ -100,17 +102,15 @@ def add_auth_middleware(app):
     app.add_middleware(AuthMiddleware)
 
 
-def generate_new_token():
+async def generate_new_token():
     """Generate a new token, update the global token, and write it to file."""
     global current_token
     new_token = token()
     current_token = new_token
     write_token_to_file(new_token)
+    await broadcast(LogoutEvent())
     # Avoid logging the token to prevent leakage.
     return new_token
-
-
-from fastapi.responses import HTMLResponse
 
 
 # GET /login endpoint: Redirects to the root page if a valid auth cookie is present, clearing any URL hash.
@@ -167,7 +167,7 @@ async def login_post(request: Request, token: str = Form(...), csrf: str = Form(
         )
 
     if token == current_token:
-        new_token = generate_new_token()
+        new_token = await generate_new_token()
         record_login_attempt(success=True)
         # Generate a new CSRF token for the new session.
         new_csrf_token = secrets.token_urlsafe(16)
@@ -193,7 +193,8 @@ async def login_post(request: Request, token: str = Form(...), csrf: str = Form(
 
 # /logout endpoint: Invalidate the current cookie by generating a new token.
 async def logout(request: Request):
-    generate_new_token()  # Invalidate any cookie with the old token.
+    await generate_new_token()  # Invalidate any cookie with the old token.
+
     response = RedirectResponse(url="/login", status_code=302)
     response.delete_cookie(key=AUTH_COOKIE_NAME)
     return response
@@ -203,7 +204,7 @@ async def admin_generate_auth_token(request: Request):
     # Allow only requests originating from 127.0.0.1.
     if request.client.host != "127.0.0.1":
         raise HTTPException(status_code=403, detail="Forbidden")
-    generate_new_token()  # Update the global token and write it to current_token.txt.
+    await generate_new_token()  # Update the global token and write it to current_token.txt.
     return PlainTextResponse(
         "New token generated. Retrieve it from current_token.txt on the filesystem. All existing clients have been logged out."
     )

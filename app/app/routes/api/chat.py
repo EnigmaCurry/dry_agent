@@ -18,6 +18,7 @@ from app.broadcast import broadcast
 from .llm_util import generate_title
 from app.lib.llm_util import get_system_config, SystemConfig
 from app.routes import DRY_COMMAND
+from app.models.events import ContextChangedEvent
 
 """
 LLM Chat API
@@ -81,9 +82,7 @@ async def handle_tool_call(call) -> str:
             logger.warning(msg)
             return msg
         set_default_context(context_name)
-        await broadcast(
-            {"type": "context_changed", "data": {"new_context": context_name}}
-        )
+        await broadcast(ContextChangedEvent(new_context=context_name))
         logger.info(f"Switched Docker context to: {context_name}")
         return f"\n\n✅ Switched context to '{context_name}'"
 

@@ -27,6 +27,11 @@ export function listenToServerEvents() {
       dockerContexts.set(payload.contexts);
     });
 
+    source.addEventListener("logout", (event) => {
+      console.log("logout");
+      window.location.reload();
+    });
+
     source.onerror = (err) => {
       console.error("SSE connection lost", err);
     };

@@ -2,6 +2,10 @@ from pydantic import BaseModel, Field
 from typing import Literal, Union, List, Annotated
 
 
+class LogoutEvent(BaseModel):
+    type: Literal["logout"] = Field("logout", frozen=True)
+
+
 class ContextChangedEvent(BaseModel):
     type: Literal["context_changed"] = Field("context_changed", frozen=True)
     new_context: str
