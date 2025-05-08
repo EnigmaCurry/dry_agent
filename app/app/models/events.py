@@ -16,6 +16,16 @@ class ContextListEvent(BaseModel):
     contexts: List[str]
 
 
+class OpenAppEvent(BaseModel):
+    type: Literal["open_app"] = Field("open_app", frozen=True)
+    page: str
+
+
+class OpenInstancesEvent(BaseModel):
+    type: Literal["open_instances"] = Field("open_instances", frozen=True)
+    app: str
+
+
 Event = Annotated[
     Union[ContextChangedEvent, ContextListEvent], Field(discriminator="type")
 ]

@@ -1,5 +1,11 @@
 // src/lib/events/listenToEvents.js
-import { currentContext, dockerContexts, userIsLoggedOut } from "$lib/stores";
+import {
+  currentContext,
+  dockerContexts,
+  userIsLoggedOut,
+  agentViewState,
+} from "$lib/stores";
+import { goto } from "$app/navigation";
 import { get } from "svelte/store";
 
 /**
@@ -17,7 +23,6 @@ export function listenToServerEvents() {
       const payload = JSON.parse(event.data);
       //console.log("context_changed", payload);
       currentContext.set(payload.new_context);
-
     });
 
     source.addEventListener("context_list", (event) => {
@@ -33,6 +38,46 @@ export function listenToServerEvents() {
       window.location.reload();
     });
 
+    source.addEventListener("open_app", (event) => {
+      /** @type {{ page: string }} */
+      const payload = JSON.parse(event.data);
+      console.log("open_app", payload.page);
+      agentViewState.set(1);
+      switch (payload.page) {
+        case "settings":
+          goto("/settings");
+          break;
+        case "docker":
+          goto("/docker");
+          break;
+        case "projects":
+          goto("/projects");
+          break;
+        case "config":
+          goto("/config");
+          break;
+        case "repository":
+          goto("/repository");
+          break;
+        case "workstation":
+          goto("/workstation");
+          break;
+        case "instances":
+          goto(`/instances?app=${payload.app}`);
+          break;
+        default:
+          console.error("Unknown page", payload.page);
+      }
+    });
+
+    source.addEventListener("open_instances", (event) => {
+      /** @type {{ page: string }} */
+      const payload = JSON.parse(event.data);
+      console.log("open_instances", payload.app);
+      agentViewState.set(1);
+      goto(`/instances?app=${payload.app}`);
+    });
+
     source.onerror = (err) => {
       console.error("SSE connection lost", err);
     };
@@ -41,7 +86,5 @@ export function listenToServerEvents() {
   // return () => {
   //   source.close();
   // };
-  return () => {
-
-  };
+  return () => {};
 }

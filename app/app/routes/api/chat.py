@@ -18,7 +18,7 @@ from app.broadcast import broadcast
 from .llm_util import generate_title
 from app.lib.llm_util import get_system_config, SystemConfig
 from app.routes import DRY_COMMAND
-from app.models.events import ContextChangedEvent
+from app.models.events import ContextChangedEvent, OpenAppEvent, OpenInstancesEvent
 
 """
 LLM Chat API
@@ -100,6 +100,16 @@ async def handle_tool_call(call) -> str:
             msg = f"\n\n❌ Failed to {action} project '{project} instance '{instance}': {e}"
             logger.error(msg)
             return msg
+    elif function_name == "open_app":
+        page = arguments["page"]
+        await broadcast(OpenAppEvent(page=page))
+        msg = f"\n\n🧭 Opening {page.title()}"
+        return msg
+    elif function_name == "open_instances":
+        app = arguments["app"]
+        await broadcast(OpenInstancesEvent(app=app))
+        msg = f"\n\n🧭 Opening instances page for {app}"
+        return msg
 
     msg = f"\n\n⚠️ Unknown tool called: {function_name}"
     logger.warning(msg)

@@ -38,7 +38,8 @@
   let rightPaneRef;
   let splitPaneToolIcon = $state(SPLIT_STATE_ICONS[$agentViewState]);
   let defaultAgentSizePercent = $state(getDefaultSize($agentViewState));
-
+  let previousAgentView = $agentViewState;
+  
   function getDefaultSize(state) {
     if (state === 0) {
       return 100;
@@ -141,6 +142,14 @@
   $effect(() => {
     const isAgent = $page.url.pathname === "/";
     document.body.classList.toggle("no-scroll", isAgent);
+  });
+
+  $effect(() => {
+    const newState = $agentViewState;
+    if (newState !== previousAgentView) {
+      setAgentView(newState);
+      previousAgentView = newState;
+    }
   });
 
   $effect(() => {

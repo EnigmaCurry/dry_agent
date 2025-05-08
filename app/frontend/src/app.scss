@@ -290,3 +290,6 @@ hr.is-light-red {
   --tw-bg-opacity: 1;
   background-color: #1e1e1e;
 }
+.modal.is-active {
+  z-index: 500;
+}

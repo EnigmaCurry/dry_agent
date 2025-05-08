@@ -129,6 +129,48 @@ async def get_system_config(
                 },
             },
         },
+        {
+            "type": "function",
+            "function": {
+                "name": "open_app",
+                "description": "Navigate the user to a specific page in dry_agent.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "page": {
+                            "type": "string",
+                            "description": "The name of the application page to navigate to.",
+                            "enum": [
+                                "settings",
+                                "workstation",
+                                "docker",
+                                "repository",
+                                "config",
+                            ],
+                        }
+                    },
+                    "required": ["page"],
+                },
+            },
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "open_instances",
+                "description": "Navigate the user to the app instances page in dry_agent.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "app": {
+                            "type": "string",
+                            "description": "The name of the application page to navigate to.",
+                            "enum": project_names,
+                        }
+                    },
+                    "required": ["page"],
+                },
+            },
+        },
     ]
 
     template = Template(SYSTEM_TEMPLATE)
@@ -136,11 +178,6 @@ async def get_system_config(
         docker_context=docker_context,
         all_contexts=all_contexts,
         current_working_directory=current_working_directory,
-        context_message=(
-            f"for the current Docker context named '{docker_context}'"
-            if docker_context
-            else ""
-        ),
         root_domain=root_domain,
         app_instances=app_instances,
         other_contexts_message=", ".join(all_contexts) if all_contexts else "",
