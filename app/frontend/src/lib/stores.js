@@ -10,6 +10,7 @@ export const isLandscape = writable(true);
 export const agentSizePercent = writable(null);
 export const appSizePercent = writable(null);
 export const userCurrentWorkingDirectory = writable(null);
+export const userIsLoggedOut = writable(false);
 
 export const userSplitSizePercent = persisted('userSplitSizePercent', null)
 export const agentViewState = persisted('agentViewState', 0);

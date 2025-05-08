@@ -10,6 +10,7 @@
     agentSizePercent,
     appSizePercent,
     userCurrentWorkingDirectory,
+    userIsLoggedOut,
   } from "$lib/stores";
   import "@xterm/xterm/css/xterm.css";
 
@@ -59,8 +60,10 @@
   const beforeUnloadHandler = (
     /** @type {{ preventDefault: () => void; returnValue: string; }} */ event,
   ) => {
-    event.preventDefault();
-    event.returnValue = "";
+    if (!$userIsLoggedOut) {
+      event.preventDefault();
+      event.returnValue = "";
+    }
   };
 
   function sendResize() {

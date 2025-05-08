@@ -1,5 +1,5 @@
 // src/lib/events/listenToEvents.js
-import { currentContext, dockerContexts } from "$lib/stores";
+import { currentContext, dockerContexts, userIsLoggedOut } from "$lib/stores";
 import { get } from "svelte/store";
 
 /**
@@ -29,6 +29,7 @@ export function listenToServerEvents() {
 
     source.addEventListener("logout", (event) => {
       console.log("logout");
+      userIsLoggedOut.set(true);
       window.location.reload();
     });
 
