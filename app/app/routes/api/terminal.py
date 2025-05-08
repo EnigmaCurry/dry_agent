@@ -21,13 +21,26 @@ log = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/terminal", tags=["terminal"])
 
 
+import os
+import subprocess
+from typing import Optional
+
+
 def get_tmux_pane_cwd_path(session: str) -> Optional[str]:
-    """
-    Return the procfs path to the cwd link of the active pane in the given tmux session,
-    e.g. "/proc/12345/cwd", or None if the session/pane isn’t found.
-    """
+    def get_latest_child_pid(pid: str) -> str:
+        """Recursively find the most recent child/grandchild process."""
+        try:
+            with open(f"/proc/{pid}/task/{pid}/children", "r") as f:
+                children = f.read().strip().split()
+                if not children:
+                    return pid
+                # Pick the last child PID as the most recent one
+                return get_latest_child_pid(children[-1])
+        except Exception:
+            return pid
+
     try:
-        # 1. Get the tmux‐internal pane ID of the active pane
+        # 1. Get the pane ID
         pane_id = (
             subprocess.check_output(
                 ["tmux", "display-message", "-p", "-t", session, "#{pane_id}"],
@@ -39,7 +52,7 @@ def get_tmux_pane_cwd_path(session: str) -> Optional[str]:
         if not pane_id:
             return None
 
-        # 2. Get all panes in the session with their PIDs
+        # 2. Get pane PID
         lines = (
             subprocess.check_output(
                 ["tmux", "list-panes", "-t", session, "-F", "#{pane_id} #{pane_pid}"],
@@ -49,10 +62,13 @@ def get_tmux_pane_cwd_path(session: str) -> Optional[str]:
             .splitlines()
         )
 
-        # 3. Find the PID for our active pane, then return the procfs path
-        for tid, pid_str in (line.split() for line in lines):
+        for tid, pid in (line.split() for line in lines):
             if tid == pane_id:
-                return f"/proc/{pid_str}/cwd"
+                # 3. Find the latest descendant PID
+                active_pid = get_latest_child_pid(pid)
+                path = f"/proc/{active_pid}/cwd"
+                if os.path.exists(path):
+                    return path
 
     except subprocess.CalledProcessError:
         pass
