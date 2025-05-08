@@ -12,7 +12,7 @@ export const appSizePercent = writable(null);
 export const userCurrentWorkingDirectory = writable(null);
 
 export const userSplitSizePercent = persisted('userSplitSizePercent', null)
-export const agentViewState = persisted('agentViewState', 1);
+export const agentViewState = persisted('agentViewState', 0);
 
 /**
  * Create a writable store that persists to localStorage under `key`.

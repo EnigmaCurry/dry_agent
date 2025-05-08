@@ -27,6 +27,7 @@
 
   const MIN_SIZES = [0, 0, 0];
   const STATE_ICONS = ["⛵️", "🏝️", "🏜️️"];
+  const SPLIT_STATE_ICONS = ["🏜️️", "🏝️", "⛵️"];
   const SPLIT_ICONS = ["⛺️", "🧭"];
   const DIRECTION_ICONS = ["⬆️", "➡️", "⬇️", "⬅️"];
   let burgerActive = $state(false);
@@ -36,7 +37,7 @@
   let paneGroupRef;
   let leftPaneRef;
   let rightPaneRef;
-  let splitPaneToolIcon = $state(STATE_ICONS[$agentViewState]);
+  let splitPaneToolIcon = $state(SPLIT_STATE_ICONS[$agentViewState]);
   let defaultAgentSizePercent = $state(getDefaultSize($agentViewState));
 
   function getDefaultSize(state) {
@@ -65,7 +66,7 @@
     agentViewState.set(($agentViewState + 1) % MIN_SIZES.length);
     defaultAgentSizePercent = getDefaultSize($agentViewState);
     minAgentSizePercent = MIN_SIZES[$agentViewState];
-    splitPaneToolIcon = STATE_ICONS[$agentViewState];
+    splitPaneToolIcon = SPLIT_STATE_ICONS[$agentViewState];
     leftPaneRef.resize(defaultAgentSizePercent);
     agentSizePercent.set(getDefaultSize($agentViewState));
     appSizePercent.set(100 - getDefaultSize($agentViewState));
@@ -104,13 +105,13 @@
     } else {
       // Stopped dragging
       if (splitPercent > 100 - snapStateThreshold) {
-        //  splitPaneToolIcon = directionIcon + STATE_ICONS[0];
-        splitPaneToolIcon = STATE_ICONS[2];
+        //  splitPaneToolIcon = directionIcon + SPLIT_STATE_ICONS[0];
+        splitPaneToolIcon = SPLIT_STATE_ICONS[2];
       } else if (splitPercent < snapStateThreshold) {
-        //  splitPaneToolIcon = directionIcon + STATE_ICONS[2];
-        splitPaneToolIcon = STATE_ICONS[0];
+        //  splitPaneToolIcon = directionIcon + SPLIT_STATE_ICONS[2];
+        splitPaneToolIcon = SPLIT_STATE_ICONS[0];
       } else {
-        splitPaneToolIcon = STATE_ICONS[1];
+        splitPaneToolIcon = SPLIT_STATE_ICONS[1];
       }
     }
   }
@@ -174,7 +175,8 @@
     } else {
       console.error("Failed to set default Docker context");
     }
-    handleMenuItemClick();
+    activeDropdown = null;
+    burgerActive = false;
   }
 
   function toggleBurger() {
@@ -189,7 +191,7 @@
     activeDropdown = null;
     burgerActive = false;
     if ($agentSizePercent == 100) {
-      setAgentView(1);
+      setAgentView(2);
     }
   }
 

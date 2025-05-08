@@ -31,7 +31,7 @@
 
   $effect(() => {
     if ($currentContext != null) {
-      console.log("invalidate page");
+      //console.log("invalidate page");
       invalidateAll();
     }
   });
