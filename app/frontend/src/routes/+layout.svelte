@@ -32,7 +32,7 @@
   let burgerActive = $state(false);
   let activeDropdown = $state(null);
   let minAgentSizePercent = MIN_SIZES[$agentViewState];
-  let snapStateThreshold = 15;
+  let snapStateThreshold = 10;
   let paneGroupRef;
   let leftPaneRef;
   let rightPaneRef;
@@ -124,10 +124,10 @@
       // Start dragging
     } else {
       // Stopped dragging
-      if (splitPercent > 85) {
+      if (splitPercent > 100 - snapStateThreshold) {
         setAgentView(0);
         //userSplitSizePercent.set(getDefaultSize(0));
-      } else if (splitPercent < 15) {
+      } else if (splitPercent < snapStateThreshold) {
         setAgentView(2);
         //userSplitSizePercent.set(getDefaultSize(2));
       } else {
