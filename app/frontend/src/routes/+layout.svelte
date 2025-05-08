@@ -236,7 +236,7 @@
   />
 </svelte:head>
 
-<nav class="navbar is-deep-red is-fixed-top" aria-label="main navigation">
+<nav class="navbar is-deep-red" aria-label="main navigation">
   <div class="navbar-brand">
     <a
       class="navbar-item no-select"
@@ -370,7 +370,7 @@
       bind:pane={paneGroupRef}
       direction={innerWidth > innerHeight ? "horizontal" : "vertical"}
       class="w-full rounded-lg"
-      style="margin-top: 4em;"
+      style="height: 100%;"
     >
       <Pane
         bind:pane={leftPaneRef}
@@ -412,6 +412,8 @@
 <style>
   .section {
     overflow: hidden;
+    flex-grow: 1;
+    min-height: calc(100vh - 4rem);
   }
   .navbar-item.just-agent-logo {
     /* 135deg makes the “cut” run from bottom-left to top-right */

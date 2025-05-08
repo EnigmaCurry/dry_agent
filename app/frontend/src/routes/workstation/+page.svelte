@@ -3,7 +3,7 @@
 </script>
 
 <svelte:head>
-  <title>dry_agent - Terminal</title>
+  <title>dry_agent - Workstation</title>
 </svelte:head>
 
 <Terminal
