@@ -15,6 +15,8 @@ export const userIsLoggedOut = writable(false);
 export const userSplitSizePercent = persisted('userSplitSizePercent', null)
 export const agentViewState = persisted('agentViewState', 0);
 
+export const terminalFontSize = persisted('terminalFontSize', 14);
+
 /**
  * Create a writable store that persists to localStorage under `key`.
  * @param {string} key - localStorage key

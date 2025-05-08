@@ -4,7 +4,9 @@
   import { invalidateAll } from "$app/navigation";
   import { page } from "$app/stores";
   import ProjectsTable from "$lib/ProjectsTable.svelte";
-  import { currentContext } from "$lib/stores";
+  import { currentContext, terminalFontSize } from "$lib/stores";
+  import Terminal from "$lib/Terminal.svelte";
+
   let { data } = $props();
   let selectedTab = $state("session");
 
@@ -147,4 +149,22 @@
       <a class="button is-danger" href="/logout">Logout</a>
     </div>
   </section>
+{:else if selectedTab === "terminal"}
+  <label class="label" for="terminalFontSize"
+    >Font Size: {$terminalFontSize}</label
+  >
+  <div class="control">
+    <input
+      name="terminalFontSize"
+      class="slider is-fullwidth is-info"
+      type="range"
+      min="8"
+      max="30"
+      step="1"
+      bind:value={$terminalFontSize}
+    />
+  </div>
+  {#key terminalFontSize}
+    <Terminal command="neofetch" />
+  {/key}
 {/if}

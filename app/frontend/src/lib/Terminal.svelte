@@ -1,18 +1,25 @@
 <script>
   import { onMount, onDestroy, createEventDispatcher } from "svelte";
+  import { terminalFontSize } from "$lib/stores";
   import TerminalView from "./TerminalView.svelte";
 
   const dispatch = createEventDispatcher();
 
-  export let command = "/bin/bash";
-  export let restartable = false;
-  export let fontSize = 14;
-  export let height = "300px";
-  export let fontFamily = "monospace";
-  export let lineHeight = 1.0;
-  export let fullscreen = false;
+  let {
+    command = "/bin/bash",
+    restartable = false,
+    height = "300px",
+    fontFamily = "monospace",
+    lineHeight = 1.0,
+    fullscreen = false
+  } = $props();
 
-  let isRestartable = restartable === "true" || restartable === true;
+  /**
+     * @type {any}
+     */
+  let fontSize = $state($terminalFontSize);
+
+  let isRestartable = restartable === true;
   let terminalKey = Date.now();
   let showRestart = false;
   let hasExited = false;
@@ -31,6 +38,13 @@
     showRestart = false;
     hasExited = false;
   }
+
+  $effect(() => {
+    const unsubscribe = terminalFontSize.subscribe((val) => {
+      fontSize = val;
+    });
+    return unsubscribe;
+  });
 
   onMount(() => {
     window.addEventListener("keydown", handleKeydown);

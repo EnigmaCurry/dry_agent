@@ -137,6 +137,13 @@
       fit();
     });
     resizeObserver.observe(terminalContainer);
+
+    $effect(() => {
+      if (term && fontSize) {
+        term.options.fontSize = parseInt(fontSize);
+        fit();
+      }
+    });
   });
 
   const paneDragUnsubscribe = isPaneDragging.subscribe((dragging) => {
