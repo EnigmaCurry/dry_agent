@@ -410,6 +410,9 @@
 </section>
 
 <style>
+  .section {
+    overflow: hidden;
+  }
   .navbar-item.just-agent-logo {
     /* 135deg makes the “cut” run from bottom-left to top-right */
     background: #290b0b;
