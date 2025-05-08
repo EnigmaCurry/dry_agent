@@ -26,8 +26,8 @@
   let innerHeight = $state(window.innerHeight);
 
   const MIN_SIZES = [0, 0, 0];
-  const STATE_ICONS = ["⛵️", "🏝️", "🏜️️"];
-  const SPLIT_STATE_ICONS = ["🏜️️", "🏝️", "⛵️"];
+  const STATE_ICONS = ["🌵", "🏝️", "🏜️️"];
+  const SPLIT_STATE_ICONS = ["🏜️️", "🏝️", "🌵"];
   const SPLIT_ICONS = ["⛺️", "🧭"];
   const DIRECTION_ICONS = ["⬆️", "➡️", "⬇️", "⬅️"];
   let burgerActive = $state(false);
