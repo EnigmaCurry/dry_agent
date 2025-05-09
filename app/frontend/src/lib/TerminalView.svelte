@@ -180,7 +180,6 @@
 <style>
   .inline-terminal-default-style {
     width: 100%;
-    height: var(--terminal-height, 300px); /* Fallback for inline use */
     border: 1px solid #ccc;
     margin: 1em 0;
     position: relative;
