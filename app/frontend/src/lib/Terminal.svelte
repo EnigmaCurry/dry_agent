@@ -11,18 +11,18 @@
     height = "300px",
     fontFamily = "monospace",
     lineHeight = 1.0,
-    fullscreen = false
+    fullscreen = false,
   } = $props();
 
   /**
-     * @type {any}
-     */
+   * @type {any}
+   */
   let fontSize = $state($terminalFontSize);
 
   let isRestartable = restartable === true;
-  let terminalKey = Date.now();
-  let showRestart = false;
-  let hasExited = false;
+  let terminalKey = $state(Date.now());
+  let showRestart = $state(false);
+  let hasExited = $state(false);
 
   function handleKeydown(e) {
     if (e.key === "Escape" && hasExited) {
@@ -57,10 +57,20 @@
 
 {#key terminalKey}
   <div
-    class="is-flex is-flex-grow-1"
+    class="is-flex is-flex-grow-1 is-flex-direction-column"
     class:inline-terminal-fullscreen={fullscreen === true}
     class:inline-terminal-wrapper={fullscreen != true}
   >
+    {#if showRestart}
+      <div id="inline-restart-overlay">
+        <button class="button is-primary" on:click={restartTerminal}>
+          Restart Terminal?
+        </button>
+        {#if !fullscreen}
+          <p>Press ESC to close.</p>
+        {/if}
+      </div>
+    {/if}
     <TerminalView
       {command}
       {fontSize}
@@ -76,16 +86,6 @@
         dispatch("exit");
       }}
     />
-    {#if showRestart}
-      <div id="inline-restart-overlay">
-        <button class="button is-primary" on:click={restartTerminal}>
-          Restart Terminal?
-        </button>
-        {#if !fullscreen}
-          <p>Press ESC to close.</p>
-        {/if}
-      </div>
-    {/if}
   </div>
 {/key}
 
@@ -103,11 +103,6 @@
   #inline-restart-overlay {
     display: flex;
     flex-direction: column;
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
     background: rgba(20, 20, 20, 0.9);
     color: #fff;
     align-items: center;
