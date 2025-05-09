@@ -1,3 +1,4 @@
+# app/middleware/auth.py
 import logging
 import time
 import secrets
@@ -110,7 +111,6 @@ async def generate_new_token():
     current_token = new_token
     write_token_to_file(new_token)
     await broadcast(LogoutEvent())
-    # Avoid logging the token to prevent leakage.
     return new_token
 
 

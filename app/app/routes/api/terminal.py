@@ -25,16 +25,30 @@ from app.lib.tmux import (
     inject_command_to_tmux,
     TMUX_SESSION_DEFAULT,
 )
-from app.broadcast import broadcast
-from app.models.events import OpenAppEvent
+from app.broadcast import broadcast, subscribe, unsubscribe
+from app.models.events import OpenAppEvent, Event, LogoutEvent
 
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/terminal", tags=["terminal"])
 
 
+async def watch_for_logout(queue: asyncio.Queue, websocket: WebSocket):
+    try:
+        while True:
+            event = await queue.get()
+            if isinstance(event, LogoutEvent):
+                log.info("LogoutEvent received, closing terminal websocket.")
+                await websocket.close(code=4001)  # Use custom close code
+                break
+    except Exception as e:
+        log.warning(f"watch_for_logout error: {e}")
+
+
 @router.websocket("/ws")
 async def terminal_ws(websocket: WebSocket):
     await websocket.accept()
+    event_queue = await subscribe()
+    logout_watcher = asyncio.create_task(watch_for_logout(event_queue, websocket))
 
     initial_command_received = False
     try:
@@ -191,6 +205,9 @@ async def terminal_ws(websocket: WebSocket):
         except Exception as e:
             print(f"Unexpected error: {e}")
         finally:
+            logout_watcher.cancel()
+            await asyncio.gather(logout_watcher, return_exceptions=True)
+            unsubscribe(event_queue)
             try:
                 os.killpg(pid, signal.SIGTERM)
                 await asyncio.sleep(0.1)
