@@ -14,6 +14,10 @@ from dicewarepy import diceware
 from app.dependencies import templates
 from app.models.events import LogoutEvent
 from app.broadcast import broadcast
+import os
+
+PUBLIC_HOST = os.environ.get("PUBLIC_HOST", "127.0.0.1")
+PUBLIC_PORT = os.environ.get("PUBLIC_PORT", "8123")
 
 
 def token():
@@ -24,13 +28,14 @@ def token():
 current_token = token()
 AUTH_COOKIE_NAME = "dry_agent_auth"
 CSRF_COOKIE_NAME = "csrf_token"
+TOKEN_FILE = "/data/token/current_token.txt"
 
 logger = logging.getLogger("auth")
 
 
 # Write the token to a file so it can be retrieved via CLI.
 def write_token_to_file(token_value: str):
-    with open("current_token.txt", "w") as f:
+    with open(TOKEN_FILE, "w") as f:
         f.write(token_value)
 
 
@@ -95,7 +100,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
                     content={"detail": "Authentication required. Please log in."},
                 )
             # For non-API endpoints, redirect to the login page.
-            return RedirectResponse(url="/login")
+            return RedirectResponse(url=f"https://{PUBLIC_HOST}:{PUBLIC_PORT}/logout")
 
         return await call_next(request)
 
@@ -172,7 +177,9 @@ async def login_post(request: Request, token: str = Form(...), csrf: str = Form(
         record_login_attempt(success=True)
         # Generate a new CSRF token for the new session.
         new_csrf_token = secrets.token_urlsafe(16)
-        response = RedirectResponse(url="/", status_code=302)
+        response = RedirectResponse(
+            url=f"https://{PUBLIC_HOST}:{PUBLIC_PORT}/", status_code=302
+        )
         response.set_cookie(
             key=AUTH_COOKIE_NAME, value=new_token, httponly=True, samesite="strict"
         )
@@ -196,7 +203,9 @@ async def login_post(request: Request, token: str = Form(...), csrf: str = Form(
 async def logout(request: Request):
     await generate_new_token()  # Invalidate any cookie with the old token.
 
-    response = RedirectResponse(url="/totp/logout", status_code=302)
+    response = RedirectResponse(
+        url=f"https://{PUBLIC_HOST}:{PUBLIC_PORT}/totp/logout", status_code=302
+    )
     response.delete_cookie(key=AUTH_COOKIE_NAME)
     return response
 
@@ -207,7 +216,7 @@ async def admin_generate_auth_token(request: Request):
         raise HTTPException(status_code=403, detail="Forbidden")
     await generate_new_token()  # Update the global token and write it to current_token.txt.
     return PlainTextResponse(
-        "New token generated. Retrieve it from current_token.txt on the filesystem. All existing clients have been logged out."
+        f"New token generated. Retrieve it from {TOKEN_FILE} on the filesystem. All existing clients have been logged out."
     )
 
 
@@ -215,8 +224,9 @@ async def admin_get_login_url(request: Request):
     host = request.headers.get("host")
     auth_cookie = request.cookies.get(AUTH_COOKIE_NAME)
     if auth_cookie and auth_cookie == current_token:
+        q = secrets.token_urlsafe(4)
         return JSONResponse(
-            content={"login_url": f"https://{host}/login#{current_token}"}
+            content={"login_url": f"https://{host}/login?q={q}#{current_token}"}
         )
     else:
         return JSONResponse(content={"error": "Unauthorized"}, status_code=401)

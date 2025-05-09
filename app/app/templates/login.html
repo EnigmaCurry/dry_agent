@@ -79,21 +79,26 @@
 </head>
 <body>
   <section class="section">
-    <div class="container">
-      <h1 class="title">Login</h1>
+    <div class="container" style="min-width: 30em;">
+      <h1 class="title">You are logged out.</h1>
       {% if error %}
         <div class="notification is-danger">{{ error }}</div>
-      {% endif %}
-      <form id="login-form" method="post" action="/login" autocomplete="off">
-        <!-- Dummy password field to prevent password manager prompts -->
+        {% endif %}
+        <ul>
+          <li>To log in, you need to get a fresh login link.</li>
+          <li>You may ask your chat agent for the link.</li>
+          <li>Or, in the installation directory,
+          run: <code style="color: #e86767;">make get-url</code></li>
+        </ul>
+
+      <form id="login-form" method="post" action="/login" autocomplete="off" style="display: none;">
         <input type="password" style="opacity:0; height:0; position:absolute; top:-9999px;" autocomplete="off" tabindex="-1">
         <div class="field">
-          <label class="label">Enter Preshared Token (not TOTP)</label>
+          <label class="label">Enter the preshared login token</label>
           <div class="control">
-            <input id="token-input" type="text" name="token" placeholder="Token" required autocomplete="new-password">
+            <input id="token-input" type="text" name="token" placeholder="one-two-three-four-five-six-seven-eight-nine-ten" required autocomplete="new-password">
           </div>
         </div>
-        <!-- Hidden CSRF field populated from the template context -->
         <input type="hidden" name="csrf" value="{{ csrf_token }}">
         <div class="field">
           <div class="control">

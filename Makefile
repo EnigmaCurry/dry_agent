@@ -75,6 +75,7 @@ install: deps expect-config build uninstall
 	       --label project=dry-agent \
            --hostname "dry-agent-$$(head /dev/urandom | tr -dc 'a-f0-9' | head -c8)" \
            -v dry-agent-workstation-data:/root \
+	       -v dry-agent-auth-token:/data/token \
            -e PUBLIC_HOST=$${PUBLIC_HOST} \
            -e PUBLIC_PORT=$${PUBLIC_PORT}  \
            -e OPENAI_API_KEY=$${OPENAI_API_KEY} \
@@ -83,7 +84,8 @@ install: deps expect-config build uninstall
 	       localhost/dry-agent/app; \
 	podman run --name dry-agent-auth -d \
 	       --label project=dry-agent \
-	       -v dry-agent-auth-data:/data \
+	       -v dry-agent-auth-secret:/data/secret \
+	       -v dry-agent-auth-token:/data/token \
            -e PUBLIC_HOST=$${PUBLIC_HOST} \
            -e PUBLIC_PORT=$${PUBLIC_PORT}  \
            -p 127.0.0.1:$${AUTH_LOCALHOST_PORT}:8002 \
@@ -122,7 +124,8 @@ destroy: deps uninstall
 	podman volume rm -f dry-agent-workstation-data
 	podman volume rm -f dry-agent-hushcrumbs-data
 	podman volume rm -f dry-agent-traefik-certs
-	podman volume rm -f dry-agent-auth-data
+	podman volume rm -f dry-agent-auth-token
+	podman volume rm -f dry-agent-auth-secret
 
 clean:
 	rm -f .env

@@ -1,6 +1,10 @@
 entryPoints:
   websecure:
     address: ":${PUBLIC_PORT}"
+    forwardedHeaders:
+      insecure: false # Don't trust any incoming X-Forwarded-* headers
+    http:
+      tls: true
   ssh:
     address: ":${PUBLIC_SSH_PORT}"
 

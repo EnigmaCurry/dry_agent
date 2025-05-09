@@ -3,7 +3,8 @@ FROM python:3.11-slim
 WORKDIR /app
 COPY main.py .
 
-RUN pip install fastapi uvicorn itsdangerous pyotp qrcode rich python-multipart
+RUN pip install fastapi uvicorn itsdangerous pyotp qrcode rich \
+    python-multipart slowapi watchdog
 
 VOLUME ["/data"]
 

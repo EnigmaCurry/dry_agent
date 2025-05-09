@@ -3,7 +3,12 @@ import asyncio
 import json
 from pathlib import Path
 from watchdog.observers import Observer
-from watchdog.events import FileSystemEventHandler
+from watchdog.events import (
+    FileSystemEventHandler,
+    FileCreatedEvent,
+    FileModifiedEvent,
+    FileMovedEvent,
+)
 from app.broadcast import broadcast
 from app.models.events import ContextChangedEvent
 import logging
@@ -19,7 +24,7 @@ def get_current_context_from_config() -> str:
             data = json.load(f)
             return data.get("currentContext", "default")
     except Exception as e:
-        print(f"Error reading Docker config: {e}")
+        logger.warning(f"Error reading Docker config: {e}")
         return "default"
 
 
@@ -29,13 +34,28 @@ class DockerConfigEventHandler(FileSystemEventHandler):
         self.queue = queue
         self.loop = loop
 
-    def on_any_event(self, event):
-        if event.dest_path == str(CONFIG_PATH) and event.event_type in ("moved",):
+    def dispatch(self, event):
+        is_target = event.src_path == str(CONFIG_PATH) or getattr(
+            event, "dest_path", None
+        ) == str(CONFIG_PATH)
+        if is_target and isinstance(
+            event, (FileCreatedEvent, FileModifiedEvent, FileMovedEvent)
+        ):
             logger.info(f"Detected event: {event.event_type} on {event.src_path}")
             asyncio.run_coroutine_threadsafe(self.queue.put(event), self.loop)
 
 
+async def wait_for_config_file():
+    if not CONFIG_PATH.exists():
+        logger.info("Waiting for Docker config file to appear...")
+    while not CONFIG_PATH.exists():
+        await asyncio.sleep(1)
+    logger.info("Docker config file found.")
+
+
 async def monitor_docker_context():
+    await wait_for_config_file()
+
     queue = asyncio.Queue()
     last_context = get_current_context_from_config()
 
@@ -45,7 +65,7 @@ async def monitor_docker_context():
     observer.schedule(event_handler, str(CONFIG_PATH.parent), recursive=False)
     observer.start()
 
-    logger.info(f"Startup docker context watcher: {CONFIG_PATH}")
+    logger.info(f"Started docker context watcher on: {CONFIG_PATH}")
     logger.info(f"Last context: {last_context}")
     try:
         while True:

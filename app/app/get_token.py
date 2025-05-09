@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 import requests
 import os
+import secrets
 
 PUBLIC_HOST = os.environ["PUBLIC_HOST"]
 PUBLIC_PORT = os.environ["PUBLIC_PORT"]
+TOKEN_FILE = "/data/token/current_token.txt"
 
 
 def main():
@@ -19,10 +21,11 @@ def main():
 
     # Now read the token from the filesystem.
     try:
-        with open("current_token.txt", "r") as f:
+        with open(TOKEN_FILE, "r") as f:
             token_from_file = f.read().strip()
         print()
-        print(f"https://{PUBLIC_HOST}:{PUBLIC_PORT}/login#{token_from_file}")
+        q = secrets.token_urlsafe(4)
+        print(f"https://{PUBLIC_HOST}:{PUBLIC_PORT}/login?q={q}#{token_from_file}")
     except Exception as e:
         print("Error reading token file:", e)
         raise
