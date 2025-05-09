@@ -14,6 +14,14 @@ http:
         - app-allowlist
         - dry-agent-auth
 
+    app-login:
+      rule: "Path(`/login`) || Path(`/logout`)"
+      entryPoints: ["websecure"]
+      service: app-service
+      tls: {}
+      middlewares:
+        - app-allowlist
+
     totp-router:
       rule: "PathPrefix(`/totp`)"
       entryPoints: ["websecure"]

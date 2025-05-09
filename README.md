@@ -86,6 +86,15 @@ may press Enter to use the existing/default value.
 make install
 ```
 
+### Two factor auth (TOTP)
+
+```
+make get-totp
+```
+
+This will print a QR code you must scan with your mobile authenticator
+app (e.g. Aegis).
+
 ### Open
 
 ```

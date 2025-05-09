@@ -190,6 +190,11 @@ get-url:
 	@podman exec -it dry-agent-app python app/get_token.py
 	@echo
 
+.PHONY: get-totp # Get the TOTP setup QR code
+get-totp:
+	@podman exec -it dry-agent-auth python main.py --qr
+	@echo
+
 .PHONY: open # Open the web app
 open:
 	@token_url=$$(podman exec -it dry-agent-app python app/get_token.py | grep '^http'); \

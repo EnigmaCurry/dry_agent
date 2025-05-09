@@ -196,7 +196,7 @@ async def login_post(request: Request, token: str = Form(...), csrf: str = Form(
 async def logout(request: Request):
     await generate_new_token()  # Invalidate any cookie with the old token.
 
-    response = RedirectResponse(url="/login", status_code=302)
+    response = RedirectResponse(url="/totp/logout", status_code=302)
     response.delete_cookie(key=AUTH_COOKIE_NAME)
     return response
 
