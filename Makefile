@@ -81,6 +81,13 @@ install: deps expect-config build uninstall
            -p 127.0.0.1:$${APP_LOCALHOST_PORT}:8001 \
 	       -p 127.0.0.1:$${SSH_LOCALHOST_PORT}:22 \
 	       localhost/dry-agent/app; \
+	podman run --name dry-agent-auth -d \
+	       --label project=dry-agent \
+	       -v dry-agent-auth-data:/data \
+           -e PUBLIC_HOST=$${PUBLIC_HOST} \
+           -e PUBLIC_PORT=$${PUBLIC_PORT}  \
+           -p 127.0.0.1:$${AUTH_LOCALHOST_PORT}:8002 \
+	       localhost/dry-agent/auth; \
 	podman run --name dry-agent-proxy --label project=dry-agent -d \
 	       -v dry-agent-traefik-certs:/certs \
 	       -e PUBLIC_SUBNET=$${PUBLIC_SUBNET} \
@@ -88,6 +95,7 @@ install: deps expect-config build uninstall
 	       -e PUBLIC_PORT=$${PUBLIC_PORT} \
 	       -e PUBLIC_SSH_PORT=$${PUBLIC_SSH_PORT} \
 	       -e APP_LOCALHOST_PORT=$${APP_LOCALHOST_PORT} \
+	       -e AUTH_LOCALHOST_PORT=$${AUTH_LOCALHOST_PORT} \
 	       -e SSH_LOCALHOST_PORT=$${SSH_LOCALHOST_PORT} \
 	       -e TLS_EXPIRES=$${TLS_EXPIRES} \
 	       --network host \
@@ -106,6 +114,7 @@ install: deps expect-config build uninstall
 .PHONY: uninstall # Remove the containers (but keep the volumes)
 uninstall:
 	podman rm -f dry-agent-app
+	podman rm -f dry-agent-auth
 	podman rm -f dry-agent-proxy
 
 .PHONY: destroy # Remove the containers AND delete its volumes
@@ -113,6 +122,7 @@ destroy: deps uninstall
 	podman volume rm -f dry-agent-workstation-data
 	podman volume rm -f dry-agent-hushcrumbs-data
 	podman volume rm -f dry-agent-traefik-certs
+	podman volume rm -f dry-agent-auth-data
 
 clean:
 	rm -f .env
@@ -127,11 +137,14 @@ build: deps
 	podman build -t localhost/dry-agent/hushcrumbs .hushcrumbs
 	podman build -t localhost/dry-agent/workstation workstation
 	podman build -t localhost/dry-agent/traefik traefik
+	podman build -t localhost/dry-agent/auth auth
 	podman build -t localhost/dry-agent/app app
 
 expect-images:
 	@missing=0; \
-	for img in localhost/dry-agent/hushcrumbs localhost/dry-agent/workstation; do \
+	for img in localhost/dry-agent/hushcrumbs localhost/dry-agent/workstation \
+               localhost/dry-agent/traefik localhost/dry-agent/auth \
+               localhost/dry-agent/app; do \
 		if ! podman image exists $$img; then \
 			echo "❌ Missing image: $$img"; \
 			missing=1; \
@@ -158,6 +171,11 @@ logs:
 .PHONY: traefik-logs # Show the traefik logs
 traefik-logs:
 	podman logs -f dry-agent-proxy
+
+.PHONY: auth-logs # Show the auth logs
+auth-logs:
+	podman logs -f dry-agent-auth
+
 
 .PHONY: start # Start the containers (must be installed already)
 start:

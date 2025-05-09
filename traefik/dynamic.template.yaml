@@ -12,6 +12,16 @@ http:
       tls: {}
       middlewares:
         - app-allowlist
+        - dry-agent-auth
+
+    totp-router:
+      rule: "PathPrefix(`/totp`)"
+      entryPoints: ["websecure"]
+      service: auth-service
+      tls: {}
+      middlewares:
+        - app-allowlist
+        - set-x-forwarded-proto
 
   services:
     app-service:
@@ -19,12 +29,24 @@ http:
         servers:
           - url: "http://127.0.0.1:${APP_LOCALHOST_PORT}"
 
+    auth-service:
+      loadBalancer:
+        servers:
+          - url: "http://127.0.0.1:${AUTH_LOCALHOST_PORT}"
+
   middlewares:
     app-allowlist:
       ipAllowList:
         sourceRange:
           - "${PUBLIC_SUBNET}"
-
+    dry-agent-auth:
+      forwardAuth:
+        address: "http://127.0.0.1:${AUTH_LOCALHOST_PORT}/auth"
+        trustForwardHeader: true
+    set-x-forwarded-proto:
+      headers:
+        customRequestHeaders:
+          X-Forwarded-Proto: "https"
 tcp:
   routers:
     ssh-router:
