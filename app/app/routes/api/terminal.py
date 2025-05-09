@@ -1,12 +1,16 @@
 # app/routes/terminal.py
 import os
-import sys
 import pty
 import asyncio
 import select
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Request
-from fastapi.responses import HTMLResponse
-from app.dependencies import templates
+from fastapi import (
+    APIRouter,
+    WebSocket,
+    WebSocketDisconnect,
+    HTTPException,
+    Query,
+)
+from fastapi.responses import JSONResponse
 import fcntl
 import termios
 import struct
@@ -16,64 +20,16 @@ import errno
 import logging
 import subprocess
 from typing import Optional
+from app.lib.tmux import (
+    get_tmux_pane_cwd_path,
+    inject_command_to_tmux,
+    TMUX_SESSION_DEFAULT,
+)
+from app.broadcast import broadcast
+from app.models.events import OpenAppEvent
 
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/terminal", tags=["terminal"])
-
-
-import os
-import subprocess
-from typing import Optional
-
-
-def get_tmux_pane_cwd_path(session: str) -> Optional[str]:
-    def get_latest_child_pid(pid: str) -> str:
-        """Recursively find the most recent child/grandchild process."""
-        try:
-            with open(f"/proc/{pid}/task/{pid}/children", "r") as f:
-                children = f.read().strip().split()
-                if not children:
-                    return pid
-                # Pick the last child PID as the most recent one
-                return get_latest_child_pid(children[-1])
-        except Exception:
-            return pid
-
-    try:
-        # 1. Get the pane ID
-        pane_id = (
-            subprocess.check_output(
-                ["tmux", "display-message", "-p", "-t", session, "#{pane_id}"],
-                stderr=subprocess.DEVNULL,
-            )
-            .decode()
-            .strip()
-        )
-        if not pane_id:
-            return None
-
-        # 2. Get pane PID
-        lines = (
-            subprocess.check_output(
-                ["tmux", "list-panes", "-t", session, "-F", "#{pane_id} #{pane_pid}"],
-                stderr=subprocess.DEVNULL,
-            )
-            .decode()
-            .splitlines()
-        )
-
-        for tid, pid in (line.split() for line in lines):
-            if tid == pane_id:
-                # 3. Find the latest descendant PID
-                active_pid = get_latest_child_pid(pid)
-                path = f"/proc/{active_pid}/cwd"
-                if os.path.exists(path):
-                    return path
-
-    except subprocess.CalledProcessError:
-        pass
-
-    return None
 
 
 @router.websocket("/ws")
@@ -180,7 +136,7 @@ async def terminal_ws(websocket: WebSocket):
         async def watch_cwd():
             last = None
             # on connect, immediately try to send the current cwd
-            path_link = get_tmux_pane_cwd_path("work")
+            path_link = get_tmux_pane_cwd_path(TMUX_SESSION_DEFAULT)
             if path_link:
                 try:
                     dest = os.readlink(path_link)
@@ -191,7 +147,7 @@ async def terminal_ws(websocket: WebSocket):
             # then poll once a second, sending only on change
             while True:
                 await asyncio.sleep(1)
-                path_link = get_tmux_pane_cwd_path("work")
+                path_link = get_tmux_pane_cwd_path(TMUX_SESSION_DEFAULT)
                 if not path_link:
                     continue
                 try:
@@ -267,3 +223,33 @@ async def reap_children():
                 await asyncio.sleep(0.5)
             else:
                 raise
+
+
+@router.post("/create-tmux-window")
+async def create_tmux_window(
+    session_name: str = Query(...),
+    command: str = Query(...),
+    window_name: Optional[str] = Query("injected"),
+    autorun: bool = Query(False),
+    active: bool = Query(False),
+):
+    try:
+        inject_command_to_tmux(
+            session_name=session_name,
+            command=command,
+            window_name=window_name,
+            autorun=autorun,
+            active=active,
+        )
+        if active:
+            await broadcast(OpenAppEvent(page="workstation"))
+        return JSONResponse(
+            content={
+                "status": "ok",
+                "message": f"Window '{window_name}' created and command injected",
+            }
+        )
+    except RuntimeError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except subprocess.CalledProcessError as e:
+        raise HTTPException(status_code=500, detail=f"tmux error: {e}")
