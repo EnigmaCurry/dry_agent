@@ -158,6 +158,9 @@ so you will stay logged in indefinitely. To login with a new browser,
 you must retrieve a new token. When a new token is used, the client
 cookies are invalidated and your existing sessions are logged out.
 
+In addition to the preshared login token, you must also pass two
+factor authentication with your authenticator (TOTP) device.
+
 There is an SSH server built in which is an alternative to using the
 webapp. The SSH server listens on localhost at `SSH_LOCALHOST_PORT`
 (35222) and Traefik proxies this port to `PUBLIC_SUBNET` on port

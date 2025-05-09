@@ -144,6 +144,7 @@
       <h2 class="subtitle">Logout</h2>
       <ul class="mb-3" style="list-style: disc;">
         <li>Log out from all sessions.</li>
+        <li>Delete TOTP cookie.</li>
         <li>Invalidate all login URLs.</li>
       </ul>
       <a class="button is-danger" href="/logout">Logout</a>
