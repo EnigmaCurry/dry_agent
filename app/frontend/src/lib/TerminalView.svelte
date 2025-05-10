@@ -178,6 +178,9 @@
 ></div>
 
 <style>
+  #inline-terminal-container {
+    max-height: 100%;
+  }
   .inline-terminal-default-style {
     width: 100%;
     border: 1px solid #ccc;
