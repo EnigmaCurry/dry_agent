@@ -84,7 +84,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
             or request.url.path.startswith("/logout")
             or request.url.path.startswith("/static")
             or request.url.path.startswith("/admin/generate-auth-token")
-            or request.url.path.startswith("/admin/get-login-url")
+            or request.url.path.startswith("/get-login-url")
             or request.url.path.startswith("/openapi.json")
             or request.url.path.startswith("/docs")
         ):
@@ -204,7 +204,7 @@ async def logout(request: Request):
     await generate_new_token()  # Invalidate any cookie with the old token.
 
     response = RedirectResponse(
-        url=f"https://{PUBLIC_HOST}:{PUBLIC_PORT}/totp/logout", status_code=302
+        url=f"https://{PUBLIC_HOST}:{PUBLIC_PORT}/login", status_code=302
     )
     response.delete_cookie(key=AUTH_COOKIE_NAME)
     return response

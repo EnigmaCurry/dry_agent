@@ -8,4 +8,8 @@ RUN pip install fastapi uvicorn itsdangerous pyotp qrcode rich \
 
 VOLUME ["/data"]
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8002"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8002", \
+     "--ssl-certfile", "/certs/dry-agent_Auth.crt", \
+     "--ssl-keyfile", "/certs/dry-agent_Auth.key", \
+     "--ssl-ca-certs", "/certs/dry-agent-root.crt", \
+     "--ssl-cert-reqs", "2", "--log-level", "info"]

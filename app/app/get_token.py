@@ -7,12 +7,19 @@ PUBLIC_HOST = os.environ["PUBLIC_HOST"]
 PUBLIC_PORT = os.environ["PUBLIC_PORT"]
 TOKEN_FILE = "/data/token/current_token.txt"
 
+# Client cert (and its key) for mTLS
+CLIENT_CERT = (
+    "/certs/dry-agent_App.crt",
+    "/certs/dry-agent_App.key",
+)
+CA_BUNDLE = "/certs/dry-agent-root.crt"
+
 
 def main():
-    url = "http://127.0.0.1:8001/admin/generate-auth-token"
+    url = "https://127.0.0.1:8001/admin/generate-auth-token"
     try:
         # Send a POST request
-        response = requests.post(url)
+        response = requests.post(url, cert=CLIENT_CERT, verify=CA_BUNDLE)
         response.raise_for_status()
         print(response.text)  # prints the HTML message from the server
     except Exception as e:

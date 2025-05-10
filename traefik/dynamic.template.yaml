@@ -1,12 +1,20 @@
 tls:
   certificates:
-    - certFile: /certs/self.crt
-      keyFile: /certs/self.key
+    - certFile: /certs/dry-agent_Traefik.crt
+      keyFile: /certs/dry-agent_Traefik.key
 
 http:
+  serversTransports:
+    secure-backends:
+      rootCAs:
+        - /certs/dry-agent-root.crt
+      certificates:
+        - certFile: /certs/dry-agent_Traefik.crt
+          keyFile: /certs/dry-agent_Traefik.key
+
   routers:
     app-router:
-      rule: "PathPrefix(`/`)"
+      rule: "(Host(`${PUBLIC_HOST}`) || Host(`127.0.0.1`) || Host(`::1`)) && PathPrefix(`/`) && !PathPrefix(`/admin`) && !Path(`/login`) && !Path(`/logout`) && !PathPrefix(`/totp`)"
       entryPoints: ["websecure"]
       service: app-service
       tls: {}
@@ -15,7 +23,7 @@ http:
         - dry-agent-auth
 
     app-login:
-      rule: "Path(`/login`) || Path(`/logout`)"
+      rule: "(Host(`${PUBLIC_HOST}`) || Host(`127.0.0.1`) || Host(`::1`)) && Path(`/login`) || Path(`/logout`)"
       entryPoints: ["websecure"]
       service: app-service
       tls: {}
@@ -23,7 +31,7 @@ http:
         - app-allowlist
 
     totp-router:
-      rule: "PathPrefix(`/totp`)"
+      rule: "(Host(`${PUBLIC_HOST}`) || Host(`127.0.0.1`) || Host(`::1`)) && PathPrefix(`/totp`)"
       entryPoints: ["websecure"]
       service: auth-service
       tls: {}
@@ -34,13 +42,17 @@ http:
   services:
     app-service:
       loadBalancer:
+        passHostHeader: true
+        serversTransport: secure-backends
         servers:
-          - url: "http://127.0.0.1:${APP_LOCALHOST_PORT}"
+          - url: "https://127.0.0.1:${APP_LOCALHOST_PORT}"
 
     auth-service:
       loadBalancer:
+        passHostHeader: true
+        serversTransport: secure-backends
         servers:
-          - url: "http://127.0.0.1:${AUTH_LOCALHOST_PORT}"
+          - url: "https://127.0.0.1:${AUTH_LOCALHOST_PORT}"
 
   middlewares:
     app-allowlist:
@@ -49,8 +61,12 @@ http:
           - "${PUBLIC_SUBNET}"
     dry-agent-auth:
       forwardAuth:
-        address: "http://127.0.0.1:${AUTH_LOCALHOST_PORT}/auth"
+        address: "https://127.0.0.1:${AUTH_LOCALHOST_PORT}/auth"
         trustForwardHeader: true
+        tls:
+          ca: "/certs/dry-agent-root.crt"
+          cert: "/certs/dry-agent_Traefik.crt"
+          key: "/certs/dry-agent_Traefik.key"
     set-x-forwarded-proto:
       headers:
         customRequestHeaders:

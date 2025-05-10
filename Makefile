@@ -37,24 +37,24 @@ config: deps
 		exit 1; \
 	fi; \
 	[ -f .env ] && cp .env .env.bak || touch .env.bak; \
-	echo "🛠️  Generating .env interactively (using existing values as defaults if present)..."; \
-	touch .env; \
-	awk ' \
+	echo "🛠️  Generating .env interactively (using existing values as defaults if present)…"; \
+	: > .env; \
+	awk '\
 		BEGIN { \
-			comment = ""; \
+			comment=""; \
 			while ((getline line < ".env.bak") > 0) { \
 				if (line ~ /^[A-Za-z_][A-Za-z0-9_]*=/) { \
 					split(line, kv, "="); \
-					existing[kv[1]] = substr(line, index(line, "=") + 1); \
+					existing[kv[1]] = substr(line, index(line,"=")+1); \
 				} \
 			} \
 		} \
 		/^\s*#/ { comment = (comment ? comment ORS : "") $$0; next } \
-		/^\s*$$/ { comment = ""; next } \
+		/^\s*$$/  { comment = ""; next } \
 		/^[A-Za-z_][A-Za-z0-9_]*=/ { \
 			split($$0, parts, "="); \
-			var=parts[1]; \
-			def=substr($$0, index($$0, "=") + 1); \
+			var = parts[1]; \
+			def = substr($$0, index($$0,"=")+1); \
 			if (var in existing) def = existing[var]; \
 			if (comment) print "\n" comment; \
 			printf "> %s [%s]: ", var, def; \
@@ -68,7 +68,7 @@ config: deps
 	echo -e "\n✅ .env file configured successfully."
 
 .PHONY: install # Install the containers
-install: deps expect-config build uninstall
+install: deps expect-config build uninstall ca
 	@set -a; \
 	source .env; \
 	podman run --name dry-agent-app -d \
@@ -79,6 +79,7 @@ install: deps expect-config build uninstall
            -e PUBLIC_HOST=$${PUBLIC_HOST} \
            -e PUBLIC_PORT=$${PUBLIC_PORT}  \
            -e OPENAI_API_KEY=$${OPENAI_API_KEY} \
+	       -v dry-agent-certs-app:/certs \
            -p 127.0.0.1:$${APP_LOCALHOST_PORT}:8001 \
 	       -p 127.0.0.1:$${SSH_LOCALHOST_PORT}:22 \
 	       localhost/dry-agent/app; \
@@ -86,12 +87,13 @@ install: deps expect-config build uninstall
 	       --label project=dry-agent \
 	       -v dry-agent-auth-secret:/data/secret \
 	       -v dry-agent-auth-token:/data/token \
-           -e PUBLIC_HOST=$${PUBLIC_HOST} \
+	       -v dry-agent-certs-auth:/certs \
+	       -e PUBLIC_HOST=$${PUBLIC_HOST} \
            -e PUBLIC_PORT=$${PUBLIC_PORT}  \
            -p 127.0.0.1:$${AUTH_LOCALHOST_PORT}:8002 \
 	       localhost/dry-agent/auth; \
 	podman run --name dry-agent-proxy --label project=dry-agent -d \
-	       -v dry-agent-traefik-certs:/certs \
+	       -v dry-agent-certs-traefik:/certs \
 	       -e PUBLIC_SUBNET=$${PUBLIC_SUBNET} \
 	       -e PUBLIC_HOST=$${PUBLIC_HOST} \
 	       -e PUBLIC_PORT=$${PUBLIC_PORT} \
@@ -100,6 +102,7 @@ install: deps expect-config build uninstall
 	       -e AUTH_LOCALHOST_PORT=$${AUTH_LOCALHOST_PORT} \
 	       -e SSH_LOCALHOST_PORT=$${SSH_LOCALHOST_PORT} \
 	       -e TLS_EXPIRES=$${TLS_EXPIRES} \
+	       -e TRAEFIK_LOG_LEVEL=$${TRAEFIK_LOG_LEVEL} \
 	       --network host \
 	       localhost/dry-agent/traefik;
 	@echo
@@ -113,6 +116,16 @@ install: deps expect-config build uninstall
 	@echo
 	@podman ps --filter "label=project=dry-agent"
 
+.PHONY: ca # Make StepCA mTLS authority for Traefik backend
+ca:
+	podman build -t localhost/dry-agent/ca ca
+	podman run --rm -it \
+     -v dry-agent-certs-CA:/certs/CA \
+	 -v dry-agent-certs-traefik:/certs/traefik \
+	 -v dry-agent-certs-app:/certs/app \
+	 -v dry-agent-certs-auth:/certs/auth \
+	localhost/dry-agent/ca
+
 .PHONY: uninstall # Remove the containers (but keep the volumes)
 uninstall:
 	podman rm -f dry-agent-app
@@ -123,9 +136,13 @@ uninstall:
 destroy: deps uninstall
 	podman volume rm -f dry-agent-workstation-data
 	podman volume rm -f dry-agent-hushcrumbs-data
-	podman volume rm -f dry-agent-traefik-certs
 	podman volume rm -f dry-agent-auth-token
 	podman volume rm -f dry-agent-auth-secret
+	podman volume rm -f dry-agent-socket
+	podman volume rm -f dry-agent-certs-CA
+	podman volume rm -f dry-agent-certs-traefik
+	podman volume rm -f dry-agent-certs-app
+	podman volume rm -f dry-agent-certs-auth
 
 clean:
 	rm -f .env
@@ -200,7 +217,7 @@ get-totp:
 
 .PHONY: open # Open the web app
 open:
-	@token_url=$$(podman exec -it dry-agent-app python app/get_token.py | grep '^http'); \
+	@token_url=$$(podman exec -it dry-agent-app python app/get_token.py | grep '^http') && \
 	xdg-open $$token_url
 
 .PHONY: shell # Exec into the workstation container

@@ -13,4 +13,4 @@ providers:
     filename: /etc/traefik/dynamic.yaml
 
 log:
-  level: WARN
+  level: ${TRAEFIK_LOG_LEVEL}

@@ -42,7 +42,7 @@ app.add_api_route(
     tags=["admin"],
 )
 app.add_api_route(
-    "/admin/get-login-url",
+    "/get-login-url",
     admin_get_login_url,
     methods=["GET"],
     response_class=JSONResponse,

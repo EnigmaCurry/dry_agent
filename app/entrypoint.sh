@@ -48,4 +48,10 @@ mkdir -p /root/dry_agent/database
 
 /usr/sbin/sshd
 
-exec python -m uvicorn app.main:app --host 0.0.0.0 --port 8001 --log-level info
+exec python -m uvicorn app.main:app \
+  --host 0.0.0.0 --port 8001 \
+  --ssl-certfile /certs/dry-agent_App.crt \
+  --ssl-keyfile   /certs/dry-agent_App.key \
+  --ssl-ca-certs  /certs/dry-agent-root.crt \
+  --ssl-cert-reqs 2 \
+  --log-level info

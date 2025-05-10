@@ -24,7 +24,7 @@
     transferError = "";
 
     try {
-      const res = await fetch("/admin/get-login-url");
+      const res = await fetch("/get-login-url");
       if (!res.ok) throw new Error("Failed to get login URL");
       const json = await res.json();
       loginUrl = json.login_url;
