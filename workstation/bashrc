@@ -56,3 +56,7 @@ unset -f ps1_generator
 
 #neofetch --disable resolution --disable uptime
 
+xdg-open() {
+    echo "$1" > /tmp/xdg_open_pipe
+}
+export -f xdg-open

@@ -14,6 +14,7 @@ from .middleware.auth import (
 )
 import logging
 from app.lib.docker_context_watcher import monitor_docker_context
+from app.lib.xdg_open_pipe import watch_xdg_open_pipe
 import asyncio
 
 logging.basicConfig(level=logging.INFO)
@@ -77,3 +78,4 @@ app.mount(
 @app.on_event("startup")
 async def start_background_tasks():
     asyncio.create_task(monitor_docker_context())
+    asyncio.create_task(watch_xdg_open_pipe())

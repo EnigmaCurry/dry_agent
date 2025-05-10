@@ -26,6 +26,11 @@ class OpenInstancesEvent(BaseModel):
     app: str
 
 
+class OpenURLEvent(BaseModel):
+    type: Literal["open_url"] = Field("open_url", frozen=True)
+    url: str
+
+
 Event = Annotated[
     Union[ContextChangedEvent, ContextListEvent], Field(discriminator="type")
 ]

@@ -78,6 +78,13 @@ export function listenToServerEvents() {
       goto(`/instances?app=${payload.app}`);
     });
 
+    source.addEventListener("open_url", (event) => {
+      /** @type {{ page: string }} */
+      const payload = JSON.parse(event.data);
+      console.log("open_url", payload.url);
+      window.open(payload.url, '_blank');
+    });
+
     source.onerror = (err) => {
       console.error("SSE connection lost", err);
     };

@@ -200,7 +200,11 @@ async def totp_verify(request: Request, code: str = Form(...)):
                 )
                 return response
         except BadSignature:
-            pass
+            response = RedirectResponse(
+                url=f"https://{PUBLIC_HOST}:{PUBLIC_PORT}/", status_code=302
+            )
+            response.delete_cookie(OTP_COOKIE_NAME, path=OTP_COOKIE_PATH)
+            return response
     else:
         totp = get_totp()
         if totp.verify(code):
@@ -220,7 +224,7 @@ async def totp_verify(request: Request, code: str = Form(...)):
             )
             return response
 
-    return PlainTextResponse("Invalid TOTP", status_code=401)
+    return PlainTextResponse("Invalid TOTP code", status_code=401)
 
 
 @app.get("/totp/logout")
