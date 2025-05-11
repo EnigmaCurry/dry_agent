@@ -1,7 +1,7 @@
 import os
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
 from app import routes
 from app.routes import api as api_routes
 from .middleware.auth import (
@@ -17,9 +17,10 @@ import logging
 from app.lib.docker_context_watcher import monitor_docker_context
 from app.lib.xdg_open_pipe import watch_xdg_open_pipe
 import asyncio
+from app.lib.rate_limit import limiter, SlowAPIMiddleware, RateLimitExceeded
 
 ## Get TLS info from uvicorn:
-import app.patch_transport
+import app.lib.patch_transport
 
 LOG_LEVEL = os.getenv("LOG_LEVEL", "info").upper()
 logging.basicConfig(level=LOG_LEVEL)
@@ -27,6 +28,15 @@ log = logging.getLogger(__name__)
 log.info("Starting up server now.")
 
 app = FastAPI()
+
+app.state.limiter = limiter
+app.add_middleware(SlowAPIMiddleware)
+
+
+@app.exception_handler(RateLimitExceeded)
+async def custom_rate_limit_handler(request: Request, exc: RateLimitExceeded):
+    return PlainTextResponse("Rate limit exceeded", status_code=429)
+
 
 ## Auth Routes:
 add_auth_middleware(app)

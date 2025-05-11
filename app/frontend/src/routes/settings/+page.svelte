@@ -145,7 +145,11 @@
       <ul class="mb-3" style="list-style: disc;">
         <li>Logs out from all sessions.</li>
         <li>Invalidates all login URLs.</li>
-        <li><strong>Keeps TOTP session cookie for up to 7 days.</strong></li>
+        <li>
+          <strong
+            >Keeps TOTP session cookie on this device for up to 7 days.</strong
+          >
+        </li>
       </ul>
       <a class="button is-primary" href="/logout">End Session</a>
     </div>
@@ -154,7 +158,7 @@
       <ul class="mb-3" style="list-style: disc;">
         <li>Logs out from all sessions.</li>
         <li>Invalidates all login URLs.</li>
-        <li><strong>Deletes TOTP session cookie.</strong></li>
+        <li><strong>Deletes TOTP session cookie from this device.</strong></li>
       </ul>
       <a class="button is-danger" href="/logout?full=true">Full Logout</a>
     </div>

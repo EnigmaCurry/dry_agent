@@ -16,6 +16,7 @@ from app.models.events import LogoutEvent
 from app.broadcast import broadcast
 import os
 from app.lib.require_client_cn import require_client_cn
+from app.lib.rate_limit import limiter
 
 PUBLIC_HOST = os.environ.get("PUBLIC_HOST", "127.0.0.1")
 PUBLIC_PORT = os.environ.get("PUBLIC_PORT", "8123")
@@ -54,14 +55,6 @@ BASE_DELAY = 1.0  # initial delay in seconds
 MAX_DELAY = 300.0  # maximum delay (5 minutes)
 
 
-def get_backoff_delay() -> float:
-    """Calculate exponential backoff delay based on global failed login attempts."""
-    if failed_attempt_count > 0:
-        delay = BASE_DELAY * (2 ** (failed_attempt_count - 1))
-        return min(delay, MAX_DELAY)
-    return 0.0
-
-
 def record_login_attempt(success: bool = False):
     """Record a login attempt globally. Reset on success; increment on failure."""
     global failed_attempt_count, last_failed_time
@@ -72,13 +65,6 @@ def record_login_attempt(success: bool = False):
     else:
         failed_attempt_count += 1
         last_failed_time = now
-
-
-def is_rate_limited() -> bool:
-    """Determine if the global rate limit should be enforced."""
-    delay = get_backoff_delay()
-    elapsed = time.time() - last_failed_time
-    return elapsed < delay
 
 
 class AuthMiddleware(BaseHTTPMiddleware):
@@ -165,18 +151,12 @@ async def login_get(request: Request):
     return response
 
 
+@limiter.limit("2/minute")
 async def login_post(request: Request, token: str = Form(...), csrf: str = Form(...)):
     # Retrieve the CSRF token from the cookie.
     csrf_cookie = request.cookies.get(CSRF_COOKIE_NAME)
     if not csrf_cookie or csrf != csrf_cookie:
         raise HTTPException(status_code=400, detail="Invalid CSRF token.")
-
-    if is_rate_limited():
-        delay = get_backoff_delay()
-        raise HTTPException(
-            status_code=429,
-            detail=f"Too many failed attempts. Please wait {delay:.1f} seconds before trying again.",
-        )
 
     if token == current_token:
         new_token = await generate_new_token()
@@ -221,6 +201,7 @@ async def logout(request: Request, full: bool = Query(False)):
 
 
 @require_client_cn(["dry-agent App", "dry-agent Bot"])
+@limiter.limit("2/minute")
 async def admin_generate_auth_token(request: Request):
     await generate_new_token()
     return PlainTextResponse(
@@ -230,6 +211,7 @@ async def admin_generate_auth_token(request: Request):
 
 
 @require_client_cn(["dry-agent Bot"])
+@limiter.limit("2/minute")
 async def admin_get_login_url(request: Request):
     q = secrets.token_urlsafe(4)
     return JSONResponse(

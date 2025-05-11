@@ -18,5 +18,6 @@ aiosqlite = "^0.21.0"
 alembic = "^1.15.2"
 gibberish = "^0.4.0"
 watchdog = "^6.0.0"
+slowapi = "^0.1.9"
 
 [tool.poetry.group.dev.dependencies]
