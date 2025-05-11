@@ -23,6 +23,8 @@ ALL_VOLUMES := $(DATA_VOLUMES) $(CERT_VOLUMES)
 
 PODS := dry-agent
 
+DOTENV := /bin/bash ./dotenv.sh
+
 .PHONY: help # Show this help screen
 help:
 	@grep -h '^.PHONY: .* #' Makefile | sed 's/\.PHONY: \(.*\) # \(.*\)/make \1 \t- \2/' | expand -t20
@@ -55,46 +57,45 @@ expect-config:
 
 .PHONY: config
 config: deps
+	@# --- safety & sanity checks -----------------------------------------
 	@if [[ "$$UID" == "1000" ]]; then \
 	    echo; \
 	    echo "WARNING: detected UID=1000."; \
 	    echo "NOTICE: It is recommended to install dry_agent in a dedicated secondary user account."; \
 	    echo; \
-	fi;
+	fi
 	@if [ ! -f .env-dist ]; then \
-		echo "❌ Missing .env-dist template file."; \
-		exit 1; \
-	fi; \
-	[ -f .env ] && cp .env .env.bak || touch .env.bak; \
-	echo "🛠️  Generating .env interactively (using existing values as defaults if present)…"; \
-	: > .env; \
-	awk '\
-		BEGIN { \
-			comment=""; \
-			while ((getline line < ".env.bak") > 0) { \
-				if (line ~ /^[A-Za-z_][A-Za-z0-9_]*=/) { \
-					split(line, kv, "="); \
-					existing[kv[1]] = substr(line, index(line,"=")+1); \
-				} \
-			} \
-		} \
-		/^\s*#/ { comment = (comment ? comment ORS : "") $$0; next } \
-		/^\s*$$/  { comment = ""; next } \
-		/^[A-Za-z_][A-Za-z0-9_]*=/ { \
-			split($$0, parts, "="); \
-			var = parts[1]; \
-			def = substr($$0, index($$0,"=")+1); \
-			if (var in existing) def = existing[var]; \
-			if (comment) print "\n" comment; \
-			printf "> %s [%s]: ", var, def; \
-			getline input < "/dev/tty"; \
-			if (input == "") input = def; \
-			print var "=" input >> ".env"; \
-			comment = ""; \
-		} \
-	' .env-dist; \
-	rm -f .env.bak; \
-	echo -e "\n✅ .env file configured successfully."
+	    echo "❌  Missing .env-dist template file."; \
+	    exit 1; \
+	fi
+
+	@# --- ensure a writable .env exists (creates it if missing) ----------
+	@$(DOTENV) -f .env set >/dev/null
+
+	@echo "🛠️  Generating .env interactively (saving after each answer)…"
+
+	@trap 'echo; echo "⏹  Aborted – existing .env left unchanged."; exit 130' INT ; \
+	\
+	comment=""; \
+	while IFS= read -r line || [ -n "$$line" ]; do \
+	    case "$$line" in \
+	        "#"* )  comment=$${comment:+$$comment$$'\n'}"$$line"; continue ;; \
+	        ""    )  comment=""; continue ;; \
+	    esac; \
+	    key=$${line%%=*}; \
+	    default=$${line#*=}; \
+	    existing=`$(DOTENV) -f .env get "$$key" 2>/dev/null || true`; \
+	    def=$${existing:-$$default}; \
+	    if [ -n "$$comment" ]; then printf '\n%s\n' "$$comment"; fi; \
+	    printf '> %s [%s]: ' "$$key" "$$def"; \
+	    read -r input < /dev/tty || { echo; exit 130; }; \
+	    [ -z "$$input" ] && input="$$def"; \
+	    $(DOTENV) -f .env set "$$key=$$input" >/dev/null; \
+	    comment=""; \
+	done < .env-dist
+
+	@echo "✅  .env file configured successfully."
+
 
 .PHONY: install # Install the containers
 install: deps expect-config build uninstall ca
@@ -174,6 +175,13 @@ ca:
 	 -e PUBLIC_HOST=$${PUBLIC_HOST} \
 	 -e TLS_EXPIRES=$${TLS_EXPIRES} \
 	localhost/dry-agent/ca
+
+.PHONY: ca-destroy # Destroy CA and all certs
+ca-destroy:
+	@echo "🚮 Removing certificate volumes..."
+	@for v in $(CERT_VOLUMES); do \
+	  podman volume rm -f $$v 2>/dev/null || true; \
+	done
 
 .PHONY: uninstall # Remove the containers (but keep the volumes)
 uninstall:
