@@ -146,7 +146,6 @@ install: deps expect-config build uninstall ca
 	       -e APP_LOCALHOST_PORT=$${APP_LOCALHOST_PORT} \
 	       -e AUTH_LOCALHOST_PORT=$${AUTH_LOCALHOST_PORT} \
 	       -e SSH_LOCALHOST_PORT=$${SSH_LOCALHOST_PORT} \
-	       -e TLS_EXPIRES=$${TLS_EXPIRES} \
 	       -e TRAEFIK_LOG_LEVEL=$${TRAEFIK_LOG_LEVEL} \
 	       --network host \
 	       localhost/dry-agent/traefik;
@@ -164,12 +163,16 @@ install: deps expect-config build uninstall ca
 .PHONY: ca # Make StepCA mTLS authority for Traefik backend
 ca:
 	podman build -t localhost/dry-agent/ca ca
-	podman run --rm -it \
+	@set -ax; \
+	source .env; \
+    podman run --rm -it \
      -v dry-agent-certs-CA:/certs/CA \
 	 -v dry-agent-certs-traefik:/certs/traefik \
 	 -v dry-agent-certs-app:/certs/app \
 	 -v dry-agent-certs-auth:/certs/auth \
 	 -v dry-agent-certs-bot:/certs/bot \
+	 -e PUBLIC_HOST=$${PUBLIC_HOST} \
+	 -e TLS_EXPIRES=$${TLS_EXPIRES} \
 	localhost/dry-agent/ca
 
 .PHONY: uninstall # Remove the containers (but keep the volumes)
@@ -281,7 +284,12 @@ traefik-shell:
 
 .PHONY: bot-shell # Exec into the bot container
 bot-shell:
-	podman exec -it dry-agent-bot /bin/sh
+	podman exec -it dry-agent-bot /bin/bash
+
+.PHONY: auth-shell # Exec into the auth container
+auth-shell:
+	podman exec -it dry-agent-auth /bin/bash
+
 
 .PHONY: ssh-authorize # Authorize a SSH public key
 ssh-authorize:

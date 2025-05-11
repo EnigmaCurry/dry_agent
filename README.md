@@ -137,12 +137,13 @@ networks, set `PUBLIC_SUBNET=0.0.0.0/0`. The default port is set by
 `PUBLIC_PORT=8123`. 
 
 The app is technically available to localhost at port
-`APP_LOCALHOST_PORT` (35123), however this port should not be used
-directly, except by Traefik. Traefik proxies the local server to
-`PUBLIC_SUBNET` on port `PUBLIC_PORT` (8123).
+`APP_LOCALHOST_PORT` (35123), however this port requires mTLS, and
+cannot be used except by other containers that have a key. All public
+access must go through Traefik on `PUBLIC_SUBNET` at `PUBLIC_HOST` on
+`PUBLIC_PORT` (8123).
 
-The TLS certificate is self-signed, and by default is certified for a
-period of 10 years (`TLS_EXPIRES=3560` [days]). The CN for the
+The TLS certificate is self-signed by a local CA (Step-CA), and by
+default is certified for a period of 100 years. The CN for the
 certificate is set by `PUBLIC_HOST`, which defaults to `localhost`. If
 you are opening up the service to other hosts, you should set a valid
 DNS name instead. Because the cert is self-signed, the _first_ time
