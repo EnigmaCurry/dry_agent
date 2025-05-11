@@ -55,6 +55,12 @@ expect-config:
 
 .PHONY: config
 config: deps
+	@if [[ "$$UID" == "1000" ]]; then \
+	    echo; \
+	    echo "WARNING: detected UID=1000."; \
+	    echo "NOTICE: It is recommended to install dry_agent in a dedicated secondary user account."; \
+	    echo; \
+	fi;
 	@if [ ! -f .env-dist ]; then \
 		echo "❌ Missing .env-dist template file."; \
 		exit 1; \
