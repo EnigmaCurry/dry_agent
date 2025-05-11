@@ -4,6 +4,7 @@ import asyncio
 import logging
 import sqlite3
 from abc import ABC, abstractmethod
+import requests
 
 # Matrix imports
 from nio import AsyncClient, InviteMemberEvent, MatrixRoom
@@ -31,6 +32,18 @@ HOMESERVER = os.getenv("MATRIX_HOMESERVER", "").strip()
 MATRIX_USER = os.getenv("MATRIX_USER", "").strip()
 MATRIX_PASSWORD = os.getenv("MATRIX_PASSWORD", "").strip()
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN", "").strip()
+
+
+PUBLIC_HOST = os.getenv("PUBLIC_HOST", "127.0.0.1").strip()
+PUBLIC_PORT = os.getenv("PUBLIC_PORT", "8123").strip()
+
+# Client cert (and its key) for mTLS
+CLIENT_CERT = (
+    "/certs/dry-agent_Bot.crt",
+    "/certs/dry-agent_Bot.key",
+)
+CA_BUNDLE = "/certs/dry-agent-root.crt"
+
 
 # Feature flags
 matrix_enabled = bool(HOMESERVER)
@@ -189,7 +202,8 @@ class BotHandler:
             return
         lower = content.lower()
         if "login" in lower or "log me in" in lower:
-            await self._send(platform, room_id, "TODO: give user link here")
+            login_url = get_login_url()
+            await self._send(platform, room_id, login_url)
             self._record_response(platform, message_id)
 
     async def _send(self, platform: str, room_id: str, text: str):
@@ -209,3 +223,36 @@ class BotHandler:
         if not tasks:
             tasks.append(noop())
         await asyncio.gather(*tasks)
+
+
+def get_login_url():
+    data = None
+    try:
+        # Send a POST request
+        response = requests.post(
+            "https://127.0.0.1:8001/admin/generate-auth-token",
+            cert=CLIENT_CERT,
+            verify=CA_BUNDLE,
+        )
+        response.raise_for_status()
+    except Exception as e:
+        logger.error("Error during request:", e)
+        raise
+
+    try:
+        response = requests.get(
+            "https://127.0.0.1:8001/admin/get-login-url",
+            cert=CLIENT_CERT,
+            verify=CA_BUNDLE,
+        )
+        response.raise_for_status()
+        data = response.json()
+    except Exception as e:
+        logger.error(f"Error during request: {e}")
+        logger.error(type(e))
+        raise
+
+    if "login_url" in data:
+        return data["login_url"]
+    else:
+        raise ValueError("Could not get login url")

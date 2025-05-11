@@ -1,5 +1,28 @@
 SHELL := /bin/bash
 
+CONTAINERS := \
+	dry-agent-app \
+	dry-agent-auth \
+	dry-agent-bot \
+	dry-agent-proxy
+
+DATA_VOLUMES := \
+	dry-agent-workstation-data \
+	dry-agent-auth-token \
+	dry-agent-auth-secret \
+	dry-agent-bot-data
+
+CERT_VOLUMES := \
+	dry-agent-certs-CA \
+	dry-agent-certs-traefik \
+	dry-agent-certs-app \
+	dry-agent-certs-auth \
+	dry-agent-certs-bot
+
+ALL_VOLUMES := $(DATA_VOLUMES) $(CERT_VOLUMES)
+
+PODS := dry-agent
+
 .PHONY: help # Show this help screen
 help:
 	@grep -h '^.PHONY: .* #' Makefile | sed 's/\.PHONY: \(.*\) # \(.*\)/make \1 \t- \2/' | expand -t20
@@ -69,30 +92,34 @@ config: deps
 
 .PHONY: install # Install the containers
 install: deps expect-config build uninstall ca
+	@echo "🏃 Spawning containers..."
 	@set -a; \
 	source .env; \
-	podman run --name dry-agent-app -d \
+	podman pod create --name dry-agent \
+        --hostname "dry-agent-$$(head /dev/urandom | tr -dc 'a-f0-9' | head -c8)" \
+		--label project=dry-agent \
+		--publish 127.0.0.1:$${APP_LOCALHOST_PORT}:8001 \
+		--publish 127.0.0.1:$${AUTH_LOCALHOST_PORT}:8002 \
+		--publish 127.0.0.1:$${SSH_LOCALHOST_PORT}:22; \
+	podman run --pod dry-agent --name dry-agent-app -d \
 	       --label project=dry-agent \
-           --hostname "dry-agent-$$(head /dev/urandom | tr -dc 'a-f0-9' | head -c8)" \
            -v dry-agent-workstation-data:/root \
 	       -v dry-agent-auth-token:/data/token \
            -e PUBLIC_HOST=$${PUBLIC_HOST} \
            -e PUBLIC_PORT=$${PUBLIC_PORT}  \
            -e OPENAI_API_KEY=$${OPENAI_API_KEY} \
+	       -e LOG_LEVEL=$${APP_LOG_LEVEL} \
 	       -v dry-agent-certs-app:/certs \
-           -p 127.0.0.1:$${APP_LOCALHOST_PORT}:8001 \
-	       -p 127.0.0.1:$${SSH_LOCALHOST_PORT}:22 \
 	       localhost/dry-agent/app; \
-	podman run --name dry-agent-auth -d \
+	podman run --pod dry-agent --name dry-agent-auth -d \
 	       --label project=dry-agent \
 	       -v dry-agent-auth-secret:/data/secret \
 	       -v dry-agent-auth-token:/data/token \
 	       -v dry-agent-certs-auth:/certs \
 	       -e PUBLIC_HOST=$${PUBLIC_HOST} \
            -e PUBLIC_PORT=$${PUBLIC_PORT}  \
-           -p 127.0.0.1:$${AUTH_LOCALHOST_PORT}:8002 \
 	       localhost/dry-agent/auth; \
-	podman run --name dry-agent-bot -d \
+	podman run --pod dry-agent --name dry-agent-bot -d \
 	       --label project=dry-agent \
 	       -v dry-agent-bot-data:/data \
 	       -v dry-agent-certs-bot:/certs \
@@ -120,10 +147,10 @@ install: deps expect-config build uninstall ca
 	@echo
 	@sleep 2; \
 	if ! podman exec dry-agent-app test -f /root/dry_agent/database/dry_agent.db; then \
-	    echo "Database not found, running migration..."; \
+	    echo "🔧 Migrating database…"; \
 	    make --no-print-directory migrate-db; \
 	else \
-	    echo "Database already exists."; \
+	    echo "✔️ Database already in place."; \
 	fi
 	@echo
 	@podman ps --filter "label=project=dry-agent"
@@ -141,24 +168,21 @@ ca:
 
 .PHONY: uninstall # Remove the containers (but keep the volumes)
 uninstall:
-	podman rm -f dry-agent-app
-	podman rm -f dry-agent-auth
-	podman rm -f dry-agent-bot
-	podman rm -f dry-agent-proxy
+	@echo "🗑 Removing containers..."
+	@for c in $(CONTAINERS); do \
+	  podman rm -f $$c 2>/dev/null || true; \
+	done
+	@echo "☠️  Removing pod..."
+	@for p in $(PODS); do \
+	  podman pod rm -f $$p 2>/dev/null || true; \
+	done
 
 .PHONY: destroy # Remove the containers AND delete its volumes
 destroy: deps uninstall
-	podman volume rm -f dry-agent-workstation-data
-	podman volume rm -f dry-agent-hushcrumbs-data
-	podman volume rm -f dry-agent-auth-token
-	podman volume rm -f dry-agent-auth-secret
-	podman volume rm -f dry-agent-socket
-	podman volume rm -f dry-agent-certs-CA
-	podman volume rm -f dry-agent-certs-traefik
-	podman volume rm -f dry-agent-certs-app
-	podman volume rm -f dry-agent-certs-auth
-	podman volume rm -f dry-agent-certs-bot
-	podman volume rm -f dry-agent-bot-data
+	@echo "🚮 Removing volumes..."
+	@for v in $(ALL_VOLUMES); do \
+	  podman volume rm -f $$v 2>/dev/null || true; \
+	done
 
 clean:
 	rm -f .env

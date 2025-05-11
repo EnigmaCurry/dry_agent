@@ -224,7 +224,9 @@ async def totp_verify(request: Request, code: str = Form(...)):
             )
             return response
 
-    return PlainTextResponse("Invalid TOTP code", status_code=401)
+    return RedirectResponse(
+        url=f"https://{PUBLIC_HOST}:{PUBLIC_PORT}/totp", status_code=302
+    )
 
 
 @app.get("/totp/logout")

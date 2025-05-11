@@ -10,6 +10,7 @@ from .middleware.auth import (
     login_post,
     logout,
     admin_generate_auth_token,
+    get_login_url,
     admin_get_login_url,
 )
 import logging
@@ -17,7 +18,11 @@ from app.lib.docker_context_watcher import monitor_docker_context
 from app.lib.xdg_open_pipe import watch_xdg_open_pipe
 import asyncio
 
-logging.basicConfig(level=logging.INFO)
+## Get TLS info from uvicorn:
+import app.patch_transport
+
+LOG_LEVEL = os.getenv("LOG_LEVEL", "info").upper()
+logging.basicConfig(level=LOG_LEVEL)
 log = logging.getLogger(__name__)
 log.info("Starting up server now.")
 
@@ -42,11 +47,18 @@ app.add_api_route(
     tags=["admin"],
 )
 app.add_api_route(
-    "/get-login-url",
+    "/admin/get-login-url",
     admin_get_login_url,
     methods=["GET"],
     response_class=JSONResponse,
-    tags=["admin"],
+    tags=["app"],
+)
+app.add_api_route(
+    "/get-login-url",
+    get_login_url,
+    methods=["GET"],
+    response_class=JSONResponse,
+    tags=["app"],
 )
 
 # API Routes:

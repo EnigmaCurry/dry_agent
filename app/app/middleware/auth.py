@@ -2,7 +2,7 @@
 import logging
 import time
 import secrets
-from fastapi import Request, Form, HTTPException
+from fastapi import Request, Form, HTTPException, Query
 from fastapi.responses import (
     RedirectResponse,
     HTMLResponse,
@@ -15,6 +15,7 @@ from app.dependencies import templates
 from app.models.events import LogoutEvent
 from app.broadcast import broadcast
 import os
+from app.lib.require_client_cn import require_client_cn
 
 PUBLIC_HOST = os.environ.get("PUBLIC_HOST", "127.0.0.1")
 PUBLIC_PORT = os.environ.get("PUBLIC_PORT", "8123")
@@ -31,6 +32,10 @@ CSRF_COOKIE_NAME = "csrf_token"
 TOKEN_FILE = "/data/token/current_token.txt"
 
 logger = logging.getLogger("auth")
+
+ALLOWED_CNS = {
+    "dry-agent Bot",
+}
 
 
 # Write the token to a file so it can be retrieved via CLI.
@@ -78,13 +83,14 @@ def is_rate_limited() -> bool:
 
 class AuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
-        # Allow public endpoints: login, logout, static assets, etc.
+        # Allow endpoints that don't require cookies
+        # (Some like /admin are still blocked later by Traefik)
         if (
             request.url.path.startswith("/login")
             or request.url.path.startswith("/logout")
             or request.url.path.startswith("/static")
             or request.url.path.startswith("/admin/generate-auth-token")
-            or request.url.path.startswith("/get-login-url")
+            or request.url.path.startswith("/admin/get-login-url")
             or request.url.path.startswith("/openapi.json")
             or request.url.path.startswith("/docs")
         ):
@@ -200,27 +206,40 @@ async def login_post(request: Request, token: str = Form(...), csrf: str = Form(
 
 
 # /logout endpoint: Invalidate the current cookie by generating a new token.
-async def logout(request: Request):
+async def logout(request: Request, full: bool = Query(False)):
     await generate_new_token()  # Invalidate any cookie with the old token.
-
-    response = RedirectResponse(
-        url=f"https://{PUBLIC_HOST}:{PUBLIC_PORT}/totp/logout", status_code=302
-    )
+    if full:
+        response = RedirectResponse(
+            url=f"https://{PUBLIC_HOST}:{PUBLIC_PORT}/totp/logout", status_code=302
+        )
+    else:
+        response = RedirectResponse(
+            url=f"https://{PUBLIC_HOST}:{PUBLIC_PORT}/login", status_code=302
+        )
     response.delete_cookie(key=AUTH_COOKIE_NAME)
     return response
 
 
+@require_client_cn(["dry-agent App", "dry-agent Bot"])
 async def admin_generate_auth_token(request: Request):
-    # Allow only requests originating from 127.0.0.1.
-    if request.client.host != "127.0.0.1":
-        raise HTTPException(status_code=403, detail="Forbidden")
-    await generate_new_token()  # Update the global token and write it to current_token.txt.
+    await generate_new_token()
     return PlainTextResponse(
-        f"New token generated. Retrieve it from {TOKEN_FILE} on the filesystem. All existing clients have been logged out."
+        f"New token generated. Retrieve it from {TOKEN_FILE} on the filesystem. "
+        "All existing clients have been logged out."
     )
 
 
+@require_client_cn(["dry-agent Bot"])
 async def admin_get_login_url(request: Request):
+    q = secrets.token_urlsafe(4)
+    return JSONResponse(
+        content={
+            "login_url": f"https://{PUBLIC_HOST}:{PUBLIC_PORT}/login?q={q}#{current_token}"
+        }
+    )
+
+
+async def get_login_url(request: Request):
     host = request.headers.get("host")
     auth_cookie = request.cookies.get(AUTH_COOKIE_NAME)
     if auth_cookie and auth_cookie == current_token:

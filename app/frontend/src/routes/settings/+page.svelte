@@ -133,7 +133,7 @@
             </button>
           </div>
         </div>
-        <strong>Do not press Logout before this link is consumed</strong>.
+        <strong>Do <em>not</em> press End Session or Full Logout.</strong>.
       {/if}
 
       {#if transferError}
@@ -141,13 +141,22 @@
       {/if}
     </div>
     <div class="box">
-      <h2 class="subtitle">Logout</h2>
+      <h2 class="subtitle">End Session</h2>
       <ul class="mb-3" style="list-style: disc;">
         <li>Logs out from all sessions.</li>
-        <li>Deletes TOTP cookie.</li>
         <li>Invalidates all login URLs.</li>
+        <li><strong>Keeps TOTP session cookie for up to 7 days.</strong></li>
       </ul>
-      <a class="button is-danger" href="/logout">Logout</a>
+      <a class="button is-primary" href="/logout">End Session</a>
+    </div>
+    <div class="box">
+      <h2 class="subtitle">Full Logout</h2>
+      <ul class="mb-3" style="list-style: disc;">
+        <li>Logs out from all sessions.</li>
+        <li>Invalidates all login URLs.</li>
+        <li><strong>Deletes TOTP session cookie.</strong></li>
+      </ul>
+      <a class="button is-danger" href="/logout?full=true">Full Logout</a>
     </div>
   </section>
 {:else if selectedTab === "terminal"}
