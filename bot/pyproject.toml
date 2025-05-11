@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "dry_agent_bot"
+version = "0.1.0"
+description = "Async bot for Matrix and Discord for dry_agent"
+authors = ["EnigmaCurry <ryan@enigmacurry.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+matrix-nio = "^0.25.2"
+discord-py = "^2.5.2"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+
+[tool.poetry.group.dev.dependencies]

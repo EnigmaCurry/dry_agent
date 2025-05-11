@@ -92,6 +92,18 @@ install: deps expect-config build uninstall ca
            -e PUBLIC_PORT=$${PUBLIC_PORT}  \
            -p 127.0.0.1:$${AUTH_LOCALHOST_PORT}:8002 \
 	       localhost/dry-agent/auth; \
+	podman run --name dry-agent-bot -d \
+	       --label project=dry-agent \
+	       -v dry-agent-bot-data:/data \
+	       -v dry-agent-certs-bot:/certs \
+	       -e PUBLIC_HOST=$${PUBLIC_HOST} \
+           -e PUBLIC_PORT=$${PUBLIC_PORT}  \
+	       -e MATRIX_HOMESERVER=$${MATRIX_HOMESERVER} \
+	       -e MATRIX_USER=$${MATRIX_USER} \
+	       -e MATRIX_PASSWORD=$${MATRIX_PASSWORD} \
+	       -e DISCORD_TOKEN=$${DISCORD_TOKEN} \
+	       -e BOT_FRIEND_IDS=$${BOT_FRIEND_IDS} \
+	       localhost/dry-agent/bot; \
 	podman run --name dry-agent-proxy --label project=dry-agent -d \
 	       -v dry-agent-certs-traefik:/certs \
 	       -e PUBLIC_SUBNET=$${PUBLIC_SUBNET} \
@@ -124,12 +136,14 @@ ca:
 	 -v dry-agent-certs-traefik:/certs/traefik \
 	 -v dry-agent-certs-app:/certs/app \
 	 -v dry-agent-certs-auth:/certs/auth \
+	 -v dry-agent-certs-bot:/certs/bot \
 	localhost/dry-agent/ca
 
 .PHONY: uninstall # Remove the containers (but keep the volumes)
 uninstall:
 	podman rm -f dry-agent-app
 	podman rm -f dry-agent-auth
+	podman rm -f dry-agent-bot
 	podman rm -f dry-agent-proxy
 
 .PHONY: destroy # Remove the containers AND delete its volumes
@@ -143,6 +157,8 @@ destroy: deps uninstall
 	podman volume rm -f dry-agent-certs-traefik
 	podman volume rm -f dry-agent-certs-app
 	podman volume rm -f dry-agent-certs-auth
+	podman volume rm -f dry-agent-certs-bot
+	podman volume rm -f dry-agent-bot-data
 
 clean:
 	rm -f .env
@@ -158,12 +174,14 @@ build: deps
 	podman build -t localhost/dry-agent/workstation workstation
 	podman build -t localhost/dry-agent/traefik traefik
 	podman build -t localhost/dry-agent/auth auth
+	podman build -t localhost/dry-agent/bot bot
 	podman build -t localhost/dry-agent/app app
 
 expect-images:
 	@missing=0; \
 	for img in localhost/dry-agent/hushcrumbs localhost/dry-agent/workstation \
                localhost/dry-agent/traefik localhost/dry-agent/auth \
+	           localhost/dry-agent/bot localhost/dry-agent/ca \
                localhost/dry-agent/app; do \
 		if ! podman image exists $$img; then \
 			echo "❌ Missing image: $$img"; \
@@ -196,6 +214,9 @@ traefik-logs:
 auth-logs:
 	podman logs -f dry-agent-auth
 
+.PHONY: bot-logs # Show the bot logs
+bot-logs:
+	podman logs -f dry-agent-bot
 
 .PHONY: start # Start the containers (must be installed already)
 start:
@@ -227,6 +248,10 @@ shell:
 .PHONY: traefik-shell # Exec into the traefik container
 traefik-shell:
 	podman exec -it dry-agent-proxy /bin/sh
+
+.PHONY: bot-shell # Exec into the bot container
+bot-shell:
+	podman exec -it dry-agent-bot /bin/sh
 
 .PHONY: ssh-authorize # Authorize a SSH public key
 ssh-authorize:
