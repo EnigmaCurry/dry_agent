@@ -151,7 +151,7 @@ async def login_get(request: Request):
     return response
 
 
-@limiter.limit("2/minute")
+@limiter.limit("5/minute")
 async def login_post(request: Request, token: str = Form(...), csrf: str = Form(...)):
     # Retrieve the CSRF token from the cookie.
     csrf_cookie = request.cookies.get(CSRF_COOKIE_NAME)

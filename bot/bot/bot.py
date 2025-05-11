@@ -5,6 +5,9 @@ import logging
 import sqlite3
 from abc import ABC, abstractmethod
 import requests
+import time
+from pathlib import Path
+from .util import strip_urls
 
 # Matrix imports
 from nio import AsyncClient, InviteMemberEvent, MatrixRoom
@@ -102,13 +105,13 @@ class MatrixPlatform(ChatPlatform):
     async def _on_message(self, room: MatrixRoom, event: RoomMessageText):
         if event.sender not in allowed_matrix:
             return
-        # pass event.event_id for dedupe
         await self.handler.handle_request(
             platform="matrix",
             room_id=room.room_id,
             sender=event.sender,
             content=event.body.strip(),
             message_id=event.event_id,
+            timestamp=event.server_timestamp / 1000,  # ms → s
         )
 
     async def send_message(self, room_id: str, text: str):
@@ -136,19 +139,14 @@ class DiscordPlatform(ChatPlatform, discord.Client):
         logger.info("Discord logged in as %s", self.user)
 
     async def on_message(self, message):
-        # Only handle DMs from allowed friends
-        if not isinstance(message.channel, DMChannel) or message.author.bot:
-            return
-        uid = message.author.id
-        if uid not in allowed_discord:
-            logger.info("Discord DM from unauthorized user %s", uid)
-            return
+        # … existing checks …
         await self.handler.handle_request(
             platform="discord",
             room_id=message.channel.id,
             sender=uid,
             content=message.content.strip(),
             message_id=str(message.id),
+            timestamp=message.created_at.timestamp(),
         )
 
     async def send_message(self, room_id: str, text: str):
@@ -161,6 +159,13 @@ class DiscordPlatform(ChatPlatform, discord.Client):
 
 class BotHandler:
     def __init__(self):
+        db_path = Path(DB_FILE)
+        self.db_created_ts: float
+        if db_path.exists():
+            self.db_created_ts = db_path.stat().st_mtime
+        else:
+            self.db_created_ts = time.time()
+
         self.conn = sqlite3.connect(DB_FILE)
         self._init_db()
 
@@ -194,17 +199,26 @@ class BotHandler:
         self.conn.commit()
 
     async def handle_request(
-        self, platform: str, room_id: str, sender: str, content: str, message_id: str
+        self,
+        platform: str,
+        room_id: str,
+        sender: str,
+        content: str,
+        message_id: str,
+        timestamp: float,
     ):
-        logger.info("Handling request on %s from %s: %s", platform, sender, content)
-        if self._has_responded(platform, message_id):
+        if timestamp < self.db_created_ts or self._has_responded(platform, message_id):
             return
 
+        logger.info("Handling request on %s from %s: %s", platform, sender, content)
         try:
             lower = content.lower()
-            if "login" in lower or "log me in" or "log in" in lower:
+            _, lower = strip_urls(lower)
+            if any(kw in lower for kw in ("login", "log me in", "log in", "link")):
                 login_url = get_login_url()
                 await self._send(platform, room_id, login_url)
+            elif lower == "hello":
+                await self._send(platform, room_id, f"Hello {sender}")
             else:
                 logger.info("No known command in message; ignoring")
             # You might add more command logic here

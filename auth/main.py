@@ -153,11 +153,11 @@ async def auth(request: Request):
     auth_cookie = request.cookies.get(AUTH_COOKIE_NAME)
     if not auth_cookie:
         return RedirectResponse(
-            url=f"https://{PUBLIC_HOST}:{PUBLIC_PORT}/totp/logout", status_code=302
+            url=f"https://{PUBLIC_HOST}:{PUBLIC_PORT}/logout", status_code=302
         )
     elif auth_cookie != current_token:
         return RedirectResponse(
-            url=f"https://{PUBLIC_HOST}:{PUBLIC_PORT}/totp/logout", status_code=302
+            url=f"https://{PUBLIC_HOST}:{PUBLIC_PORT}/logout", status_code=302
         )
 
     otp_cookie = request.cookies.get(OTP_COOKIE_NAME)
@@ -183,11 +183,11 @@ async def totp_verify(request: Request, code: str = Form(...)):
     auth_cookie = request.cookies.get(AUTH_COOKIE_NAME)
     if not auth_cookie:
         return RedirectResponse(
-            url=f"https://{PUBLIC_HOST}:{PUBLIC_PORT}/totp/logout", status_code=302
+            url=f"https://{PUBLIC_HOST}:{PUBLIC_PORT}/logout", status_code=302
         )
     elif auth_cookie != current_token:
         return RedirectResponse(
-            url=f"https://{PUBLIC_HOST}:{PUBLIC_PORT}/totp/logout", status_code=302
+            url=f"https://{PUBLIC_HOST}:{PUBLIC_PORT}/logout", status_code=302
         )
 
     otp_cookie = request.cookies.get(OTP_COOKIE_NAME)
