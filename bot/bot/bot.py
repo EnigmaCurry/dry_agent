@@ -197,13 +197,23 @@ class BotHandler:
         self, platform: str, room_id: str, sender: str, content: str, message_id: str
     ):
         logger.info("Handling request on %s from %s: %s", platform, sender, content)
-        # dedupe by message_id
         if self._has_responded(platform, message_id):
             return
-        lower = content.lower()
-        if "login" in lower or "log me in" in lower:
-            login_url = get_login_url()
-            await self._send(platform, room_id, login_url)
+
+        try:
+            lower = content.lower()
+            if "login" in lower or "log me in" or "log in" in lower:
+                login_url = get_login_url()
+                await self._send(platform, room_id, login_url)
+            else:
+                logger.info("No known command in message; ignoring")
+            # You might add more command logic here
+        except Exception as e:
+            err_msg = f"❌ Error processing your request: {e}"
+            logger.error(err_msg)
+            await self._send(platform, room_id, err_msg)
+        finally:
+            # Always record it to prevent reprocessing
             self._record_response(platform, message_id)
 
     async def _send(self, platform: str, room_id: str, text: str):
@@ -214,45 +224,52 @@ class BotHandler:
 
     async def run(self):
         tasks = []
+
         if matrix_enabled:
             self.matrix = MatrixPlatform(HOMESERVER, MATRIX_USER, MATRIX_PASSWORD, self)
-            tasks.append(self.matrix.start())
+            tasks.append(self._wrap_task(self.matrix.start(), "Matrix"))
+
         if discord_enabled:
             self.discord = DiscordPlatform(DISCORD_TOKEN, self)
-            tasks.append(self.discord.start())
+            tasks.append(self._wrap_task(self.discord.start(), "Discord"))
+
         if not tasks:
             tasks.append(noop())
+
         await asyncio.gather(*tasks)
 
+    async def _wrap_task(self, coro, name):
+        try:
+            await coro
+        except Exception as e:
+            logger.exception(f"{name} task crashed: {e}")
 
-def get_login_url():
-    data = None
+
+def get_login_url() -> str:
     try:
-        # Send a POST request
         response = requests.post(
             "https://127.0.0.1:8001/admin/generate-auth-token",
             cert=CLIENT_CERT,
             verify=CA_BUNDLE,
+            timeout=5,
         )
         response.raise_for_status()
     except Exception as e:
-        logger.error("Error during request:", e)
-        raise
+        logger.exception("Failed to generate auth token")
+        raise RuntimeError("Failed to generate auth token") from e
 
     try:
         response = requests.get(
             "https://127.0.0.1:8001/admin/get-login-url",
             cert=CLIENT_CERT,
             verify=CA_BUNDLE,
+            timeout=5,
         )
         response.raise_for_status()
         data = response.json()
-    except Exception as e:
-        logger.error(f"Error during request: {e}")
-        logger.error(type(e))
-        raise
-
-    if "login_url" in data:
+        if "login_url" not in data:
+            raise ValueError("Missing login_url in server response")
         return data["login_url"]
-    else:
-        raise ValueError("Could not get login url")
+    except Exception as e:
+        logger.exception("Failed to retrieve login URL")
+        raise RuntimeError("Failed to retrieve login URL") from e
