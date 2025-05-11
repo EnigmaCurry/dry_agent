@@ -204,7 +204,7 @@ async def logout(request: Request):
     await generate_new_token()  # Invalidate any cookie with the old token.
 
     response = RedirectResponse(
-        url=f"https://{PUBLIC_HOST}:{PUBLIC_PORT}/login", status_code=302
+        url=f"https://{PUBLIC_HOST}:{PUBLIC_PORT}/totp/logout", status_code=302
     )
     response.delete_cookie(key=AUTH_COOKIE_NAME)
     return response

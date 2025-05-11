@@ -232,9 +232,7 @@ async def totp_logout(response: Response):
     response = RedirectResponse(
         url=f"https://{PUBLIC_HOST}:{PUBLIC_PORT}/login", status_code=302
     )
-    ## Don't delete the otp cookie on logout, just let it expire
-    # response.delete_cookie(OTP_COOKIE_NAME, path=OTP_COOKIE_PATH)
-
+    response.delete_cookie(OTP_COOKIE_NAME, path=OTP_COOKIE_PATH)
     response.delete_cookie(AUTH_COOKIE_NAME, path="/")
     return response
 

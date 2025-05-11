@@ -94,7 +94,7 @@
       <h2 class="subtitle">Transfer Session</h2>
       <ul style="list-style: disc;" class="mb-3">
         <li>
-          Retrieve a one-time-use login URL to transfer this session to another
+          Retrieves a one-time-use login URL to transfer this session to another
           device.
         </li>
         <li>Once the link is used, this session will log out automatically.</li>
@@ -143,8 +143,9 @@
     <div class="box">
       <h2 class="subtitle">Logout</h2>
       <ul class="mb-3" style="list-style: disc;">
-        <li>Log out from all sessions.</li>
-        <li>Invalidate all login URLs.</li>
+        <li>Logs out from all sessions.</li>
+        <li>Deletes TOTP cookie.</li>
+        <li>Invalidates all login URLs.</li>
       </ul>
       <a class="button is-danger" href="/logout">Logout</a>
     </div>
