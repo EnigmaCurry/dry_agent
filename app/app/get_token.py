@@ -45,7 +45,7 @@ def main():
         with open(TOKEN_FILE, "r") as f:
             token_from_file = f.read().strip()
         q = secrets.token_urlsafe(4)
-        print(f"https://{PUBLIC_HOST}:{PUBLIC_PORT}/login?q={q}#{token_from_file}")
+        print(f"\nhttps://{PUBLIC_HOST}:{PUBLIC_PORT}/login?q={q}#{token_from_file}\n")
     except Exception as e:
         logger.info(f"Error reading token file: {e}")
         raise

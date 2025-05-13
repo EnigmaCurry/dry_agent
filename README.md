@@ -5,17 +5,35 @@
 self-hosted Docker platform. `dry_agent` provides a central location
 to manage all of your remote Docker contexts and services.
 
-This software is in development and is pre-alpha.
+This software is in development and is unstable.
 
-## Features
+## Use `dry_agent` as your Docker Workstation
 
- * `dry_agent` is a Podman containerized workstation designed to
-   manage _remote_ Docker hosts. It does not require Docker itself.
+Within the d.rymcg.tech framework, you have two kinds of computers:
 
- * `dry_agent` can be installed either to a workstation (localhost) or
-   to a server (for use by authenticated remote browser clients).
+ * Server - servers are dedicated machines that only runs Docker. You
+   treat these machines as cattle (not pets). You never log in here.
+   You only remote control these machines via `docker` commands from
+   the Workstation.
 
- * `dry_agent` uses Podman rootless, it does not require root access.
+ * Workstation - workstations are machines that you run d.rymcg.tech
+   and/or `docker` commands _from_. This is where you edit your
+   service configurations for all of your Docker servers, and where
+   you do all of your admin tasks. One workstation typically controls
+   several remote server contexts.
+
+`dry_agent` serves the role of the Workstation, and installs itself
+into a Podman container. `dry_agent` does not run your service
+containers directly -- it only controls _remote_ Docker servers over
+SSH. You can install `dry_agent` on any machine that has Podman -- it
+does not require Docker itself.
+
+ * `dry_agent` containers can be installed locally for private use or
+   to a server for wider (public?) access.
+
+ * `dry_agent` uses Podman rootless, it does not require root access
+   to run (although it will have `root` access to your _remote_ Docker
+   servers, so the security of `dry_agent` is still critical).
 
  * `dry_agent` offers both a web application with embedded terminal
    _and_ an SSH service. It is fully usable by either method.
@@ -64,6 +82,31 @@ sudo apt install -y git make podman sed gawk coreutils gettext xdg-utils bash-co
 
 ## Install dry_agent
 
+### Create dry_agent user account
+
+When managing production Docker servers, it is highly recommended that
+you install `dry_agent` on a secure machine in a dedicated user
+account (i.e. Not UID=1000 and definitely not UID=1). User isolation
+of privileged systems is a critical layer of self defense.
+
+#### User creation on Fedora
+
+As root, create the dedicated `dry_agent` user and enable systemd
+lingering:
+
+```
+sudo adduser dry_agent
+sudo loginctl enable-linger dry_agent
+```
+
+Enter the shell for the user:
+
+```
+sudo su -l dry_agent
+```
+
+Follow the rest of the steps in the shell of the `dry_agent` user.
+
 ### Clone repository
 
 ```
@@ -95,21 +138,14 @@ make get-totp
 This will print a QR code you must scan with your mobile authenticator
 app (e.g. Aegis).
 
-### Open
-
-```
-make open
-```
-
-(Your default browser will automatically open via `xdg-open`)
-
-If you are running on a server, and you want to connect to it
-remotely, retrieve the one-time-use authentication URL and manually
-copy it:
+### Get the URL
 
 ```
 make get-url
 ```
+
+If the user account you're running in has a web browser, you can also
+use `make open` to directly open the app.
 
 ### Authorize SSH service
 

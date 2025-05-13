@@ -270,7 +270,6 @@ stop:
 .PHONY: get-url # Get the webapp authentication URL
 get-url:
 	@podman exec -it dry-agent-app python app/get_token.py
-	@echo
 
 .PHONY: get-totp # Get the TOTP setup QR code
 get-totp:

@@ -16,7 +16,7 @@ dry_agent_alias() {
     local DRY_AGENT_ALIAS=\$1
     dry_agent() {
         ## Set the directory where the dry_agent git repository was cloned to:
-        make -C $DRY_AGENT_GIT "\$@"
+        make --no-print-directory -C $DRY_AGENT_GIT "\$@"
     }
     eval "\$(declare -f dry_agent | sed "1s/dry_agent/\$DRY_AGENT_ALIAS/")"
     unset dry_agent
