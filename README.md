@@ -9,42 +9,51 @@ This software is in development and is unstable.
 
 ## Use `dry_agent` as your Docker Workstation
 
-Within the d.rymcg.tech framework, you have two kinds of computers:
+Within the d.rymcg.tech framework, there are two machine roles:
 
- * Server - servers are dedicated machines that only runs Docker. You
-   treat these machines as cattle (not pets). You never log in here.
-   You only remote control these machines via `docker` commands from
-   the Workstation.
+ * Server - these are dedicated machines that _only_ run Docker
+   containers. You treat these machines as cattle (not pets). You
+   _almost never_ need to log in to the shell here. You will only
+   remote control these machines via SSH context on a workstation.
 
- * Workstation - workstations are machines that you run d.rymcg.tech
-   and/or `docker` commands _from_. This is where you edit your
-   service configurations for all of your Docker servers, and where
-   you do all of your admin tasks. One workstation typically controls
+ * Workstation - these are machines that you run `d.rymcg.tech` and/or
+   `docker` commands _from_. Workstation hosts do not run Docker
+   containers themselves, but they control remote Docker servers that
+   do. The workstation is the system where all your service config
+   files are stored and edited. The workstation is the only interface
+   you use to install services, and it is where you do all of your
+   admin tasks across your fleet. One workstation typically controls
    several remote server contexts.
 
-`dry_agent` serves the role of the Workstation, and installs itself
-into a Podman container. `dry_agent` does not run your service
-containers directly -- it only controls _remote_ Docker servers over
-SSH. You can install `dry_agent` on any machine that has Podman -- it
-does not require Docker itself.
+`dry_agent` serves the role of the Workstation, and because its a
+Podman container, it can be embedded within any other Linux host or
+server.
+
+ * `dry_agent` does not run your service containers directly -- it
+   only controls _remote_ Docker servers over SSH.
+
+ * `dry_agent` can be installed on any machine that has Podman -- it
+   does not require Docker itself.
 
  * `dry_agent` containers can be installed locally for private use or
-   to a server for wider (public?) access.
+   to a server for wider (authenticated) access.
 
- * `dry_agent` uses Podman rootless, it does not require root access
-   to run (although it will have `root` access to your _remote_ Docker
-   servers, so the security of `dry_agent` is still critical).
+ * `dry_agent` uses Podman rootless, so it does not require root
+   access to run. It _will_ have `root` access to your _remote_ Docker
+   servers though, so the security of `dry_agent` is still critical!
 
  * `dry_agent` offers both a web application with embedded terminal
    _and_ an SSH service. It is fully usable by either method.
 
  * `dry_agent` has minimal host dependencies, with a
    [Makefile](Makefile) to wrap all configuration and installation
-   tasks.
+   tasks, as well as an ergonomic Bash function wrapper with tab
+   completion.
 
 ## Requirements
 
- * A Linux machine with the following packages installed:
+ * To serve as a `dry_agent` host, any Linux machine may be used, with
+   the following packages installed:
    
    * `podman`
    * `make`
@@ -54,8 +63,8 @@ does not require Docker itself.
    * `gettext`
    * `xdg-utils`
    
- * One or more remote Docker servers (or VMs) for `dry_agent` to
-   manage.
+ * You will also need one or more remote Docker servers (or VMs) for
+   `dry_agent` to manage.
 
 ## Install host dependencies
 
