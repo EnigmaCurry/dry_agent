@@ -156,7 +156,7 @@ app (e.g. Aegis).
 make get-url
 ```
 
-If the user account you're running in has a web browser, you can also
+If the user account you're running as has a web browser, you can also
 use `make open` to directly open the app.
 
 ### Authorize SSH service
@@ -199,9 +199,9 @@ example: `DRY_AGENT_ALIAS=dry`. You'll also need to point to the
 directory where you cloned to:
 `DRY_AGENT_GIT=~/dry_agent`.
 
-Restart your shell, and you can now use `dry` instead `make`, and you
-can you do this from any directory, and with the same Tab completion
-as `make`.
+Restart your shell, and you can now use `dry` instead of `make`, and
+you can you do this from any directory, and with the same Tab
+completion as `make`.
 
 ```
 ## E.g., with the `dry` wrapper:
@@ -218,9 +218,10 @@ connect, you can put your desired subnet CIDR here. To allow all
 networks, set `PUBLIC_SUBNET=0.0.0.0/0`. The default port is set by
 `PUBLIC_PORT=8123`. 
 
-The app is technically available to localhost at port
+The backend app is technically available to localhost at port
 `APP_LOCALHOST_PORT` (35123), however this port requires mTLS, and
-cannot be used except by other containers that have a key. All public
+cannot be used except by other containers that have a key. Its
+existence should be treated as an implementation detail. All public
 access must go through Traefik on `PUBLIC_SUBNET` at `PUBLIC_HOST` on
 `PUBLIC_PORT` (8123).
 
@@ -233,13 +234,13 @@ you access the app you will need to instruct your browser to trust the
 certificate.
 
 To login, the client is required to provide the one-time-use login
-token. The token is only retrieved via `make open` (to login
-automatically) and/or `make get-url` (to copy the URL manually). The
-token is also viewable inside the workstation filesystem at
-`/app/current_token.txt`. Your browser session will store the cookie
-so you will stay logged in indefinitely. To login with a new browser,
-you must retrieve a new token. When a new token is used, the client
-cookies are invalidated and your existing sessions are logged out.
+token. The token is only retrieved via `make get-url` or via the
+configured Matrix or Discord chat bot. The token is also viewable
+inside the workstation filesystem at `/app/current_token.txt`. Your
+browser session will store the cookie so you will stay logged in
+indefinitely. To login with a new browser, you must retrieve a new
+token. When a new token is used, the client cookies are invalidated
+and your existing sessions are logged out.
 
 In addition to the preshared login token, you must also pass two
 factor authentication with your authenticator (TOTP) device.
