@@ -129,13 +129,10 @@ You can SSH into the container as the user `root` on port `2225`
 
 ## `dry_agent` shell function
 
-`make` requires a bit too much boilerplate for quick CLI usage. One of
-the main drawbacks of `make` is that you always need to be in the same
-directory as the `Makefile` (Or specify the directory with `-C`). You
-can set up a Bash function wrapper for more ergonomic usage.
-
-You may choose whatever alias you want for the command. For example,
-you might choose `dry`.
+One of the main drawbacks of `make` is that you always need to be in
+the same directory as the `Makefile` (Or specify the directory with
+`-C`). You may want to set up this more ergonomic Bash function
+wrapper that you can use from any directory.
 
 Add this to your `~/.bashrc` (or `~/.bashrc.local` if you do it like
 EnigmaCurry).
@@ -149,12 +146,17 @@ dry_agent_alias $DRY_AGENT_ALIAS
 unset dry_agent_alias DRY_AGENT_ROOT DRY_AGENT_ALIAS
 ```
 
+You may choose whatever alias you want for the wrapper command. For
+example: `DRY_AGENT_ALIAS=dry`. You'll also need to point to the
+directory where you cloned to:
+`DRY_AGENT_GIT=~/git/vendor/enigmacurry/dry_agent`.
+
 Restart your shell, and you can now use `dry` instead `make`, and you
 can you do this from any directory, and with the same Tab completion
-of `make`. 
+as `make`.
 
 ```
-## E.g.,
+## E.g., with the `dry` wrapper:
 dry install
 dry help
 ```
