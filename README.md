@@ -5,7 +5,10 @@ for the [d.rymcg.tech](https://github.com/EnigmaCurry/d.rymcg.tech)
 self-hosted Docker platform. `dry_agent` provides a central location
 to manage all of your remote Docker contexts and services.
 
-This software is in development and is unstable Alpha.
+This software is in development and is unstable Alpha. See
+[LICENSE.TXT](LICENSE.TXT), especially the note about this having no
+warranty. This is experimental security software that you use at your
+own risk.
 
 ## Use `dry_agent` as your Docker Workstation
 
