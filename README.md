@@ -127,6 +127,38 @@ Paste your SSH public key into the prompt.
 You can SSH into the container as the user `root` on port `2225`
 (`PUBLIC_SSH_PORT`).
 
+## `dry_agent` shell function
+
+`make` requires a bit too much boilerplate for quick CLI usage. One of
+the main drawbacks of `make` is that you always need to be in the same
+directory as the `Makefile` (Or specify the directory with `-C`). You
+can set up a Bash function wrapper for more ergonomic usage.
+
+You may choose whatever alias you want for the command. For example,
+you might choose `dry`.
+
+Add this to your `~/.bashrc` (or `~/.bashrc.local` if you do it like
+EnigmaCurry).
+
+```
+## Create dry_agent CLI utility function with Bash completion:
+DRY_AGENT_ALIAS=dry
+DRY_AGENT_ROOT=~/git/vendor/enigmacurry/dry_agent
+eval "$(make -sC ${DRY_AGENT_ROOT} dry_agent_alias)"
+dry_agent_alias $DRY_AGENT_ALIAS
+unset dry_agent_alias DRY_AGENT_ROOT DRY_AGENT_ALIAS
+```
+
+Restart your shell, and you can now use `dry` instead `make`, and you
+can you do this from any directory, and with the same Tab completion
+of `make`. 
+
+```
+## E.g.,
+dry install
+dry help
+```
+
 ## Security
 
 The default configuration ([.env-dist](.env-dist)) only allows to

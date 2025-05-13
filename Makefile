@@ -23,7 +23,7 @@ ALL_VOLUMES := $(DATA_VOLUMES) $(CERT_VOLUMES)
 
 PODS := dry-agent
 
-DOTENV := /bin/bash ./dotenv.sh
+DOTENV := ./_lib/dotenv.sh
 
 .PHONY: help # Show this help screen
 help:
@@ -321,3 +321,7 @@ migrate-db:
 
 .PHONY: dev # Run development loop
 dev: install open logs
+
+.PHONY: dry_agent_alias # Create a Bash function for dry_agent's Makefile
+dry_agent_alias:
+	@_lib/dry_agent_alias.sh
