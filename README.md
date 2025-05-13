@@ -38,8 +38,8 @@ server.
  * `dry_agent` can be installed on any machine that has Podman -- it
    does not require Docker itself.
 
- * `dry_agent` containers can be installed locally for private use or
-   to a server for wider (authenticated) access.
+ * `dry_agent` can be installed locally for private use (localhost),
+   or to a server for wider area (authenticated) access.
 
  * `dry_agent` uses Podman rootless, so it does not require root
    access to run. It _will_ have `root` access to your _remote_ Docker
@@ -188,7 +188,7 @@ EnigmaCurry).
 ```
 ## Create dry_agent CLI utility function with Bash completion:
 DRY_AGENT_ALIAS=dry
-DRY_AGENT_ROOT=~/git/vendor/enigmacurry/dry_agent
+DRY_AGENT_ROOT=~/dry_agent
 eval "$(make -sC ${DRY_AGENT_ROOT} dry_agent_alias)"
 dry_agent_alias $DRY_AGENT_ALIAS
 unset dry_agent_alias DRY_AGENT_ROOT DRY_AGENT_ALIAS
@@ -197,7 +197,7 @@ unset dry_agent_alias DRY_AGENT_ROOT DRY_AGENT_ALIAS
 You may choose whatever alias you want for the wrapper command. For
 example: `DRY_AGENT_ALIAS=dry`. You'll also need to point to the
 directory where you cloned to:
-`DRY_AGENT_GIT=~/git/vendor/enigmacurry/dry_agent`.
+`DRY_AGENT_GIT=~/dry_agent`.
 
 Restart your shell, and you can now use `dry` instead `make`, and you
 can you do this from any directory, and with the same Tab completion
