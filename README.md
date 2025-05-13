@@ -1,11 +1,11 @@
 # dry_agent
 
-`dry_agent` is a containerized workstation and webapp GUI for the
-[d.rymcg.tech](https://github.com/EnigmaCurry/d.rymcg.tech)
+`dry_agent` is a containerized workstation, webapp GUI, and AI agent
+for the [d.rymcg.tech](https://github.com/EnigmaCurry/d.rymcg.tech)
 self-hosted Docker platform. `dry_agent` provides a central location
 to manage all of your remote Docker contexts and services.
 
-This software is in development and is unstable.
+This software is in development and is unstable Alpha.
 
 ## Use `dry_agent` as your Docker Workstation
 
