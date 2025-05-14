@@ -65,13 +65,13 @@ server.
 
  * `dry_agent` has minimal host dependencies, with a
    [Makefile](Makefile) to consolidate configuration and installation
-   tasks. To further improve the CLI ergononomics, a Bash function
+   tasks. To further improve the CLI ergonomics, a Bash function
    wrapper is included.
 
 ## Requirements
 
- * To serve as a `dry_agent` host, any Linux machine may be used, as
-   long as the following packages are installed:
+ * To serve as a `dry_agent` host, any Linux machine (or VM) may be
+   used, as long as the following packages are installed:
    
    * `podman`
    * `make`
