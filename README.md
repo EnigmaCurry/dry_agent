@@ -1,36 +1,44 @@
 # dry_agent
 
-`dry_agent` is a containerized workstation, webapp GUI, and AI agent
-for the [d.rymcg.tech](https://github.com/EnigmaCurry/d.rymcg.tech)
+`dry_agent` is a containerized workstation environment to remotely
+manage Docker servers and containers. The workstation includes a
+webapp GUI, SSH access, and an AI agent for the
+[d.rymcg.tech](https://github.com/EnigmaCurry/d.rymcg.tech)
 self-hosted Docker platform. `dry_agent` provides a central location
-to manage all of your remote Docker contexts and services.
+to manage all of your remote Docker contexts and services, and gives
+you a persistent tool that you can log into from anywhere.
 
 This software is in development and is unstable Alpha. See
-[LICENSE.TXT](LICENSE.TXT), especially the note about this having no
-warranty. This is experimental security software that you use at your
-own risk.
+[LICENSE.TXT](LICENSE.TXT), especially about the notice that this
+software has no warranty. This is experimental security software that
+you use at your own risk.
 
 ## Use `dry_agent` as your Docker Workstation
 
-Within the d.rymcg.tech framework, there are two machine roles:
+Within the [d.rymcg.tech](https://github.com/EnigmaCurry/d.rymcg.tech)
+Docker framework, there are two main machine roles that make up your
+control plane:
 
- * Server - these are dedicated machines that _only_ run Docker
+ * Servers - these are dedicated machines that _only_ run Docker
    containers. You treat these machines as cattle (not pets). You
-   _almost never_ need to log in to the shell here. You will only
-   remote control these machines via SSH context on a workstation.
+   _almost never_ need to log in to the shell on a server. You will
+   always remotely control these machines via (root) SSH context, from
+   a workstation.
 
- * Workstation - these are machines that you run `d.rymcg.tech` and/or
-   `docker` commands _from_. Workstation hosts do not run Docker
-   containers themselves, but they control remote Docker servers that
-   do. The workstation is the system where all your service config
-   files are stored and edited. The workstation is the only interface
-   you use to install services, and it is where you do all of your
-   admin tasks across your fleet. One workstation typically controls
-   several remote server contexts.
+ * Workstation - these are secure machines that you run `d.rymcg.tech`
+   and/or `docker` commands _from_. Workstation hosts do not run
+   Docker containers themselves, but they control remote Docker
+   servers that do. The workstation is the system where all your
+   declarative service config files are stored and edited. The
+   workstation is the only interface you use to install services, and
+   it is where you do all of your admin tasks across your fleet. One
+   workstation typically controls several remote server contexts.
 
 `dry_agent` serves the role of the Workstation, and because its a
 Podman container, it can be embedded within any other Linux host or
 server.
+
+## Features
 
  * `dry_agent` does not run your service containers directly -- it
    only controls _remote_ Docker servers over SSH.
@@ -38,25 +46,32 @@ server.
  * `dry_agent` can be installed on any machine that has Podman -- it
    does not require Docker itself.
 
- * `dry_agent` can be installed locally for private use (localhost),
-   or to a server for wider area (authenticated) access.
+ * `dry_agent` can be installed locally for private use (localhost
+   and/or SSH forward), or to a server for wider area (authenticated)
+   access.
 
  * `dry_agent` uses Podman rootless, so it does not require root
-   access to run. It _will_ have `root` access to your _remote_ Docker
-   servers though, so the security of `dry_agent` is still critical!
+   access to run. However, it _will_ have root access to the _remotely
+   managed_ Docker servers, so the security of `dry_agent` is still
+   critical!
 
  * `dry_agent` offers both a web application with embedded terminal
    _and_ an SSH service. It is fully usable by either method.
+   
+ * `dry_agent` is designed for a single admin user with remote access.
+   You may log in from anywhere (according to `PUBLIC_SUBNET`), but it
+   will enforce a single active session. All existing sessions are
+   invalidated (logged out) whenever a new session logs in.
 
  * `dry_agent` has minimal host dependencies, with a
-   [Makefile](Makefile) to wrap all configuration and installation
-   tasks, as well as an ergonomic Bash function wrapper with tab
-   completion.
+   [Makefile](Makefile) to consolidate configuration and installation
+   tasks. To further improve the CLI ergononomics, a Bash function
+   wrapper is included.
 
 ## Requirements
 
- * To serve as a `dry_agent` host, any Linux machine may be used, with
-   the following packages installed:
+ * To serve as a `dry_agent` host, any Linux machine may be used, as
+   long as the following packages are installed:
    
    * `podman`
    * `make`
@@ -66,8 +81,10 @@ server.
    * `gettext`
    * `xdg-utils`
    
- * You will also need one or more remote Docker servers (or VMs) for
-   `dry_agent` to manage.
+ * You will also need one or more remote servers (or VMs) for
+   `dry_agent` to manage. `dry_agent` can install Docker on them for
+   you, so you just need to spin up some fresh Debian VMs to get
+   started.
 
 ## Install host dependencies
 
@@ -94,14 +111,18 @@ sudo apt install -y git make podman sed gawk coreutils gettext xdg-utils bash-co
 
 ## Install dry_agent
 
-### Create dry_agent user account
+### Create a dedicated user account for dry_agent
 
-When managing production Docker servers, it is highly recommended that
-you install `dry_agent` on a secure machine in a dedicated user
-account (i.e. Not UID=1000 and definitely not UID=1). User isolation
-of privileged systems is a critical layer of self defense.
+If you are managing production Docker servers, it is highly
+recommended that you install `dry_agent` on a secure machine in a
+_dedicated_ user account (i.e. Not your normal user account
+[UID=1000], and definitely not root [UID=1]). Rootless Podman offers a
+lot of security advantages, but only if you do your part and practice
+user isolation for services. This is especially important for
+protecting the data volumes where `dry_agent` stores things like SSH
+keys.
 
-#### User creation on Fedora
+#### User creation (Fedora)
 
 As root, create the dedicated `dry_agent` user and enable systemd
 lingering:
@@ -122,8 +143,16 @@ Follow the rest of the steps in the shell of the `dry_agent` user.
 ### Clone repository
 
 ```
-git clone https://github.com/EnigmaCurry/dry_agent
-cd dry_agent
+git clone \
+  https://github.com/EnigmaCurry/dry_agent \
+  ${HOME}/dry_agent
+```
+
+It does not matter where you clone this to, but by convention for
+dedicated user accounts, we stick it directly in their home directory.
+
+```
+cd ~/dry_agent
 ```
 
 ### Configure
@@ -132,8 +161,11 @@ cd dry_agent
 make config
 ```
 
-Answer the questions to create the `.env` file. For each question you
-may press Enter to use the existing/default value.
+Answer the questions to create your own `.env` file to configure your
+instance of `dry_agent`. For each question, you may press Enter to use
+the existing/default value. Your `.env` file is derived from the
+[.env-dist](.env-dist) template, and its existance is ignored by
+[.gitignore](.gitignore).
 
 ### Install
 
@@ -148,7 +180,7 @@ make get-totp
 ```
 
 This will print a QR code you must scan with your mobile authenticator
-app (e.g. Aegis).
+app (e.g. [Aegis](https://getaegis.app/)).
 
 ### Get the URL
 
@@ -156,8 +188,9 @@ app (e.g. Aegis).
 make get-url
 ```
 
-If the user account you're running as has a web browser, you can also
-use `make open` to directly open the app.
+(If you have access to a web browser running in the same user account
+as `dry_agent`, you may also run `make open` to directly open the
+app.)
 
 ### Authorize SSH service
 
@@ -177,35 +210,36 @@ You can SSH into the container as the user `root` on port `2225`
 
 ## `dry_agent` shell function
 
-One of the main drawbacks of `make` is that you always need to be in
-the same directory as the `Makefile` (Or specify the directory with
-`-C`). You may want to set up this more ergonomic Bash function
-wrapper that you can use from any directory.
+One of the main drawbacks of `make` commands are that you always need
+to be in the same directory as the `Makefile` (Or, you need to specify
+the directory with `-C`). 
 
-Add this to your `~/.bashrc` (or `~/.bashrc.local` if you do it like
-EnigmaCurry).
+You may want to set up this more ergonomic Bash function wrapper that
+you can use from any directory. Add this to your `~/.bashrc` (or
+`~/.bashrc.local` if you do it like EnigmaCurry).
 
 ```
 ## Create dry_agent CLI utility function with Bash completion:
 DRY_AGENT_ALIAS=dry
-DRY_AGENT_ROOT=~/dry_agent
+DRY_AGENT_ROOT=${HOME}/dry_agent
 eval "$(make -sC ${DRY_AGENT_ROOT} dry_agent_alias)"
 dry_agent_alias $DRY_AGENT_ALIAS
 unset dry_agent_alias DRY_AGENT_ROOT DRY_AGENT_ALIAS
 ```
 
-You may choose whatever alias you want for the wrapper command. For
-example: `DRY_AGENT_ALIAS=dry`. You'll also need to point to the
-directory where you cloned to:
-`DRY_AGENT_GIT=~/dry_agent`.
+You may choose whatever alias you want for the wrapper command. In the
+example, `DRY_AGENT_ALIAS=dry`. You'll also need to point to the
+directory where you cloned to: `DRY_AGENT_ROOT=~/dry_agent`.
 
-Restart your shell, and you can now use `dry` instead of `make`, and
-you can you do this from any directory, and with the same Tab
-completion as `make`.
+Restart your shell, and you can now use the alias `dry` (from any
+directory) instead of `make`. It includes the same Tab completion as
+`make`.
 
 ```
 ## E.g., with the `dry` wrapper:
+dry config
 dry install
+dry get-url
 dry help
 ```
 
@@ -219,36 +253,43 @@ networks, set `PUBLIC_SUBNET=0.0.0.0/0`. The default port is set by
 `PUBLIC_PORT=8123`. 
 
 The backend app is technically available to localhost at port
-`APP_LOCALHOST_PORT` (35123), however this port requires mTLS, and
-cannot be used except by other containers that have a key. Its
-existence should be treated as an implementation detail. All public
-access must go through Traefik on `PUBLIC_SUBNET` at `PUBLIC_HOST` on
+`APP_LOCALHOST_PORT` (35123), however this port is protected with
+mTLS, and cannot be used except by other containers that have a signed
+key. The existence of this port should be treated as an implementation
+detail/consequence of Traefik host networking. All public access must
+route through Traefik from `PUBLIC_SUBNET` to `PUBLIC_HOST` on
 `PUBLIC_PORT` (8123).
 
 The TLS certificate is self-signed by a local CA (Step-CA), and by
-default is certified for a period of 100 years. The CN for the
+default it is certified for a period of 100 years. The CN for the
 certificate is set by `PUBLIC_HOST`, which defaults to `localhost`. If
 you are opening up the service to other hosts, you should set a valid
 DNS name instead. Because the cert is self-signed, the _first_ time
 you access the app you will need to instruct your browser to trust the
-certificate.
+certificate. It is _not_ reccommended for you to install the root CA
+into your browser nor OS trust store (given a 100 year default
+expiration would just be reckless). The intention is that you should
+just pin the cert once (per client) after verifying it manually.
 
 To login, the client is required to provide the one-time-use login
 token. The token is only retrieved via `make get-url` or via the
 configured Matrix or Discord chat bot. The token is also viewable
 inside the workstation filesystem at `/app/current_token.txt`. Your
 browser session will store the cookie so you will stay logged in
-indefinitely. To login with a new browser, you must retrieve a new
-token. When a new token is used, the client cookies are invalidated
-and your existing sessions are logged out.
+indefinitely. The session only allows one login. If you ask for a
+fresh login link, all existing session cookies will become invalid
+(logged out).
 
 In addition to the preshared login token, you must also pass two
-factor authentication with your authenticator (TOTP) device.
+factor authentication with your authenticator (TOTP) device. This
+second phase of authentication is controlled by a separate auth
+container, outside the view of the app container.
 
 There is an SSH server built in which is an alternative to using the
-webapp. The SSH server listens on localhost at `SSH_LOCALHOST_PORT`
-(35222) and Traefik proxies this port to `PUBLIC_SUBNET` on port
-`PUBLIC_SSH_PORT` (2225).
+webapp. The SSH server listens only on localhost at
+`SSH_LOCALHOST_PORT` (35222) and Traefik proxies this port to
+`PUBLIC_SUBNET` on port `PUBLIC_SSH_PORT` (2225) for wider area
+(authenticated) access.
 
 ### Development
 
