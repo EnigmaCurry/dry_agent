@@ -244,6 +244,31 @@ dry get-url
 dry help
 ```
 
+## Instant Message interface
+
+You can access the agent from an instant message chat client (Matrix
+and Discord supported). 
+
+Enable this with the following env vars:
+
+ * `MATRIX_HOMESERVER` - if not blank, the agent will try to connect
+   to the given Matrix homeserver.
+ * `MATRIX_USER` - the Matrix username the bot should connect as
+ * `MATRIX_PASSWORD` - the Matrix password of the bot.
+ * `DISCORD_TOKEN` - if not blank, the agent will try to connect to
+   Discord with the given API token.
+ * `BOT_FRIEND_IDS` - This is a list of Friend IDs that are the only
+   trusted entitites that the bot will talk to. (e.g.,
+   `BOT_FRIEND_IDS=@user:example.com,...`)
+
+TODO: as of now, the only thing you can ask the bot for is to log you
+in.
+
+ * Ask "log me in" and the bot will give you a fresh login link
+   (logging you out of your existing session). You can use this link
+   to log in from any device, but you will also need your TOTP
+   authenticator for secondary auth.
+
 ## Security
 
 The default configuration ([.env-dist](.env-dist)) only allows to
@@ -267,12 +292,12 @@ certificate is set by `PUBLIC_HOST`, which defaults to `localhost`. If
 you are opening up the service to other hosts, you should set a valid
 DNS name instead. Because the cert is self-signed, the _first_ time
 you access the app you will need to instruct your browser to trust the
-certificate. It is _not_ reccommended for you to install the root CA
-into your browser nor OS trust store (given a 100 year default
-expiration would just be reckless). The intention is that you should
-just pin the cert once (per client) after verifying it manually.
+certificate. It is _not_ recommended for you to install the root CA
+into your browser trust store (given a 100 year default expiration,
+this would just be reckless). The intention is that you should just
+pin the cert once (per browser) after verifying it manually.
 
-To login, the client is required to provide the one-time-use login
+To log in, the client is required to provide the one-time-use login
 token. The token is only retrieved via `make get-url` or via the
 configured Matrix or Discord chat bot. The token is also viewable
 inside the workstation filesystem at `/app/current_token.txt`. Your
