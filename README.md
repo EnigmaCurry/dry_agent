@@ -25,16 +25,17 @@ control plane:
    always remotely control these machines via (root) SSH context, from
    a workstation.
 
- * Workstation - these are secure machines that you run `d.rymcg.tech`
-   and/or `docker` commands _from_. Workstation hosts do not run
+ * Workstation - these are secure machines that control your entire
+   fleet or subdivision thereof. This is where you run `d.rymcg.tech`
+   and/or `docker` commands _from_. Workstation machines do not run
    Docker containers themselves, but they control remote Docker
-   servers that do. The workstation is the system where all your
+   servers that do. The workstation is the system where all of your
    declarative service config files are stored and edited. The
    workstation is the only interface you use to install services, and
    it is where you do all of your admin tasks across your fleet. One
    workstation typically controls several remote server contexts.
 
-`dry_agent` serves the role of the Workstation, and because its a
+`dry_agent` serves the role of the Workstation, and because it's a
 Podman container, it can be embedded within any other Linux host or
 server.
 
@@ -88,21 +89,21 @@ server.
 
 ## Install host dependencies
 
-### Fedora dependencies
+### Fedora
 
 ```
 sudo dnf update
 sudo dnf install -y git make podman sed gawk coreutils gettext xdg-utils bash-completion
 ```
 
-### Arch Linux dependencies
+### Arch Linux
 
 ```
 sudo pacman -Syu --noconfirm
 sudo pacman -S --noconfirm git make podman sed gawk coreutils gettext xdg-utils bash-completion
 ```
 
-### Debian / Ubuntu dependencies
+### Debian / Ubuntu
 
 ```
 sudo apt update
