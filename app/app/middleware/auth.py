@@ -28,7 +28,7 @@ def token():
 
 # Generate an initial token at startup using 10 diceware words joined by hyphens.
 current_token = token()
-AUTH_COOKIE_NAME = "dry_agent_auth"
+APP_COOKIE_NAME = "dry_agent_auth"
 CSRF_COOKIE_NAME = "csrf_token"
 TOKEN_FILE = "/data/token/current_token.txt"
 
@@ -83,7 +83,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         # Check the cookie value against the current token.
-        cookie = request.cookies.get(AUTH_COOKIE_NAME)
+        cookie = request.cookies.get(APP_COOKIE_NAME)
         if cookie != current_token:
             # If the request is for an API endpoint, return a JSON error.
             if request.url.path.startswith("/api"):
@@ -114,8 +114,8 @@ async def generate_new_token():
 # GET /login endpoint: Redirects to the root page if a valid auth cookie is present, clearing any URL hash.
 async def login_get(request: Request):
     # Check for a valid auth cookie.
-    auth_cookie = request.cookies.get(AUTH_COOKIE_NAME)
-    if auth_cookie and auth_cookie == current_token:
+    app_cookie = request.cookies.get(APP_COOKIE_NAME)
+    if app_cookie and app_cookie == current_token:
         # Return an HTML page that clears the URL fragment and redirects to '/'
         html_content = """
         <html>
@@ -167,7 +167,7 @@ async def login_post(request: Request, token: str = Form(...), csrf: str = Form(
             url=f"https://{PUBLIC_HOST}:{PUBLIC_PORT}/", status_code=302
         )
         response.set_cookie(
-            key=AUTH_COOKIE_NAME, value=new_token, httponly=True, samesite="strict"
+            key=APP_COOKIE_NAME, value=new_token, httponly=True, samesite="strict"
         )
         response.set_cookie(
             key=CSRF_COOKIE_NAME,
@@ -187,7 +187,9 @@ async def login_post(request: Request, token: str = Form(...), csrf: str = Form(
 
 # /logout endpoint: Invalidate the current cookie by generating a new token.
 async def logout(request: Request, full: bool = Query(False)):
-    await generate_new_token()  # Invalidate any cookie with the old token.
+    cookie = request.cookies.get(APP_COOKIE_NAME)
+    if cookie == current_token:
+        await generate_new_token()  # Invalidate any cookie with the old token.
     if full:
         response = RedirectResponse(
             url=f"https://{PUBLIC_HOST}:{PUBLIC_PORT}/totp/logout", status_code=302
@@ -196,7 +198,7 @@ async def logout(request: Request, full: bool = Query(False)):
         response = RedirectResponse(
             url=f"https://{PUBLIC_HOST}:{PUBLIC_PORT}/login", status_code=302
         )
-    response.delete_cookie(key=AUTH_COOKIE_NAME)
+    response.delete_cookie(key=APP_COOKIE_NAME)
     return response
 
 
@@ -223,8 +225,8 @@ async def admin_get_login_url(request: Request):
 
 async def get_login_url(request: Request):
     host = request.headers.get("host")
-    auth_cookie = request.cookies.get(AUTH_COOKIE_NAME)
-    if auth_cookie and auth_cookie == current_token:
+    app_cookie = request.cookies.get(APP_COOKIE_NAME)
+    if app_cookie and app_cookie == current_token:
         q = secrets.token_urlsafe(4)
         return JSONResponse(
             content={"login_url": f"https://{host}/login?q={q}#{current_token}"}

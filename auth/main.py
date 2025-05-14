@@ -22,7 +22,7 @@ OTP_COOKIE_NAME = "dry_otp"
 OTP_COOKIE_VALUE = "valid"
 OTP_COOKIE_PATH = "/"
 OTP_COOKIE_MAX_AGE = 86400 * 7  # 7 days
-AUTH_COOKIE_NAME = "dry_agent_auth"
+APP_COOKIE_NAME = "dry_agent_auth"
 
 PUBLIC_HOST = os.environ.get("PUBLIC_HOST", "127.0.0.1")
 PUBLIC_PORT = os.environ.get("PUBLIC_PORT", "8002")
@@ -150,12 +150,12 @@ async def auth(request: Request):
     """
     Traefik ForwardAuth middleware endpoint
     """
-    auth_cookie = request.cookies.get(AUTH_COOKIE_NAME)
-    if not auth_cookie:
+    app_cookie = request.cookies.get(APP_COOKIE_NAME)
+    if not app_cookie:
         return RedirectResponse(
             url=f"https://{PUBLIC_HOST}:{PUBLIC_PORT}/logout", status_code=302
         )
-    elif auth_cookie != current_token:
+    elif app_cookie != current_token:
         return RedirectResponse(
             url=f"https://{PUBLIC_HOST}:{PUBLIC_PORT}/logout", status_code=302
         )
@@ -180,12 +180,12 @@ async def auth(request: Request):
 @app.post("/totp/verify")
 @limiter.limit("2/minute")
 async def totp_verify(request: Request, code: str = Form(...)):
-    auth_cookie = request.cookies.get(AUTH_COOKIE_NAME)
-    if not auth_cookie:
+    app_cookie = request.cookies.get(APP_COOKIE_NAME)
+    if not app_cookie:
         return RedirectResponse(
             url=f"https://{PUBLIC_HOST}:{PUBLIC_PORT}/logout", status_code=302
         )
-    elif auth_cookie != current_token:
+    elif app_cookie != current_token:
         return RedirectResponse(
             url=f"https://{PUBLIC_HOST}:{PUBLIC_PORT}/logout", status_code=302
         )
@@ -235,7 +235,7 @@ async def totp_logout(response: Response):
         url=f"https://{PUBLIC_HOST}:{PUBLIC_PORT}/login", status_code=302
     )
     response.delete_cookie(OTP_COOKIE_NAME, path=OTP_COOKIE_PATH)
-    response.delete_cookie(AUTH_COOKIE_NAME, path="/")
+    response.delete_cookie(APP_COOKIE_NAME, path="/")
     return response
 
 
