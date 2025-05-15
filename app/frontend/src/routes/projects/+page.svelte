@@ -45,7 +45,7 @@
   {#if $currentContext != "default" && $currentContext != null}
     {#if data.configExists}
       <div class="is-flex">
-        <h1 class="title m-4 is-flex-grow-1">Projects</h1>
+        <h1 class="title m-4 is-flex-grow-1 is-no-text-wrap">Projects</h1>
         <div class="tabs is-toggle m-4">
           <ul>
             <li class:is-active={selectedTab === "configured_projects"}>
@@ -85,7 +85,7 @@
         <ProjectsTable context={$currentContext} show_all={true} />
       {/if}
     {:else}
-      <h1 class="title m-4">Root Config Not Found</h1>
+      <h1 class="title m-4 is-no-text-wrap">Root Config Not Found</h1>
       <div class="m-4">
         <p>
           It looks like there is no configuration file for this Docker context.
@@ -95,7 +95,7 @@
       </div>
     {/if}
   {:else}
-    <h1 class="title">No Context</h1>
+    <h1 class="title is-no-text-wrap">No Context</h1>
     <a href="/docker" class="button is-link">
       Create and/or set a default Docker context
     </a>

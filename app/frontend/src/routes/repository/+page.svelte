@@ -6,5 +6,5 @@
   <title>dry_agent - Switch Git Branch</title>
 </svelte:head>
 
-<h1 class="title m-4">Git Repository (d.rymcg.tech)</h1>
+<h1 class="title m-4 is-no-text-wrap">Git Repository (d.rymcg.tech)</h1>
 <GitRepository />
