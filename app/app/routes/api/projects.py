@@ -7,7 +7,9 @@ import traceback
 import subprocess
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import JSONResponse
-from .lib import parse_docker_compose_services
+from .lib import parse_docker_compose_services, run_command
+from starlette.concurrency import run_in_threadpool
+import json
 
 """
 General information about available projects and default configs.
@@ -16,14 +18,6 @@ General information about available projects and default configs.
 logger = logging.getLogger("uvicorn.error")
 
 router = APIRouter(prefix="/api/projects", tags=["projects"])
-
-from fastapi.responses import JSONResponse
-from fastapi import HTTPException
-import subprocess
-import traceback
-import logging
-
-logger = logging.getLogger("uvicorn.error")
 
 
 async def get_available_projects():
@@ -70,6 +64,32 @@ async def get_available_projects():
     except Exception:
         logger.error("Failed to load available projects:\n%s", traceback.format_exc())
         raise
+
+
+async def get_projects_status() -> dict:
+    cmd = [
+        DRY_COMMAND,
+        "make",
+        "-",
+        "status-json",
+    ]
+
+    try:
+        # run_command is sync, so push it into a thread
+        raw = await run_in_threadpool(run_command, cmd)
+    except HTTPException:
+        # propagate any HTTPExceptions from run_command
+        raise
+    except Exception as e:
+        # catch/unexpected fallback
+        raise HTTPException(status_code=500, detail=str(e))
+
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError as e:
+        raise HTTPException(
+            status_code=500, detail=f"Command output was not valid JSON: {e.msg}"
+        )
 
 
 @router.get("/available/")

@@ -22,6 +22,7 @@ from app.lib.llm_util import (
 from app.routes import DRY_COMMAND
 from app.models.events import ContextChangedEvent, OpenAppEvent, OpenInstancesEvent
 from pathlib import Path
+from .projects import get_projects_status
 
 """
 LLM Chat API
@@ -119,6 +120,9 @@ async def handle_tool_call(call, system_config: SystemConfig) -> str:
         await broadcast(OpenInstancesEvent(app=app))
         msg = f"\n\n🧭 Opening instances page for {app}"
         return msg
+    elif function_name == "projects_status":
+        status = await get_projects_status()
+        return json.dumps(status)
 
     msg = f"\n\n⚠️ Unknown tool called: {function_name}"
     logger.warning(msg)

@@ -58,12 +58,11 @@ async def get_docker_state_func() -> dict:
         "contexts": all_ctx,
         "projects": [p["name"] for p in projects],
         "instances": [inst.instance for inst in instances],
-        "current_working_directory": os.getcwd(),
     }
 
 
-async def get_system_config(current_working_directory: str) -> SystemConfig:
-    if os.path.isdir(current_working_directory):
+async def get_system_config(current_working_directory: Optional[str]) -> SystemConfig:
+    if current_working_directory and os.path.isdir(current_working_directory):
         current_working_directory = Path(current_working_directory)
     else:
         raise ValueError(
@@ -153,29 +152,7 @@ async def get_system_config(current_working_directory: str) -> SystemConfig:
             "type": "function",
             "function": {
                 "name": "projects_status",
-                "description": "Get the current status of some or all Docker projects",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "projects": {
-                            "type": ["array", "null"],
-                            "description": "List of Docker project names to query. Pass null to query all.",
-                            "items": {
-                                "type": "string",
-                                "enum": project_names,
-                            },
-                        },
-                        "instances": {
-                            "type": ["array", "null"],
-                            "description": "List of instance names to filter by. Pass null to include all.",
-                            "items": {
-                                "type": "string",
-                                "enum": instance_names,
-                            },
-                        },
-                    },
-                    "required": ["projects", "instances"],
-                },
+                "description": "Get the current status of all Docker compose projects",
             },
         },
         {
