@@ -9,16 +9,19 @@ import os
 from .lib import run_command
 from .docker_context import (
     get_docker_context_names,
-    get_docker_context,
     set_default_context,
 )
-from .d_rymcg_tech import get_root_config, ConfigError
 from app.lib.db import get_chat_model, ChatModel
 from app.broadcast import broadcast
-from .llm_util import generate_title
-from app.lib.llm_util import get_system_config, SystemConfig
+from app.lib.llm_util import (
+    get_docker_state_func,
+    generate_title,
+    get_system_config,
+    SystemConfig,
+)
 from app.routes import DRY_COMMAND
 from app.models.events import ContextChangedEvent, OpenAppEvent, OpenInstancesEvent
+from pathlib import Path
 
 """
 LLM Chat API
@@ -70,11 +73,17 @@ def prepare_messages(
     )
 
 
-async def handle_tool_call(call) -> str:
+async def handle_tool_call(call, system_config: SystemConfig) -> str:
     function_name = call.function.name
     arguments = getattr(call, "parsed_arguments", {})
     logger.info(f"Tool call: function_name : {function_name} :: arguments: {arguments}")
-    if function_name == "set_default_context":
+    if function_name == "get_docker_state":
+        state = await get_docker_state_func()
+        state["current_working_directory"] = str(
+            system_config.current_working_directory
+        )
+        return json.dumps(state)
+    elif function_name == "set_default_context":
         context_name = arguments["context"]
         valid_contexts = get_docker_context_names()
         if context_name not in valid_contexts:
@@ -117,16 +126,27 @@ async def handle_tool_call(call) -> str:
 
 
 async def stream_llm_response(
-    conversation_id, chat, messages, system_config
-) -> Callable:
-    response_text = ""
-    collected_tool_calls: dict[str, dict] = {}
+    conversation_id: str, chat, messages: list[dict], system_config
+) -> Callable[[], AsyncGenerator[str, None]]:
+    """
+    Returns an async generator factory `generate()` that:
+      1. Streams an initial chat completion pass, collecting any function calls.
+      2. If functions were called:
+         a) Executes them, appending their results as function‐role messages.
+         b) Streams a second chat completion pass so the model can reason
+            over the real JSON outputs and produce a final, user‐facing reply.
+      3. If no functions were called, just finishes after phase 1.
+    """
 
     async def generate():
-        nonlocal response_text
+        nonlocal messages
+        response_text = ""
+        collected_tool_calls: dict[int, dict] = {}
+        saw_tool_call = False
 
+        # ── PHASE 1: initial streaming with tools enabled ────────────────────
         try:
-            stream = await client.chat.completions.create(
+            stream1 = await client.chat.completions.create(
                 model="gpt-4",
                 messages=messages,
                 stream=True,
@@ -134,93 +154,98 @@ async def stream_llm_response(
                 tool_choice="auto" if system_config.tool_spec else None,
             )
 
-            async for chunk in stream:
+            async for chunk in stream1:
                 choice = chunk.choices[0]
-
-                # 🧩 Accumulate tool call fragments by ID
+                # 1a) collect function_call fragments
                 if choice.delta.tool_calls:
+                    saw_tool_call = True
                     for tc in choice.delta.tool_calls:
-                        index = tc.index
-                        existing = collected_tool_calls.setdefault(
-                            index,
-                            {
-                                "id": tc.id,  # may only be valid on first chunk
-                                "name": None,
-                                "arguments": "",
-                            },
+                        idx = tc.index
+                        spot = collected_tool_calls.setdefault(
+                            idx,
+                            {"id": tc.id, "name": None, "arguments": ""},
                         )
-
-                        if tc.id and not existing["id"]:
-                            existing["id"] = tc.id
-
-                        function = getattr(tc, "function", None)
-                        if function:
-                            if function.name:
-                                existing["name"] = function.name
-                            if function.arguments:
-                                existing["arguments"] += function.arguments
+                        if tc.id and not spot["id"]:
+                            spot["id"] = tc.id
+                        fn = getattr(tc, "function", None)
+                        if fn:
+                            if fn.name:
+                                spot["name"] = fn.name
+                            if fn.arguments:
+                                spot["arguments"] += fn.arguments
                     continue
 
-                # 💬 Accumulate assistant text output
+                # 1b) otherwise stream any actual assistant text
                 if choice.delta.content:
-                    delta = choice.delta.content
+                    response_text += choice.delta.content
+                    yield choice.delta.content
+
+        except Exception:
+            logger.exception("Phase 1 LLM streaming error")
+            yield "\n\n[ERROR: initial LLM call failed]\n"
+            return
+
+        # ── If no function was called, finalize and return ────────────────
+        if not saw_tool_call:
+            await chat.add_message(conversation_id, "assistant", response_text)
+            return
+
+        # ── PHASE 1.5: execute each collected tool call ───────────────────
+        for call in collected_tool_calls.values():
+            name = call.get("name")
+            raw_args = call.get("arguments", "")
+            if not name or not raw_args.strip():
+                continue
+
+            try:
+                parsed = json.loads(raw_args)
+            except json.JSONDecodeError:
+                parsed = {}
+
+            # Build a fake OpenAI ToolCall object
+            tool_call_obj = type(
+                "ToolCall",
+                (),
+                {
+                    "function": type("F", (), {"name": name, "arguments": raw_args})(),
+                    "parsed_arguments": parsed,
+                    "id": call.get("id"),
+                },
+            )
+            # Execute the tool, get back either JSON (for get_docker_state)
+            # or a user‐facing string (for set_default_context, etc.)
+            result = await handle_tool_call(tool_call_obj, system_config)
+
+            # Inject that result into the convo so the model can see it
+            messages.append(
+                {
+                    "role": "function",
+                    "name": name,
+                    "content": result,
+                }
+            )
+
+        # ── PHASE 2: final streaming WITHOUT tools ─────────────────────────
+        response_text = ""
+        try:
+            stream2 = await client.chat.completions.create(
+                model="gpt-4",
+                messages=messages,
+                stream=True,
+            )
+            async for chunk in stream2:
+                delta = chunk.choices[0].delta.content
+                if delta:
                     response_text += delta
                     yield delta
 
-            # 🛠 Execute completed tool calls
-            for call in collected_tool_calls.values():
-                name = call.get("name")
-                raw_args = call.get("arguments", "")
+        except Exception:
+            logger.exception("Phase 2 LLM streaming error")
+            yield "\n\n[ERROR: final LLM call failed]\n"
+            return
 
-                if not name:
-                    msg = f"\n\n⚠️ Skipping tool call {call.get('id')} — missing function name."
-                    logger.warning(msg)
-                    yield msg
-                    continue
-
-                if not raw_args.strip():
-                    msg = f"\n\n❌ Skipping tool `{name}` — no arguments received."
-                    logger.error(msg)
-                    yield msg
-                    continue
-
-                try:
-                    parsed_args = json.loads(raw_args)
-                except json.JSONDecodeError as e:
-                    msg = f"\n\n❌ Failed to parse arguments for tool `{name}`: {e}"
-                    logger.error(msg)
-                    yield msg
-                    continue
-
-                # Simulate OpenAI-style tool call object
-                tool_call_obj = type(
-                    "ToolCall",
-                    (),
-                    {
-                        "function": type(
-                            "Function",
-                            (),
-                            {
-                                "name": name,
-                                "arguments": raw_args,
-                            },
-                        )(),
-                        "id": call["id"],
-                        "parsed_arguments": parsed_args,
-                    },
-                )
-
-                tool_result = await handle_tool_call(tool_call_obj)
-                response_text += tool_result
-                yield tool_result
-
-            await chat.add_message(conversation_id, "assistant", response_text)
-            logger.info(f"Logged assistant message to {conversation_id}")
-
-        except Exception as e:
-            logger.exception("OpenAI streaming error")
-            yield "\n\n[ERROR: LLM request failed]\n"
-            raise e
+        # ── Record the assistant’s final reply in the DB ─────────────────
+        await chat.add_message(conversation_id, "assistant", response_text)
 
     return generate
 
@@ -232,17 +257,10 @@ async def stream_chat(
     chat: ChatModel = Depends(get_chat_model),
 ) -> StreamingResponse:
     user_message, current_working_directory = await parse_request_body(request)
-    try:
-        if not os.path.isdir(current_working_directory):
-            current_working_directory = None
-    except TypeError:
-        current_working_directory = None
 
     conversation = await prepare_conversation(chat, conversation_id, user_message)
 
-    system_config = await get_system_config(
-        current_working_directory=current_working_directory
-    )
+    system_config = await get_system_config(current_working_directory)
 
     messages = prepare_messages(system_config, conversation, user_message)
 

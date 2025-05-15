@@ -6,25 +6,69 @@ from app.routes.api.projects import get_available_projects
 from app.routes.api.instances import get_instances
 from typing import NamedTuple
 import logging
-from jinja2 import Template
 import os
 from typing import Optional
+from openai import AsyncOpenAI
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
-
-with open(os.path.join(os.path.dirname(__file__), "system_prompt.jinja2")) as f:
-    SYSTEM_TEMPLATE = f.read()
 
 
 class SystemConfig(NamedTuple):
     system_message: dict
     tool_spec: dict | None
+    current_working_directory: Path
 
 
-async def get_system_config(
-    current_working_directory: Optional[str] = None,
-) -> SystemConfig:
-    docker_context = get_docker_context()
+client = AsyncOpenAI()
+
+STATIC_SYSTEM_PROMPT = """\
+You are dry_agent, a helpful assistant who manages Docker Compose projects.
+You’re embedded in a web-app and a workstation environment.
+
+Whenever you need the _current_ Docker state (context, projects, instances,
+root domain, working directory), call the `get_docker_state()` function.
+
+If the user asks you to switch contexts or start/stop apps, call the
+appropriate function (`set_default_context` or `control_docker_project`).
+
+Do not mention Docker Swarm or Kubernetes.
+"""
+
+
+async def get_docker_state_func() -> dict:
+    # current context
+    ctx = get_docker_context()
+    # all contexts
+    all_ctx = get_docker_context_names()
+    # root domain (if configured)
+    try:
+        root_cfg = get_root_config(ctx)
+        root_domain = root_cfg.get("ROOT_DOMAIN", None)
+    except ConfigError:
+        root_domain = None
+
+    # available projects & installed instances
+    projects = await get_available_projects()
+    instances = get_instances(include_status=True)
+
+    return {
+        "docker_context": ctx,
+        "root_domain": root_domain,
+        "contexts": all_ctx,
+        "projects": [p["name"] for p in projects],
+        "instances": [inst.instance for inst in instances],
+        "current_working_directory": os.getcwd(),
+    }
+
+
+async def get_system_config(current_working_directory: str) -> SystemConfig:
+    if os.path.isdir(current_working_directory):
+        current_working_directory = Path(current_working_directory)
+    else:
+        raise ValueError(
+            f"Invalid current working directory: {current_working_directory}"
+        )
     all_contexts = get_docker_context_names()
     available_projects = await get_available_projects()
     app_instances = get_instances(include_status=True)
@@ -47,15 +91,20 @@ async def get_system_config(
             tool_spec=None,
         )
 
-    try:
-        root_config = get_root_config(docker_context)
-        root_domain = root_config.get("ROOT_DOMAIN", "unknown")
-    except ConfigError:
-        root_config = None
-        root_domain = None
-
     # Define available tools
     tool_spec = [
+        {
+            "type": "function",
+            "function": {
+                "name": "get_docker_state",
+                "description": (
+                    "Returns JSON with the current Docker context, root domain, "
+                    "all contexts, available projects, configured instances, and current working directory."
+                ),
+                "parameters": {"type": "object", "properties": {}},
+                "required": [],
+            },
+        },
         {
             "type": "function",
             "function": {
@@ -173,17 +222,53 @@ async def get_system_config(
         },
     ]
 
-    template = Template(SYSTEM_TEMPLATE)
-    content = template.render(
-        docker_context=docker_context,
-        all_contexts=all_contexts,
+    system_message = {"role": "system", "content": STATIC_SYSTEM_PROMPT}
+
+    return SystemConfig(
+        system_message=system_message,
+        tool_spec=tool_spec,
         current_working_directory=current_working_directory,
-        root_domain=root_domain,
-        app_instances=app_instances,
-        other_contexts_message=", ".join(all_contexts) if all_contexts else "",
-        available_projects=", ".join(app["name"] for app in available_projects),
     )
 
-    system_message = {"role": "system", "content": content}
-    logger.info(system_message)
-    return SystemConfig(system_message=system_message, tool_spec=tool_spec)
+
+async def generate_title(
+    message: str,
+    model: str = "gpt-3.5-turbo",
+    max_tokens: int = 10,
+    temperature: float = 0.5,
+) -> str:
+    """
+    Generate a concise title summarizing the input message.
+
+    Uses the AsyncOpenAI client (no need to set api_key in code
+    if you've exported OPENAI_API_KEY or set up your config file).
+
+    Args:
+        message:      Text to summarize.
+        model:        Model name.
+        max_tokens:   Max tokens for the title.
+        temperature:  Sampling temperature.
+
+    Returns:
+        One-line title.
+    """
+    resp = await client.chat.completions.create(
+        model=model,
+        messages=[
+            {
+                "role": "system",
+                "content": "You are a helpful assistant that writes very short titles.",
+            },
+            {
+                "role": "user",
+                "content": (
+                    "Create a brief title (≤5 words) summarizing the following:\n\n"
+                    f"{message}"
+                ),
+            },
+        ],
+        max_tokens=max_tokens,
+        temperature=temperature,
+    )
+    # strip quotes/newlines
+    return resp.choices[0].message.content.strip().strip('"“”')

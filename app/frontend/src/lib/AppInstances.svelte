@@ -333,7 +333,7 @@
     <div
       class="is-flex is-align-items-center is-justify-content-space-between m-4"
     >
-      <h1 class="title m-0">
+      <h1 class="title m-0 is-no-text-wrap">
         {appTitle}
         <span class="subtitle is-6 ml-4"
           ><a
