@@ -32,7 +32,9 @@ logger = logging.getLogger("uvicorn.error")
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
 
-client = openai.AsyncOpenAI()
+client = openai.AsyncOpenAI(
+    api_key="not needed", base_url=os.environ["OPENAI_BASE_URL"]
+)
 
 
 async def parse_request_body(request: Request) -> str:

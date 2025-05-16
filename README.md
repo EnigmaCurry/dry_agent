@@ -317,6 +317,11 @@ webapp. The SSH server listens only on localhost at
 `PUBLIC_SUBNET` on port `PUBLIC_SSH_PORT` (2225) for wider area
 (authenticated) access.
 
+[LiteLLM](https://github.com/BerriAI/litellm/) is deployed to proxy
+between LLM service APIs (e.g. OpenAI, LM Studio). Only LiteLLM has
+access to your API keys. The app Python code does not need to pass any
+credentials, and so it is not made privy to them.
+
 ### Development
 
 ```

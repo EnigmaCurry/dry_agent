@@ -20,7 +20,7 @@ class SystemConfig(NamedTuple):
     current_working_directory: Path
 
 
-client = AsyncOpenAI()
+client = AsyncOpenAI(api_key="not needed", base_url=os.environ["OPENAI_BASE_URL"])
 
 STATIC_SYSTEM_PROMPT = """\
 You are dry_agent, a helpful assistant who manages Docker Compose projects.
@@ -90,6 +90,7 @@ async def get_system_config(current_working_directory: Optional[str]) -> SystemC
                     this assistant. """,
             },
             tool_spec=None,
+            current_working_directory=current_working_directory,
         )
 
     # Define available tools

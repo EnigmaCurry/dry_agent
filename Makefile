@@ -4,6 +4,7 @@ CONTAINERS := \
 	dry-agent-app \
 	dry-agent-auth \
 	dry-agent-bot \
+	dry-agent-litellm \
 	dry-agent-proxy
 
 DATA_VOLUMES := \
@@ -108,14 +109,19 @@ install: deps expect-config build uninstall ca
 		--publish 127.0.0.1:$${APP_LOCALHOST_PORT}:8001 \
 		--publish 127.0.0.1:$${AUTH_LOCALHOST_PORT}:8002 \
 		--publish 127.0.0.1:$${SSH_LOCALHOST_PORT}:22; \
+	podman run --pod dry-agent --name dry-agent-litellm -d \
+	       --label project=dry-agent \
+           -e OPENAI_API_KEY=$${OPENAI_API_KEY} \
+	       -e OPENAI_BASE_URL=$${OPENAI_BASE_URL} \
+	       localhost/dry-agent/litellm; \
 	podman run --pod dry-agent --name dry-agent-app -d \
 	       --label project=dry-agent \
            -v dry-agent-workstation-data:/root \
 	       -v dry-agent-auth-token:/data/token \
            -e PUBLIC_HOST=$${PUBLIC_HOST} \
            -e PUBLIC_PORT=$${PUBLIC_PORT}  \
-           -e OPENAI_API_KEY=$${OPENAI_API_KEY} \
 	       -e LOG_LEVEL=$${APP_LOG_LEVEL} \
+	       -e OPENAI_BASE_URL="http://127.0.0.1:4000" \
 	       -v dry-agent-certs-app:/certs \
 	       localhost/dry-agent/app; \
 	podman run --pod dry-agent --name dry-agent-auth -d \
@@ -212,6 +218,7 @@ build: deps
 		cd .hushcrumbs && git pull; \
 	fi
 	podman build -t localhost/dry-agent/hushcrumbs .hushcrumbs
+	podman build -t localhost/dry-agent/litellm litellm
 	podman build -t localhost/dry-agent/workstation workstation
 	podman build -t localhost/dry-agent/traefik traefik
 	podman build -t localhost/dry-agent/auth auth
@@ -259,6 +266,10 @@ auth-logs:
 bot-logs:
 	podman logs -f dry-agent-bot
 
+.PHONY: litellm-logs # Show the llm logs
+litellm-logs:
+	podman logs -f dry-agent-litellm
+
 .PHONY: start # Start the containers (must be installed already)
 start:
 	podman start dry-agent-app dry-agent-proxy
@@ -297,6 +308,9 @@ bot-shell:
 auth-shell:
 	podman exec -it dry-agent-auth /bin/bash
 
+.PHONY: litellm-shell # Exec into the litellm container
+litellm-shell:
+	podman exec -it dry-agent-litellm /bin/sh
 
 .PHONY: ssh-authorize # Authorize a SSH public key
 ssh-authorize:
