@@ -330,12 +330,12 @@
 
 {#key ContextKey}
   {#if $currentContext != "default" && $currentContext != null}
-    <div
-      class="is-flex is-align-items-center is-justify-content-space-between m-4"
-    >
-      <h1 class="title m-0 is-no-text-wrap">
-        {appTitle}
-        <span class="subtitle is-6 ml-4"
+    <div class="is-flex is-align-items-center is-flex-wrap-wrap m-4">
+      <h1 class="title m-0">
+        <span class="is-no-text-wrap">
+          {appTitle}
+        </span>
+        <span class="subtitle is-6 ml-4 is-no-text-wrap"
           ><a
             href="https://github.com/EnigmaCurry/d.rymcg.tech/blob/master/{app}/README.md"
             target="_blank"
@@ -344,6 +344,7 @@
           ></span
         >
       </h1>
+      <div class="is-flex-grow-1"></div>
       <div class="field has-addons">
         <p class="control">
           <button

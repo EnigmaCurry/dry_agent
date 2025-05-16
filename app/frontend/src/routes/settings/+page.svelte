@@ -52,10 +52,11 @@
   <title>dry_agent - Settings</title>
 </svelte:head>
 
-<div class="is-flex">
+<div class="is-flex is-flex-wrap-wrap">
   <h1 class="title m-4 is-flex-grow-1 is-no-text-wrap">
     {toTitleCase(selectedTab)} Settings
   </h1>
+  <div class="is-flex-grow-1"></div>
   <div class="tabs is-toggle m-4">
     <ul>
       <li class:is-active={selectedTab === "session"}>
