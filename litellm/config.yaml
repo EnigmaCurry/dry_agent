@@ -1,13 +1,13 @@
 model_list:
-  - model_name: gpt-4
+  - model_name: assistant
     litellm_params:
-      model: openai/gpt-4
+      model: os.environ/OPENAI_MODEL_ASSISTANT
       api_base: os.environ/OPENAI_BASE_URL
       api_key: os.environ/OPENAI_API_KEY
       rpm: 6
-  - model_name: gpt-3.5-turbo
+  - model_name: lite
     litellm_params:
-      model: openai/gpt-3.5-turbo
+      model: os.environ/OPENAI_MODEL_LITE
       api_base: os.environ/OPENAI_BASE_URL
       api_key: os.environ/OPENAI_API_KEY
       rpm: 6

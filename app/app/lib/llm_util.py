@@ -213,7 +213,7 @@ async def get_system_config(current_working_directory: Optional[str]) -> SystemC
 
 async def generate_title(
     message: str,
-    model: str = "gpt-3.5-turbo",
+    model: str = "lite",
     max_tokens: int = 10,
     temperature: float = 0.5,
 ) -> str:

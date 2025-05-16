@@ -49,7 +49,7 @@ RUN mkdir -p /root/.config && \
     ~/git/vendor/enigmacurry/d.rymcg.tech
 RUN YES=yes ~/git/vendor/enigmacurry/d.rymcg.tech/_scripts/install_script-wizard
 
-ADD https://raw.github.com/git/git/master/contrib/completion/git-prompt.sh /root/.config/git-prompt.sh
+ADD git-prompt.sh /root/.config/git-prompt.sh
 COPY bashrc /root/.bashrc
 COPY tmux.conf /root/.tmux.conf
 

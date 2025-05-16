@@ -109,11 +109,6 @@ install: deps expect-config build uninstall ca
 		--publish 127.0.0.1:$${APP_LOCALHOST_PORT}:8001 \
 		--publish 127.0.0.1:$${AUTH_LOCALHOST_PORT}:8002 \
 		--publish 127.0.0.1:$${SSH_LOCALHOST_PORT}:22; \
-	podman run --pod dry-agent --name dry-agent-litellm -d \
-	       --label project=dry-agent \
-           -e OPENAI_API_KEY=$${OPENAI_API_KEY} \
-	       -e OPENAI_BASE_URL=$${OPENAI_BASE_URL} \
-	       localhost/dry-agent/litellm; \
 	podman run --pod dry-agent --name dry-agent-app -d \
 	       --label project=dry-agent \
            -v dry-agent-workstation-data:/root \
@@ -144,6 +139,14 @@ install: deps expect-config build uninstall ca
 	       -e DISCORD_TOKEN=$${DISCORD_TOKEN} \
 	       -e BOT_FRIEND_IDS=$${BOT_FRIEND_IDS} \
 	       localhost/dry-agent/bot; \
+	podman run --pod dry-agent --name dry-agent-litellm -d \
+	       --label project=dry-agent \
+           -e OPENAI_API_KEY=$${OPENAI_API_KEY} \
+	       -e OPENAI_BASE_URL=$${OPENAI_BASE_URL} \
+	       -e OPENAI_MODEL_ASSISTANT=$${OPENAI_MODEL_ASSISTANT} \
+	       -e OPENAI_MODEL_LITE=$${OPENAI_MODEL_LITE} \
+	       -e OPENAI_BASE_URL=$${OPENAI_BASE_URL} \
+	       localhost/dry-agent/litellm; \
 	podman run --name dry-agent-proxy --label project=dry-agent -d \
 	       -v dry-agent-certs-traefik:/certs \
 	       -e PUBLIC_SUBNET=$${PUBLIC_SUBNET} \

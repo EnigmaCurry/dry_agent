@@ -153,7 +153,7 @@ async def stream_llm_response(
         # ── PHASE 1: initial streaming with tools enabled ────────────────────
         try:
             stream1 = await client.chat.completions.create(
-                model="gpt-4",
+                model="assistant",
                 messages=messages,
                 stream=True,
                 tools=system_config.tool_spec,
@@ -235,7 +235,7 @@ async def stream_llm_response(
         response_text = ""
         try:
             stream2 = await client.chat.completions.create(
-                model="gpt-4",
+                model="assistant",
                 messages=messages,
                 stream=True,
             )
