@@ -84,6 +84,9 @@
     term.open(terminalContainer);
 
     terminalContainer.addEventListener("click", () => term.focus());
+    terminalContainer.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+    });
 
     const protocol = window.location.protocol === "https:" ? "wss" : "ws";
     socket = new WebSocket(
