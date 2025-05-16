@@ -57,24 +57,26 @@ async def get_docker_state_func() -> dict:
         "root_domain": root_domain,
         "contexts": all_ctx,
         "projects": [p["name"] for p in projects],
-        "instances": [inst.instance for inst in instances],
+        "instances": sorted(
+            [inst.instance for inst in instances.values()],
+            key=lambda i: (i != "default", i),
+        ),
     }
 
 
 async def get_system_config(current_working_directory: Optional[str]) -> SystemConfig:
-    if current_working_directory and os.path.isdir(current_working_directory):
-        current_working_directory = Path(current_working_directory)
-    else:
-        raise ValueError(
-            f"Invalid current working directory: {current_working_directory}"
-        )
+    if current_working_directory:
+        if os.path.isdir(current_working_directory):
+            current_working_directory = Path(current_working_directory)
+        else:
+            raise ValueError(
+                f"Invalid current working directory: {current_working_directory}"
+            )
     all_contexts = get_docker_context_names()
     available_projects = await get_available_projects()
-    app_instances = get_instances(include_status=True)
 
     # Gather known project and instance names
     project_names = [app["name"] for app in available_projects]
-    instance_names = list({inst.instance for inst in app_instances})
 
     if len(all_contexts) == 0:
         return SystemConfig(
