@@ -8,8 +8,9 @@
     isLandscape,
     userCurrentWorkingDirectory,
     agentSizePercent,
-    conversationTitle
+    conversationTitle,
   } from "$lib/stores";
+  import GlitchyTitle from "./GlitchyTitle.svelte";
   import { get } from "svelte/store";
 
   import langPython from "highlight.js/lib/languages/python";
@@ -253,7 +254,10 @@
       const res = await fetch(`/api/chat/stream/${conversationId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: messages[idx - 1].content, cwd: $userCurrentWorkingDirectory }),
+        body: JSON.stringify({
+          message: messages[idx - 1].content,
+          cwd: $userCurrentWorkingDirectory,
+        }),
         signal: controller.signal,
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -347,14 +351,15 @@
     if ($agentSizePercent == 100) {
       await tick();
       requestAnimationFrame(() => inputElement?.focus());
-    }});
+    }
+  });
 
-  const splitSizeSubscriber = agentSizePercent.subscribe(split => {
-    autofocus = (split == 100);
+  const splitSizeSubscriber = agentSizePercent.subscribe((split) => {
+    autofocus = split == 100;
     if (autofocus) {
       inputElement?.focus();
     }
-  })
+  });
   onDestroy(splitSizeSubscriber);
 </script>
 
@@ -439,7 +444,7 @@
           {#if $conversationTitle}
             <div class="chat-header">
               {#if !isNew}
-                {$conversationTitle}
+                <GlitchyTitle text={$conversationTitle} />
               {/if}
             </div>
           {/if}
