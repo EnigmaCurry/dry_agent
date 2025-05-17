@@ -31,6 +31,12 @@ class OpenURLEvent(BaseModel):
     url: str
 
 
+class ConversationUpdatedEvent(BaseModel):
+    type: Literal["conversation_updated"] = Field("conversation_updated", frozen=True)
+    conversation_id: str
+    title: str
+
+
 Event = Annotated[
     Union[ContextChangedEvent, ContextListEvent], Field(discriminator="type")
 ]

@@ -7,7 +7,8 @@
     conversationId as convoIdStore,
     isLandscape,
     userCurrentWorkingDirectory,
-    agentSizePercent
+    agentSizePercent,
+    conversationTitle
   } from "$lib/stores";
   import { get } from "svelte/store";
 
@@ -28,7 +29,6 @@
   import "highlight.js/styles/github-dark.css";
 
   let sidebarOpen = $state(false);
-  let conversationTitle = $state("");
 
   let conversationId = $state(null);
   let messages = $state([]);
@@ -144,7 +144,7 @@
   function newConversation() {
     messages = [];
     conversationId = crypto.randomUUID();
-    conversationTitle = "New Conversation";
+    conversationTitle.set("New Conversation");
     isNew = true;
     convoIdStore.set(null);
     // drop the `id` param from the URL
@@ -160,14 +160,14 @@
   async function loadConversation(id) {
     if (loading) return;
     loading = true;
-
+    //console.log("Loading ", id);
     try {
       const res = await fetch(`/api/chat/conversation/${id}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
       const data = await res.json();
       messages = data.messages || [];
-      conversationTitle = data.title ?? "Untitled";
+      conversationTitle.set(data.title ?? "Untitled");
       conversationId = id;
       if (autofocus) inputElement?.focus();
 
@@ -244,7 +244,7 @@
     loading = true;
     controller = new AbortController();
     try {
-      console.log("cwd", $userCurrentWorkingDirectory);
+      //console.log("cwd", $userCurrentWorkingDirectory);
       const res = await fetch(`/api/chat/stream/${conversationId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -269,6 +269,7 @@
     } finally {
       const storedId = get(convoIdStore);
       loading = false;
+      isNew = false;
       controller = null;
       const u = new URL(window.location.href);
       if (!u.searchParams.get("id")) {
@@ -280,7 +281,6 @@
         hasMoreConversations = true;
         convoIdStore.set(conversationId);
         await fetchConversations();
-        await updateTitle();
       } else if (conversationId != storedId) {
         // Saved existing conversation that wasn't the last one we saved to
         convoIdStore.set(conversationId);
@@ -288,20 +288,6 @@
         currentHistoryPage = 1;
         hasMoreConversations = true;
         await fetchConversations();
-      }
-    }
-  }
-
-  async function updateTitle() {
-    if (conversationId != null) {
-      try {
-        const res = await fetch(`/api/chat/conversation/${conversationId}`);
-        if (res.ok) {
-          const data = await res.json();
-          conversationTitle = data.title;
-        }
-      } catch (e) {
-        console.error("Failed to fetch conversation title:", e);
       }
     }
   }
@@ -445,10 +431,10 @@
             </button>
           {/if}
 
-          {#if conversationTitle}
+          {#if $conversationTitle}
             <div class="chat-header">
               {#if !isNew}
-                {conversationTitle}
+                {$conversationTitle}
               {/if}
             </div>
           {/if}

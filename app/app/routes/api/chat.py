@@ -20,7 +20,12 @@ from app.lib.llm_util import (
     SystemConfig,
 )
 from app.routes import DRY_COMMAND
-from app.models.events import ContextChangedEvent, OpenAppEvent, OpenInstancesEvent
+from app.models.events import (
+    ContextChangedEvent,
+    OpenAppEvent,
+    OpenInstancesEvent,
+    ConversationUpdatedEvent,
+)
 from pathlib import Path
 from .projects import get_projects_status
 
@@ -53,6 +58,11 @@ async def prepare_conversation(
     if conversation is None:
         summary_title = await generate_title(user_message)
         await chat.create_conversation(conversation_id, title=summary_title)
+        await broadcast(
+            ConversationUpdatedEvent(
+                conversation_id=conversation_id, title=summary_title
+            )
+        )
         conversation = []
         logger.info(f"Created new conversation: {conversation_id}")
     else:
