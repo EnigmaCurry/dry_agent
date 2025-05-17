@@ -10,6 +10,7 @@ import os
 from typing import Optional
 from openai import AsyncOpenAI
 from pathlib import Path
+import textwrap
 
 logger = logging.getLogger(__name__)
 
@@ -99,9 +100,23 @@ async def get_system_config(current_working_directory: Optional[str]) -> SystemC
             "type": "function",
             "function": {
                 "name": "get_docker_state",
-                "description": (
-                    "Returns JSON with the current Docker context, root domain, "
-                    "all contexts, available projects, configured instances, and current working directory."
+                "description": textwrap.dedent(
+                    """
+                Returns JSON with the following structure:
+
+                 * docker_context: the name of the current Docker
+                   context.
+                 * root_domain: the base domain name of the current
+                   context.
+                 * contexts: the list of all Docker contexts, that
+                   could be switched to.
+                 * projects: the list of all available Docker
+                   projects, that you could choose to install. This
+                   list does not indicate whether they are currently
+                   running.
+                 * instances: the list of all instance names used
+                   amongst the configured projects.
+                """
                 ),
                 "parameters": {"type": "object", "properties": {}},
                 "required": [],
