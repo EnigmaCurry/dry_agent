@@ -225,7 +225,7 @@ async def stream_llm_response(
             # Inject that result into the convo so the model can see it
             messages.append(
                 {
-                    "role": "function",
+                    "role": "tool",
                     "name": name,
                     "content": result,
                 }
