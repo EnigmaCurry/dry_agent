@@ -85,7 +85,12 @@
 
   function toggleSidebar() {
     sidebarOpen = !sidebarOpen;
-    if (sidebarOpen) fetchConversations();
+    if (sidebarOpen) {
+      conversationHistory = [];
+      currentHistoryPage = 1;
+      hasMoreConversations = true;
+      fetchConversations();
+    }
   }
 
   onMount(async () => {
