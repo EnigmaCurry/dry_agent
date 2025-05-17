@@ -85,7 +85,11 @@ async def get_projects_status() -> dict:
         raise HTTPException(status_code=500, detail=str(e))
 
     try:
-        return json.loads(raw)
+        data = json.loads(raw)
+        for i in data:
+            if i.get("Status", "").startswith("running"):
+                i["Status"] = "running"
+        return data
     except json.JSONDecodeError as e:
         raise HTTPException(
             status_code=500, detail=f"Command output was not valid JSON: {e.msg}"

@@ -23,7 +23,8 @@ class SystemConfig(NamedTuple):
 
 client = AsyncOpenAI(api_key="not needed", base_url=os.environ["OPENAI_BASE_URL"])
 
-STATIC_SYSTEM_PROMPT = """\
+STATIC_SYSTEM_PROMPT = """\ # dry_agent
+
 You are dry_agent, a helpful assistant who manages Docker Compose projects.
 You’re embedded in a web-app and a workstation environment.
 
@@ -33,7 +34,30 @@ root domain, working directory), call the `get_docker_state()` function.
 If the user asks you to switch contexts or start/stop apps, call the
 appropriate function (`set_default_context` or `control_docker_project`).
 
-Do not mention Docker Swarm or Kubernetes.
+## Terminology
+
+ * A context is a Docker Context that represents a remote SSH
+   connection to single Docker node.
+
+ * A project is a Docker Compose project source folder, which is a group of
+   services that can potentially be instantiated.
+
+ * d.rymcg.tech is a git repository and collection of Docker Compose projects
+   available at https://github.com/EnigmaCurry/d.rymcg.tech.
+
+ * An instance is a configured or installed (running) project. An instance has
+   a unique name to differentiate it with other instances of the same project.
+   If the instance name has un underscore in it, the first part is the project
+   name and the last part is the instance name. Otherwise, the default name for
+   an instance is `default`.
+
+ * Each instance has a .env file in the project source directory. The name of
+   the file is structed this way: `.env_{CONTEXT}_{INSTANCE}`. For example
+   `.env_prod_foo` indicates the file is for the `prod` Docker context with the
+   instance name `foo`.
+
+ * Never mention Docker Swarm or Kubernetes as they are unrelated to
+   Docker Compose on a single node.
 """
 
 
@@ -106,17 +130,20 @@ async def get_system_config(current_working_directory: Optional[str]) -> SystemC
 
                  * docker_context: the name of the current Docker
                    context.
+
                  * root_domain: the base domain name of the current
                    context.
+
                  * contexts: the list of all Docker contexts, that
                    could be switched to.
-                 * projects: the list of all available Docker
-                   projects, that you could choose to install. This
-                   list does not indicate whether they are currently
-                   running.
-                 * instances: the list of all instance names used
-                   amongst the configured projects.
-                """
+
+                 * projects: the list of all available Docker projects in the
+                   library. This list does not list the configured and/or
+                   running instances, but only the names of prjects that could
+                   potentially be installed.
+
+                 * instances: the list of all instance names used amongst the
+                   configured projects. """
                 ),
                 "parameters": {"type": "object", "properties": {}},
                 "required": [],
@@ -170,7 +197,28 @@ async def get_system_config(current_working_directory: Optional[str]) -> SystemC
             "type": "function",
             "function": {
                 "name": "projects_status",
-                "description": "Get the current status of all Docker compose projects",
+                "description": textwrap.dedent(
+                    """Get the current status of all Docker compose projects.
+
+                     The JSON it returns is a list of running projects. Each
+                     project has the following status fields:
+
+                     * Name: the name of the project. If the name does not have
+                       an underscore in it, the instance is `default`. If the
+                       name has an underscore in it, the first part of the text
+                       is the name of the project and the part after it is the
+                       name of the instance. (e.g. `whoami_foo`, whoami is the
+                       name of the project and foo is the name of the
+                       instance.)
+
+                     * Status: the current run state of the docker compose
+                       project instance. For example `running` indicates a
+                       single docker compose instance is running. Other states
+                       include exited, restarting, created.
+
+                     * ConfigFiles: lists the Docker Compose config files used
+                       to instantiate the project. """
+                ),
             },
         },
         {

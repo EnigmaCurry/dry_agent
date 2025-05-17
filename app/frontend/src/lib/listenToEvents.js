@@ -24,7 +24,7 @@ export function listenToServerEvents() {
     source.addEventListener("context_changed", (event) => {
       /** @type {{ new_context: string }} */
       const payload = JSON.parse(event.data);
-      //console.log("context_changed", payload);
+      console.log("context_changed", payload);
       currentContext.set(payload.new_context);
     });
 
