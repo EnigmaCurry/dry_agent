@@ -1,6 +1,6 @@
 <script>
   import { onMount, onDestroy, tick } from "svelte";
-  import { page } from "$app/stores";
+  import { page } from '$app/stores';
   import {
     agentViewState,
     isPaneDragging,
@@ -17,6 +17,7 @@
     currentContext,
     dockerContexts,
     refreshDockerContexts,
+    conversationId,
   } from "$lib/stores";
 
   let unsubscribe;
@@ -39,7 +40,7 @@
   let splitPaneToolIcon = $state(SPLIT_STATE_ICONS[$agentViewState]);
   let defaultAgentSizePercent = $state(getDefaultSize($agentViewState));
   let previousAgentView = $agentViewState;
-  
+
   function getDefaultSize(state) {
     if (state === 0) {
       return 100;
@@ -164,6 +165,20 @@
     update();
     window.addEventListener("resize", update);
     return () => window.removeEventListener("resize", update);
+  });
+
+  $effect(() => {
+	const currentId = $page.url.searchParams.get('id');
+	const storeId = $conversationId;
+
+	if (currentId && currentId !== storeId) {
+	  conversationId.set(currentId);
+	} else if (!currentId && storeId) {
+	  // Reinsert the id into the URL if it's missing
+	  const url = new URL(window.location.href);
+	  url.searchParams.set('id', storeId);
+	  window.history.replaceState({}, '', url.toString());
+	}
   });
 
   onMount(() => {
