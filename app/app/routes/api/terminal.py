@@ -28,7 +28,7 @@ from app.lib.tmux import (
     TMUX_SESSION_DEFAULT,
 )
 from app.broadcast import broadcast, subscribe, unsubscribe
-from app.models.events import OpenAppEvent, Event, LogoutEvent
+from app.models.events import OpenAppEvent, Event, LogoutEvent, TmuxSessionChangedEvent
 
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/terminal", tags=["terminal"])
@@ -262,6 +262,9 @@ async def create_tmux_window(
         )
         if active:
             await broadcast(OpenAppEvent(page="workstation"))
+        await broadcast(
+            TmuxSessionChangedEvent(session=session_name, **get_windows(session_name))
+        )
         return JSONResponse(
             content={
                 "status": "ok",

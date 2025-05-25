@@ -37,6 +37,13 @@ class ConversationUpdatedEvent(BaseModel):
     title: str
 
 
+class TmuxSessionChangedEvent(BaseModel):
+    type: Literal["tmux_session_changed"] = Field("tmux_session_changed", frozen=True)
+    session: str
+    windows: List[str]
+    active: str
+
+
 Event = Annotated[
     Union[ContextChangedEvent, ContextListEvent], Field(discriminator="type")
 ]

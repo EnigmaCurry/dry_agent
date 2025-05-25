@@ -5,10 +5,9 @@ Broadcast server events to all connected clients
 from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
 from app.broadcast import subscribe, unsubscribe
-import json
 import logging
 from .docker_context import get_docker_context, get_docker_context_names
-from app.models.events import ContextChangedEvent, ContextListEvent
+from app.models.events import Event, ContextChangedEvent, ContextListEvent
 
 router = APIRouter()
 

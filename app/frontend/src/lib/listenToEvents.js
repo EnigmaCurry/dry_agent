@@ -96,6 +96,12 @@ export function listenToServerEvents() {
       conversationTitle.set(payload.title);
     });
 
+    source.addEventListener("tmux_session_changed", async (event) => {
+      /** @type {{ page: string }} */
+      const payload = JSON.parse(event.data);
+      console.log("tmux_session_changed", payload);
+    });
+
     source.onerror = (err) => {
       console.error("SSE connection lost", err);
     };
