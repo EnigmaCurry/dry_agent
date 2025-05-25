@@ -286,9 +286,9 @@ async def get_tmux_windows(session_name: str = Path(...)):
 @router.put("/{session_name}/window/active")
 async def set_active_window(
     session_name: str = Path(...),
-    window: str = Query(..., description="Name of the window to activate"),
+    index: int = Query(..., description="Index of the window to activate"),
 ):
-    success = set_window_active(session_name, window)
+    success = set_window_active(session_name, index)
     if not success:
         raise HTTPException(status_code=404, detail="Session or window not found")
 

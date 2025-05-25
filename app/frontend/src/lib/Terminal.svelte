@@ -51,10 +51,10 @@
     }
   }
 
-  async function setActiveWindow(session, window) {
+  async function setActiveWindow(session, index) {
     try {
       const res = await fetch(
-        `/api/terminal/${session}/window/active?window=${encodeURIComponent(window)}`,
+        `/api/terminal/${session}/window/active?index=${index}`,
         {
           method: "PUT",
         },
@@ -128,11 +128,11 @@
         {#each $terminalSessionState?.windows ?? [] as window}
           <button
             class="button is-small"
-            class:is-info={window === $terminalSessionState?.active}
+            class:is-info={window.index === $terminalSessionState?.active}
             onclick={() =>
-              setActiveWindow($terminalSessionState?.session, window)}
+              setActiveWindow($terminalSessionState?.session, window.index)}
           >
-            {window}
+            {window.name}
           </button>
         {/each}
       </div>

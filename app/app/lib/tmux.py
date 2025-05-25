@@ -14,11 +14,6 @@ TMUX_SESSION_DEFAULT = "work"
 SOCKET_PATH = "/run/tmux-event.sock"
 
 
-class TmuxWindows(TypedDict):
-    windows: list[str]
-    active: str
-
-
 def window_exists(session_name: str, window_name: str) -> bool:
     try:
         output = subprocess.check_output(
@@ -152,13 +147,13 @@ def get_tmux_pane_cwd_path(session: str) -> Optional[str]:
     return None
 
 
-def get_windows(session_name: str) -> dict[str, Union[list[str], str]]:
+def get_windows(session_name: str) -> dict[str, Union[list[dict], int]]:
     """
-    Return a dictionary with all window names and the active window
-    for the given tmux session. Strips status suffixes like *, -, +, etc.
+    Return a dictionary with all window names and indexes,
+    and the index of the currently active window.
 
     :param session_name: The name of the tmux session
-    :return: Dict with keys: 'windows' (list of names), 'active' (str)
+    :return: Dict with keys: 'windows' (list of dicts with name/index), 'active' (index)
     """
     if not session_exists(session_name):
         raise RuntimeError(f"Session '{session_name}' does not exist")
@@ -174,21 +169,34 @@ def get_windows(session_name: str) -> dict[str, Union[list[str], str]]:
         ) from e
 
     windows = []
-    active_window = None
+    active_index = None
 
     for line in output.strip().splitlines():
         parts = line.split(":", 1)
         if len(parts) < 2:
             continue
+
+        try:
+            index = int(parts[0])
+        except ValueError:
+            continue
+
         name_with_flags = parts[1].strip().split(" ", 1)[0]
         name = re.sub(r"[\*\-\+\~\@\!]+$", "", name_with_flags)
-        windows.append(name)
+
+        windows.append(
+            {
+                "index": index,
+                "name": name,
+            }
+        )
+
         if name_with_flags.endswith("*"):
-            active_window = name
+            active_index = index
 
     return {
         "windows": windows,
-        "active": active_window,
+        "active": active_index,
     }
 
 
@@ -221,27 +229,24 @@ async def start_tmux_socket_listener():
             print(f"[tmux] Failed to broadcast update: {e}")
 
 
-def set_window_active(session_name: str, window_name: str) -> bool:
+def set_window_active(session_name: str, window_index: int) -> bool:
     """
-    Makes the specified window active in the given tmux session.
+    Makes the window at the given index active in the tmux session.
 
     :param session_name: Name of the tmux session
-    :param window_name: Name of the window to activate
+    :param window_index: Index of the window to activate
     :return: True if successful, False otherwise
     """
     if not session_exists(session_name):
         return False
 
-    if not window_exists(session_name, window_name):
-        return False
-
     try:
         subprocess.check_call(
-            ["tmux", "select-window", "-t", f"{session_name}:{window_name}"],
+            ["tmux", "select-window", "-t", f"{session_name}:{window_index}"],
             stderr=subprocess.DEVNULL,
         )
         return True
     except subprocess.CalledProcessError:
         raise RuntimeError(
-            f"Could not set active window ({window_name}) in session: {session_name}"
+            f"Could not activate window {window_index} in session: {session_name}"
         )

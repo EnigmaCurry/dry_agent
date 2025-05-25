@@ -40,8 +40,8 @@ class ConversationUpdatedEvent(BaseModel):
 class TmuxSessionChangedEvent(BaseModel):
     type: Literal["tmux_session_changed"] = Field("tmux_session_changed", frozen=True)
     session: str
-    windows: List[str]
-    active: str
+    windows: List[dict]  # [{name: str, index: int}, ...]
+    active: int
 
 
 Event = Annotated[
