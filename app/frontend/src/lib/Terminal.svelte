@@ -1,6 +1,10 @@
 <script>
   import { onMount, onDestroy, createEventDispatcher } from "svelte";
-  import { terminalFontSize, terminalSessionState, eventSourceConnected } from "$lib/stores";
+  import {
+    terminalFontSize,
+    terminalSessionState,
+    eventSourceConnected,
+  } from "$lib/stores";
   import TerminalView from "./TerminalView.svelte";
 
   const dispatch = createEventDispatcher();
@@ -98,6 +102,9 @@
   onMount(async () => {
     window.addEventListener("keydown", handleKeydown);
     await fetchTmuxSessionState();
+    setTimeout(async () => {
+      await fetchTmuxSessionState();
+    }, 2000);
   });
 
   onDestroy(() => {
@@ -113,7 +120,11 @@
   >
     {#if showRestart}
       <div id="inline-restart-overlay">
-        <button class="button is-primary" onclick={restartTerminal}>
+        <button
+          type="button"
+          class="button is-primary"
+          onclick={restartTerminal}
+        >
           Restart Terminal?
         </button>
         {#if !fullscreen}
@@ -123,14 +134,19 @@
     {:else}
       <div id="window-list" class="buttons mb-2">
         <button
+          type="button"
           class="button is-small"
-          onclick={() => createNewWindow($terminalSessionState?.session)}
+          onclick={(e) => {
+            e.preventDefault();
+            createNewWindow($terminalSessionState?.session);
+          }}
           disabled={!$eventSourceConnected}
         >
           +
         </button>
         {#each $terminalSessionState?.windows ?? [] as window}
           <button
+            type="button"
             class="button is-small"
             class:is-info={window.index === $terminalSessionState?.active}
             onclick={() =>
@@ -179,6 +195,10 @@
     align-items: center;
     justify-content: center;
     z-index: 10;
+  }
+
+  #window-list {
+    margin-left: 0.5em;
   }
 
   #inline-restart-overlay p {

@@ -54,34 +54,50 @@ export function listenToServerEvents() {
     });
 
     source.addEventListener("open_app", (event) => {
-      /** @type {{ page: string }} */
+      /** @type {{ page: string, app?: string }} */
       const payload = JSON.parse(event.data);
-      //console.log("open_app", payload.page);
       agentViewState.set(1);
+
+      let targetPath;
       switch (payload.page) {
       case "settings":
-        goto("/settings");
+        targetPath = "/settings";
         break;
       case "docker":
-        goto("/docker");
+        targetPath = "/docker";
         break;
       case "projects":
-        goto("/projects");
+        targetPath = "/projects";
         break;
       case "config":
-        goto("/config");
+        targetPath = "/config";
         break;
       case "repository":
-        goto("/repository");
+        targetPath = "/repository";
         break;
       case "workstation":
-        goto("/workstation");
+        targetPath = "/workstation";
         break;
       case "instances":
-        goto(`/instances?app=${payload.app}`);
+        targetPath = `/instances?app=${payload.app}`;
         break;
       default:
         console.error("Unknown page", payload.page);
+        return;
+      }
+
+      function normalizePathWithSearch(url) {
+        const path = url.pathname.endsWith("/") && url.pathname !== "/"
+          ? url.pathname.slice(0, -1)
+          : url.pathname;
+        return path + url.search;
+      }
+
+      const current = new URL(window.location.href);
+      const target = new URL(targetPath, current.origin);
+
+      if (normalizePathWithSearch(current) !== normalizePathWithSearch(target)) {
+        goto(targetPath);
       }
     });
 
