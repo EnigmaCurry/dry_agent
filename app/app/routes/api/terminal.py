@@ -9,6 +9,7 @@ from fastapi import (
     WebSocketDisconnect,
     HTTPException,
     Query,
+    Path,
 )
 from fastapi.responses import JSONResponse
 import fcntl
@@ -23,6 +24,7 @@ from typing import Optional
 from app.lib.tmux import (
     get_tmux_pane_cwd_path,
     inject_command_to_tmux,
+    get_windows,
     TMUX_SESSION_DEFAULT,
 )
 from app.broadcast import broadcast, subscribe, unsubscribe
@@ -242,9 +244,9 @@ async def reap_children():
                 raise
 
 
-@router.post("/create-tmux-window")
+@router.post("/{session_name}/window")
 async def create_tmux_window(
-    session_name: str = Query(...),
+    session_name: str = Path(...),
     command: str = Query(...),
     window_name: Optional[str] = Query("injected"),
     autorun: bool = Query(False),
@@ -270,3 +272,8 @@ async def create_tmux_window(
         raise HTTPException(status_code=400, detail=str(e))
     except subprocess.CalledProcessError as e:
         raise HTTPException(status_code=500, detail=f"tmux error: {e}")
+
+
+@router.get("/{session_name}/window")
+async def get_tmux_windows(session_name: str = Path(...)):
+    return {"session": session_name, **get_windows(session_name)}

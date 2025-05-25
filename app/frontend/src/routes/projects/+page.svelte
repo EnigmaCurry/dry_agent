@@ -45,7 +45,11 @@
   {#if $currentContext != "default" && $currentContext != null}
     {#if data.configExists}
       <div class="is-flex is-flex-wrap-wrap">
-        <h1 class="title m-4 is-flex-grow-1 is-no-text-wrap">Projects</h1>
+        <h1 class="title m-4 is-flex-grow-1 is-no-text-wrap">
+          {selectedTab === "configured_projects"
+            ? "Configured Projects"
+            : "Available Projects"}
+        </h1>
         <div class="is-flex-grow-1"></div>
         <div class="tabs is-toggle m-4">
           <ul>

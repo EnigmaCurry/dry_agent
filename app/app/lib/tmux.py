@@ -1,8 +1,14 @@
 import os
 import subprocess
-from typing import Optional
+from typing import Optional, TypedDict, Union
+import re
 
 TMUX_SESSION_DEFAULT = "work"
+
+
+class TmuxWindows(TypedDict):
+    windows: list[str]
+    active: str
 
 
 def window_exists(session_name: str, window_name: str) -> bool:
@@ -115,3 +121,43 @@ def get_tmux_pane_cwd_path(session: str) -> Optional[str]:
         pass
 
     return None
+
+
+def get_windows(session_name: str) -> dict[str, Union[list[str], str]]:
+    """
+    Return a dictionary with all window names and the active window
+    for the given tmux session. Strips status suffixes like *, -, +, etc.
+
+    :param session_name: The name of the tmux session
+    :return: Dict with keys: 'windows' (list of names), 'active' (str)
+    """
+    if not session_exists(session_name):
+        raise RuntimeError(f"Session '{session_name}' does not exist")
+
+    try:
+        output = subprocess.check_output(
+            ["tmux", "list-windows", "-t", session_name],
+            stderr=subprocess.DEVNULL,
+        ).decode()
+    except subprocess.CalledProcessError as e:
+        raise RuntimeError(
+            f"Failed to list windows for session '{session_name}'"
+        ) from e
+
+    windows = []
+    active_window = None
+
+    for line in output.strip().splitlines():
+        parts = line.split(":", 1)
+        if len(parts) < 2:
+            continue
+        name_with_flags = parts[1].strip().split(" ", 1)[0]
+        name = re.sub(r"[\*\-\+\~\@\!]+$", "", name_with_flags)
+        windows.append(name)
+        if name_with_flags.endswith("*"):
+            active_window = name
+
+    return {
+        "windows": windows,
+        "active": active_window,
+    }

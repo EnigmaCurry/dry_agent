@@ -333,7 +333,7 @@
     <div class="is-flex is-align-items-center is-flex-wrap-wrap m-4">
       <h1 class="title m-0">
         <span class="is-no-text-wrap">
-          {appTitle}
+          <a href="/projects">projects</a> / {appTitle}
         </span>
         <span class="subtitle is-6 ml-4 is-no-text-wrap"
           ><a
