@@ -2,8 +2,16 @@ import os
 import subprocess
 from typing import Optional, TypedDict, Union
 import re
+from pathlib import Path
+import socket
+import asyncio
+from app.models.events import TmuxSessionChangedEvent
+from app.broadcast import broadcast
 
 TMUX_SESSION_DEFAULT = "work"
+
+# Socket that shows tmux session state changes from tmux hooks
+SOCKET_PATH = "/run/tmux-event.sock"
 
 
 class TmuxWindows(TypedDict):
@@ -36,6 +44,46 @@ def session_exists(session_name: str) -> bool:
         return False
 
 
+def create_new_window(
+    session_name: str,
+    window_name: str = "injected",
+    active: bool = False,
+) -> int:
+    """
+    Create a new tmux window in the given session and return its index.
+
+    :param session_name: Name of the tmux session
+    :param window_name: Optional name for the new window
+    :param active: If True, switch to the new window after creation
+    :return: The index of the newly created window
+    """
+    if not session_exists(session_name):
+        subprocess.check_call(["tmux", "new-session", "-d", "-s", session_name])
+
+    # Get current window indexes
+    output = subprocess.check_output(
+        ["tmux", "list-windows", "-t", session_name, "-F", "#{window_index}"],
+        stderr=subprocess.DEVNULL,
+    ).decode()
+
+    existing_indexes = sorted(
+        int(line.strip())
+        for line in output.strip().splitlines()
+        if line.strip().isdigit()
+    )
+    new_index = (existing_indexes[-1] + 1) if existing_indexes else 0
+
+    # Create the new window
+    subprocess.check_call(["tmux", "new-window", "-t", session_name, "-n", window_name])
+
+    if active:
+        subprocess.check_call(
+            ["tmux", "select-window", "-t", f"{session_name}:{new_index}"]
+        )
+
+    return new_index
+
+
 def inject_command_to_tmux(
     session_name: str,
     command: str,
@@ -45,32 +93,13 @@ def inject_command_to_tmux(
 ):
     """
     Create a new tmux window in the given session, inject a command, and optionally run it or make it active.
-
-    :param session_name: Name of the tmux session
-    :param command: The shell command to pre-fill or run
-    :param window_name: Optional name for the new window
-    :param autorun: If True, presses Enter to run the command immediately
-    :param active: If True, switch to the new window after creation
     """
-    if not session_exists(session_name):
-        subprocess.check_call(["tmux", "new-session", "-d", "-s", session_name])
-
-    if window_exists(session_name, window_name):
-        raise RuntimeError(
-            f"Window '{window_name}' already exists in session '{session_name}'"
-        )
-
-    subprocess.check_call(["tmux", "new-window", "-t", session_name, "-n", window_name])
-
-    target = f"{session_name}:{window_name}"
+    new_index = create_new_window(session_name, window_name=window_name, active=active)
+    target = f"{session_name}:{new_index}"
 
     subprocess.check_call(["tmux", "send-keys", "-t", target, command])
-
     if autorun:
         subprocess.check_call(["tmux", "send-keys", "-t", target, "Enter"])
-
-    if active:
-        subprocess.check_call(["tmux", "select-window", "-t", target])
 
 
 def get_tmux_pane_cwd_path(session: str) -> Optional[str]:
@@ -161,3 +190,58 @@ def get_windows(session_name: str) -> dict[str, Union[list[str], str]]:
         "windows": windows,
         "active": active_window,
     }
+
+
+async def start_tmux_socket_listener():
+    # Clean up old socket if needed
+    sock_path = Path(SOCKET_PATH)
+    if sock_path.exists():
+        sock_path.unlink()
+
+    server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    server.bind(SOCKET_PATH)
+    server.listen()
+
+    print(f"[tmux] Listening for tmux events on {SOCKET_PATH}")
+
+    loop = asyncio.get_running_loop()
+
+    while True:
+        conn, _ = await loop.sock_accept(server)
+        data = await loop.sock_recv(conn, 1024)
+        print(f"[tmux] socket yielded data: {data}")
+        session_name = data.decode().strip()
+        conn.close()
+
+        try:
+            state = get_windows(session_name)
+            event = TmuxSessionChangedEvent(session=session_name, **state)
+            await broadcast(event)
+        except Exception as e:
+            print(f"[tmux] Failed to broadcast update: {e}")
+
+
+def set_window_active(session_name: str, window_name: str) -> bool:
+    """
+    Makes the specified window active in the given tmux session.
+
+    :param session_name: Name of the tmux session
+    :param window_name: Name of the window to activate
+    :return: True if successful, False otherwise
+    """
+    if not session_exists(session_name):
+        return False
+
+    if not window_exists(session_name, window_name):
+        return False
+
+    try:
+        subprocess.check_call(
+            ["tmux", "select-window", "-t", f"{session_name}:{window_name}"],
+            stderr=subprocess.DEVNULL,
+        )
+        return True
+    except subprocess.CalledProcessError:
+        raise RuntimeError(
+            f"Could not set active window ({window_name}) in session: {session_name}"
+        )

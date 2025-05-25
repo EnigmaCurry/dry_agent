@@ -15,6 +15,7 @@ from .middleware.auth import (
 )
 import logging
 from app.lib.docker_context_watcher import monitor_docker_context
+from app.lib.tmux import start_tmux_socket_listener
 from app.lib.xdg_open_pipe import watch_xdg_open_pipe
 import asyncio
 from app.lib.rate_limit import limiter, SlowAPIMiddleware, RateLimitExceeded
@@ -101,3 +102,4 @@ app.mount(
 async def start_background_tasks():
     asyncio.create_task(monitor_docker_context())
     asyncio.create_task(watch_xdg_open_pipe())
+    asyncio.create_task(start_tmux_socket_listener())

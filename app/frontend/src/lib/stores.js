@@ -18,6 +18,8 @@ export const agentViewState = persisted('agentViewState', 0);
 
 export const terminalFontSize = persisted('terminalFontSize', 14);
 
+export const terminalSessionState = writable(null);
+
 /**
  * Create a writable store that persists to localStorage under `key`.
  * @param {string} key - localStorage key

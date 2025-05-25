@@ -1,6 +1,6 @@
 <script>
   import { onMount, onDestroy, createEventDispatcher } from "svelte";
-  import { terminalFontSize } from "$lib/stores";
+  import { terminalFontSize, terminalSessionState } from "$lib/stores";
   import TerminalView from "./TerminalView.svelte";
 
   const dispatch = createEventDispatcher();
@@ -23,6 +23,7 @@
   let terminalKey = $state(Date.now());
   let showRestart = $state(false);
   let hasExited = $state(false);
+  let sessionName = $state("work");
 
   function handleKeydown(e) {
     if (e.key === "Escape" && hasExited) {
@@ -39,6 +40,54 @@
     hasExited = false;
   }
 
+  async function fetchTmuxSessionState() {
+    try {
+      const res = await fetch(`/api/terminal/${sessionName}/window`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      terminalSessionState.set(data);
+    } catch (err) {
+      console.error("Failed to fetch terminal session state:", err);
+    }
+  }
+
+  async function setActiveWindow(session, window) {
+    try {
+      const res = await fetch(
+        `/api/terminal/${session}/window/active?window=${encodeURIComponent(window)}`,
+        {
+          method: "PUT",
+        },
+      );
+      if (!res.ok) {
+        console.error("Failed to set active window");
+      }
+    } catch (err) {
+      console.error("Network error while setting active window:", err);
+    }
+  }
+
+  async function createNewWindow(session) {
+    const url = new URL(
+      `/api/terminal/${session}/window`,
+      window.location.origin,
+    );
+    url.searchParams.set("command", "bash");
+    url.searchParams.set("active", "true");
+
+    try {
+      const res = await fetch(url.toString(), {
+        method: "POST",
+      });
+
+      if (!res.ok) {
+        console.error("Failed to create new window:", await res.text());
+      }
+    } catch (err) {
+      console.error("Network error while creating new window:", err);
+    }
+  }
+
   $effect(() => {
     const unsubscribe = terminalFontSize.subscribe((val) => {
       fontSize = val;
@@ -46,8 +95,9 @@
     return unsubscribe;
   });
 
-  onMount(() => {
+  onMount(async () => {
     window.addEventListener("keydown", handleKeydown);
+    await fetchTmuxSessionState();
   });
 
   onDestroy(() => {
@@ -63,12 +113,28 @@
   >
     {#if showRestart}
       <div id="inline-restart-overlay">
-        <button class="button is-primary" on:click={restartTerminal}>
+        <button class="button is-primary" onclick={restartTerminal}>
           Restart Terminal?
         </button>
         {#if !fullscreen}
           <p>Press ESC to close.</p>
         {/if}
+      </div>
+    {:else}
+      <button onclick={() => createNewWindow($terminalSessionState?.session)}>
+        +
+      </button>
+      <div id="window-list" class="buttons mb-2">
+        {#each $terminalSessionState?.windows ?? [] as window}
+          <button
+            class="button is-small"
+            class:is-info={window === $terminalSessionState?.active}
+            onclick={() =>
+              setActiveWindow($terminalSessionState?.session, window)}
+          >
+            {window}
+          </button>
+        {/each}
       </div>
     {/if}
     <TerminalView

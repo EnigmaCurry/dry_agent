@@ -25,6 +25,8 @@ from app.lib.tmux import (
     get_tmux_pane_cwd_path,
     inject_command_to_tmux,
     get_windows,
+    set_window_active,
+    create_new_window,
     TMUX_SESSION_DEFAULT,
 )
 from app.broadcast import broadcast, subscribe, unsubscribe
@@ -247,17 +249,13 @@ async def reap_children():
 @router.post("/{session_name}/window")
 async def create_tmux_window(
     session_name: str = Path(...),
-    command: str = Query(...),
-    window_name: Optional[str] = Query("injected"),
-    autorun: bool = Query(False),
+    window_name: Optional[str] = Query("new"),
     active: bool = Query(False),
 ):
     try:
-        inject_command_to_tmux(
+        create_new_window(
             session_name=session_name,
-            command=command,
             window_name=window_name,
-            autorun=autorun,
             active=active,
         )
         if active:
@@ -279,4 +277,23 @@ async def create_tmux_window(
 
 @router.get("/{session_name}/window")
 async def get_tmux_windows(session_name: str = Path(...)):
-    return {"session": session_name, **get_windows(session_name)}
+    try:
+        return {"session": session_name, **get_windows(session_name)}
+    except RuntimeError:
+        return {"session": session_name, "windows": [], "active": None}
+
+
+@router.put("/{session_name}/window/active")
+async def set_active_window(
+    session_name: str = Path(...),
+    window: str = Query(..., description="Name of the window to activate"),
+):
+    success = set_window_active(session_name, window)
+    if not success:
+        raise HTTPException(status_code=404, detail="Session or window not found")
+
+    # Emit updated state after switching
+    state = get_windows(session_name)
+    await broadcast(TmuxSessionChangedEvent(session=session_name, **state))
+
+    return {"session": session_name, "active": state["active"]}

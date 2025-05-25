@@ -26,6 +26,7 @@ RUN apt-get update && \
     nmap \
     locales \
     openssl \
+    socat \
     ssh \
     sshfs \
     tmux \
@@ -52,5 +53,6 @@ RUN YES=yes ~/git/vendor/enigmacurry/d.rymcg.tech/_scripts/install_script-wizard
 ADD git-prompt.sh /root/.config/git-prompt.sh
 COPY bashrc /root/.bashrc
 COPY tmux.conf /root/.tmux.conf
+ADD notify-tmux-change.sh /usr/local/bin/notify-tmux-change.sh
 
 VOLUME /root

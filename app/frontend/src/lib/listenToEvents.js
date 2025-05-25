@@ -5,7 +5,8 @@ import {
   userIsLoggedOut,
   agentViewState,
   conversationId,
-  conversationTitle
+  conversationTitle,
+  terminalSessionState,
 } from "$lib/stores";
 import { goto } from "$app/navigation";
 import { get } from "svelte/store";
@@ -100,6 +101,7 @@ export function listenToServerEvents() {
       /** @type {{ page: string }} */
       const payload = JSON.parse(event.data);
       console.log("tmux_session_changed", payload);
+      terminalSessionState.set(payload);
     });
 
     source.onerror = (err) => {
