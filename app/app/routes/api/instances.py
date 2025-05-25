@@ -42,7 +42,7 @@ def get_instances(
     valid_subdirs = (
         d for d in Path(DRY_PATH).iterdir() if d.is_dir() and d.name[:1].isalnum()
     )
-    instances = {}  # name -> Instance
+    instances = []
 
     for subdir in valid_subdirs:
         app_name = subdir.name
@@ -111,7 +111,8 @@ def get_instances(
                 traefik_host=traefik_host,
                 status=status,
             )
-            instances[instance_name] = instance_obj
+
+            instances.append(instance_obj)
 
     return instances
 
@@ -132,9 +133,9 @@ async def get_app_instances(
 
     instances = defaultdict(list)
 
-    for name, instance in get_instances(
+    for instance in get_instances(
         include_status=include_status, context=context, app=app
-    ).items():
+    ):
         instances[instance.app].append(json.loads(instance.json()))
 
     return JSONResponse(content={context: instances})
