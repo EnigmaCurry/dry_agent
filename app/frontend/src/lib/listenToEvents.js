@@ -7,6 +7,7 @@ import {
   conversationId,
   conversationTitle,
   terminalSessionState,
+  eventSourceConnected
 } from "$lib/stores";
 import { goto } from "$app/navigation";
 import { get } from "svelte/store";
@@ -21,6 +22,16 @@ import { tick } from "svelte";
 export function listenToServerEvents() {
   setTimeout(() => {
     const source = new EventSource("/api/events/");
+
+    source.onopen = () => {
+      console.log("SSE connection established");
+      eventSourceConnected.set(true);
+    };
+
+    source.onerror = (err) => {
+      console.error("SSE connection lost", err);
+      eventSourceConnected.set(false);
+    };
 
     source.addEventListener("context_changed", (event) => {
       /** @type {{ new_context: string }} */
@@ -107,9 +118,11 @@ export function listenToServerEvents() {
     source.onerror = (err) => {
       console.error("SSE connection lost", err);
     };
+    listenToServerEvents._source = source;
   }, 3000);
 
   return () => {
-    source.close();
+    listenToServerEvents._source?.close();
+    eventSourceConnected.set(false);
   };
 }

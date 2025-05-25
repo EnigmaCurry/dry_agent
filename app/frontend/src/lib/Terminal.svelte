@@ -1,6 +1,6 @@
 <script>
   import { onMount, onDestroy, createEventDispatcher } from "svelte";
-  import { terminalFontSize, terminalSessionState } from "$lib/stores";
+  import { terminalFontSize, terminalSessionState, eventSourceConnected } from "$lib/stores";
   import TerminalView from "./TerminalView.svelte";
 
   const dispatch = createEventDispatcher();
@@ -121,16 +121,21 @@
         {/if}
       </div>
     {:else}
-      <button onclick={() => createNewWindow($terminalSessionState?.session)}>
-        +
-      </button>
       <div id="window-list" class="buttons mb-2">
+        <button
+          class="button is-small"
+          onclick={() => createNewWindow($terminalSessionState?.session)}
+          disabled={!$eventSourceConnected}
+        >
+          +
+        </button>
         {#each $terminalSessionState?.windows ?? [] as window}
           <button
             class="button is-small"
             class:is-info={window.index === $terminalSessionState?.active}
             onclick={() =>
               setActiveWindow($terminalSessionState?.session, window.index)}
+            disabled={!$eventSourceConnected}
           >
             {window.name}
           </button>
