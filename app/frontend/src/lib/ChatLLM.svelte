@@ -175,6 +175,7 @@
       messages = data.messages || [];
       conversationTitle.set(data.title ?? "Untitled");
       conversationId = id;
+      convoIdStore.set(conversationId);
       if (autofocus) inputElement?.focus();
 
       // Update URL without reloading

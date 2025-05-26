@@ -113,11 +113,7 @@
     }
   }
 
-  async function renameWindow(
-    sessionName,
-    index,
-    newName,
-  ) {
+  async function renameWindow(sessionName, index, newName) {
     const params = new URLSearchParams({
       session_name: sessionName,
       index: index.toString(),
@@ -179,7 +175,7 @@
         {/if}
       </div>
     {:else if showWindowList}
-      <div id="window-list">
+      <div id="window-list" class="mt-1">
         <button
           type="button"
           class="button is-small"
