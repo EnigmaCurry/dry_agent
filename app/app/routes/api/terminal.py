@@ -326,6 +326,7 @@ async def rename_tmux_window(
     index: int = Query(..., description="Index of the window to delete"),
     new_name: str = Query(..., description="New name for the window"),
 ):
+    new_name = new_name.strip()
     success = rename_window(session_name, index, new_name)
     if not success:
         raise HTTPException(status_code=404, detail="Session or window not found")

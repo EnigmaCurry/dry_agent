@@ -56,7 +56,9 @@ export function listenToServerEvents() {
     source.addEventListener("open_app", (event) => {
       /** @type {{ page: string, app?: string }} */
       const payload = JSON.parse(event.data);
-      agentViewState.set(1);
+      if (get(agentViewState) === 0)
+        // If agent is fullscreen, set split view:
+        agentViewState.set(1);
 
       let targetPath;
       switch (payload.page) {
