@@ -166,6 +166,11 @@
     }
   });
   onDestroy(splitSizeSubscriber);
+
+  export function focus() {
+    term?.focus();
+  }
+
 </script>
 
 <div

@@ -29,7 +29,8 @@
   let showRestart = $state(false);
   let hasExited = $state(false);
   let sessionName = $state("work");
-
+  let terminalRef;
+  
   function handleKeydown(e) {
     if (e.key === "Escape" && hasExited) {
       dispatch("close");
@@ -70,6 +71,7 @@
     } catch (err) {
       console.error("Network error while setting active window:", err);
     }
+    terminalRef?.focus();
   }
 
   async function createNewWindow(session) {
@@ -91,6 +93,7 @@
     } catch (err) {
       console.error("Network error while creating new window:", err);
     }
+    terminalRef?.focus();
   }
 
   async function deleteWindow(session, index) {
@@ -111,6 +114,7 @@
     } catch (err) {
       console.error("Network error while deleting window:", err);
     }
+    terminalRef?.focus();
   }
 
   async function renameWindow(sessionName, index, newName) {
@@ -127,10 +131,11 @@
           method: "POST",
         },
       );
-
+      terminalRef?.focus();
       return res.ok;
     } catch (err) {
       console.error("Rename window request failed:", err);
+      terminalRef?.focus();
       return false;
     }
   }
@@ -241,6 +246,7 @@
       </div>
     {/if}
     <TerminalView
+      bind:this={terminalRef}
       {command}
       {fontSize}
       height={fullscreen ? "100%" : height}
@@ -298,7 +304,7 @@
     padding-left: 0.4em;
     padding-right: 0.4em;
     min-width: auto;
-    color:red;
+    color: red;
     background-color: --bulma-primary-invert;
   }
 
