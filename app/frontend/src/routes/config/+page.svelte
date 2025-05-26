@@ -16,6 +16,7 @@
       restartable={true}
       fullscreen={true}
       fontSize="20"
+      showWindowList={false}
       command="/bin/bash -c 'while :; do d.rymcg.tech config; done'"
     />
   {/key}

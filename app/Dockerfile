@@ -37,7 +37,7 @@ RUN poetry config virtualenvs.create false
 RUN touch README.md
 
 # Install dependencies (without dev or local package)
-RUN poetry install --without dev --no-root
+RUN poetry install --no-root
 
 # --------------------
 # Runtime stage

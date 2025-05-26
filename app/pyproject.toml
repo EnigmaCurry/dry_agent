@@ -20,4 +20,3 @@ gibberish = "^0.4.0"
 watchdog = "^6.0.0"
 slowapi = "^0.1.9"
 
-[tool.poetry.group.dev.dependencies]

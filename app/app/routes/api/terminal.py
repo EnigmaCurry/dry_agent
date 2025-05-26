@@ -28,13 +28,16 @@ from app.lib.tmux import (
     set_window_active,
     create_new_window,
     delete_window,
+    rename_window,
     TMUX_SESSION_DEFAULT,
 )
 from app.broadcast import broadcast, subscribe, unsubscribe
 from app.models.events import OpenAppEvent, Event, LogoutEvent, TmuxSessionChangedEvent
+import gibberish
 
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/terminal", tags=["terminal"])
+gib = gibberish.Gibberish()
 
 
 async def watch_for_logout(queue: asyncio.Queue, websocket: WebSocket):
@@ -250,10 +253,12 @@ async def reap_children():
 @router.post("/{session_name}/window")
 async def create_tmux_window(
     session_name: str = Path(...),
-    window_name: Optional[str] = Query("new"),
+    window_name: Optional[str] = Query(None),
     active: bool = Query(False),
 ):
     try:
+        if not window_name or not len(window_name):
+            window_name = gib.generate_word()
         create_new_window(
             session_name=session_name,
             window_name=window_name,
@@ -313,3 +318,16 @@ async def delete_tmux_window(
         "session": session_name,
         "deleted_index": window_index,
     }
+
+
+@router.post("/{session_name}/window/rename")
+async def rename_tmux_window(
+    session_name: str = Path(...),
+    index: int = Query(..., description="Index of the window to delete"),
+    new_name: str = Query(..., description="New name for the window"),
+):
+    success = rename_window(session_name, index, new_name)
+    if not success:
+        raise HTTPException(status_code=404, detail="Session or window not found")
+
+    return {"session": session_name, "renamed_index": index, "new_name": new_name}

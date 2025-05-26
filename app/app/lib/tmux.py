@@ -53,7 +53,7 @@ def create_new_window(
     :return: The index of the newly created window
     """
     if not session_exists(session_name):
-        subprocess.check_call(["tmux", "new-session", "-d", "-s", session_name])
+        raise RuntimeError(f"No tmux session exists named {session_name}")
 
     # Get current window indexes
     output = subprocess.check_output(
@@ -69,7 +69,9 @@ def create_new_window(
     new_index = (existing_indexes[-1] + 1) if existing_indexes else 0
 
     # Create the new window
-    subprocess.check_call(["tmux", "new-window", "-t", session_name, "-n", window_name])
+    subprocess.check_call(
+        ["tmux", "new-window", "-t", f"{session_name}:", "-n", window_name]
+    )
 
     if active:
         subprocess.check_call(
@@ -160,7 +162,14 @@ def get_windows(session_name: str) -> dict[str, Union[list[dict], int]]:
 
     try:
         output = subprocess.check_output(
-            ["tmux", "list-windows", "-t", session_name],
+            [
+                "tmux",
+                "list-windows",
+                "-t",
+                session_name,
+                "-F",
+                "#{window_index}::#{window_name}::#{window_active}",
+            ],
             stderr=subprocess.DEVNULL,
         ).decode()
     except subprocess.CalledProcessError as e:
@@ -172,26 +181,16 @@ def get_windows(session_name: str) -> dict[str, Union[list[dict], int]]:
     active_index = None
 
     for line in output.strip().splitlines():
-        parts = line.split(":", 1)
-        if len(parts) < 2:
-            continue
-
         try:
-            index = int(parts[0])
+            index_str, name, active_flag = line.split("::", 2)
+            index = int(index_str)
+            name = name.strip()
+            is_active = active_flag.strip() == "1"
         except ValueError:
             continue
 
-        name_with_flags = parts[1].strip().split(" ", 1)[0]
-        name = re.sub(r"[\*\-\+\~\@\!]+$", "", name_with_flags)
-
-        windows.append(
-            {
-                "index": index,
-                "name": name,
-            }
-        )
-
-        if name_with_flags.endswith("*"):
+        windows.append({"index": index, "name": name})
+        if is_active:
             active_index = index
 
     return {
@@ -267,4 +266,26 @@ def delete_window(session_name: str, window_index: int) -> bool:
         return True
     except subprocess.CalledProcessError as e:
         print(f"Failed to delete tmux window: {e}")
+        return False
+
+
+def rename_window(session_name: str, window_index: int, new_name: str) -> bool:
+    """
+    Renames a tmux window in the specified session.
+
+    :param session_name: Name of the tmux session
+    :param window_index: Index of the window to rename
+    :param new_name: New name to assign to the window
+    :return: True if successful, False otherwise
+    """
+    try:
+        subprocess.check_call(
+            ["tmux", "rename-window", "-t", f"{session_name}:{window_index}", new_name],
+            stderr=subprocess.DEVNULL,
+        )
+        return True
+    except subprocess.CalledProcessError as e:
+        print(
+            f"Failed to rename window {window_index} in session '{session_name}': {e}"
+        )
         return False

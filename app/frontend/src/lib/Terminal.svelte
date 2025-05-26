@@ -16,6 +16,7 @@
     fontFamily = "monospace",
     lineHeight = 1.0,
     fullscreen = false,
+    showWindowList = true,
   } = $props();
 
   /**
@@ -112,6 +113,32 @@
     }
   }
 
+  async function renameWindow(
+    sessionName,
+    index,
+    newName,
+  ) {
+    const params = new URLSearchParams({
+      session_name: sessionName,
+      index: index.toString(),
+      new_name: newName,
+    });
+
+    try {
+      const res = await fetch(
+        `/api/terminal/${sessionName}/window/rename?${params.toString()}`,
+        {
+          method: "POST",
+        },
+      );
+
+      return res.ok;
+    } catch (err) {
+      console.error("Rename window request failed:", err);
+      return false;
+    }
+  }
+
   $effect(() => {
     const unsubscribe = terminalFontSize.subscribe((val) => {
       fontSize = val;
@@ -151,12 +178,8 @@
           <p>Press ESC to close.</p>
         {/if}
       </div>
-    {:else}
-      <div
-        id="window-list"
-        class="mb-2"
-        style="display: flex; flex-wrap: wrap; gap: 0.25rem;"
-      >
+    {:else if showWindowList}
+      <div id="window-list">
         <button
           type="button"
           class="button is-small"
@@ -175,10 +198,31 @@
               <button
                 type="button"
                 class="button is-small"
-                class:is-info={window.index === $terminalSessionState?.active}
-                onclick={() =>
-                  setActiveWindow($terminalSessionState?.session, window.index)}
+                class:is-link={window.index === $terminalSessionState?.active}
                 disabled={!$eventSourceConnected}
+                onclick={async () => {
+                  const session = $terminalSessionState?.session;
+                  const isActive =
+                    window.index === $terminalSessionState?.active;
+
+                  if (!session || !$eventSourceConnected) return;
+
+                  if (isActive) {
+                    const newName = prompt("Rename this window:", window.name);
+                    if (newName && newName !== window.name) {
+                      const success = await renameWindow(
+                        session,
+                        window.index,
+                        newName,
+                      );
+                      if (!success) {
+                        alert("Failed to rename window.");
+                      }
+                    }
+                  } else {
+                    setActiveWindow(session, window.index);
+                  }
+                }}
               >
                 {window.name}
               </button>
@@ -186,11 +230,12 @@
             <p class="control">
               <button
                 type="button"
-                class="button is-small is-danger"
+                class="button is-small is-close-button"
                 title="Close window"
-                onclick={() =>
-                  deleteWindow($terminalSessionState?.session, window.index)}
                 disabled={!$eventSourceConnected}
+                onclick={() => {
+                  deleteWindow($terminalSessionState?.session, window.index);
+                }}
               >
                 ✕
               </button>
@@ -240,6 +285,9 @@
 
   #window-list {
     margin-left: 0.5em;
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 0.25rem;
   }
 
   #window-list .button {
@@ -250,10 +298,12 @@
     align-items: center;
   }
 
-  #window-list .button.is-danger {
+  #window-list .button.is-close-button {
     padding-left: 0.4em;
     padding-right: 0.4em;
     min-width: auto;
+    color: red;
+    background-color: --bulma-primary-invert;
   }
 
   #inline-restart-overlay p {
