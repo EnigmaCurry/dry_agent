@@ -41,7 +41,7 @@ def session_exists(session_name: str) -> bool:
 
 def create_new_window(
     session_name: str,
-    window_name: str = "injected",
+    window_name: str = "new",
     active: bool = False,
 ) -> int:
     """
@@ -68,9 +68,9 @@ def create_new_window(
     )
     new_index = (existing_indexes[-1] + 1) if existing_indexes else 0
 
-    # Create the new window
+    # Create the new window at the desired index
     subprocess.check_call(
-        ["tmux", "new-window", "-t", f"{session_name}:", "-n", window_name]
+        ["tmux", "new-window", "-t", f"{session_name}:{new_index}", "-n", window_name]
     )
 
     if active:

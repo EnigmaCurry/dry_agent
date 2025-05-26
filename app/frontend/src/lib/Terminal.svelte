@@ -284,7 +284,6 @@
   }
 
   #window-list {
-    margin-left: 0.5em;
     display: flex;
     flex-wrap: nowrap;
     gap: 0.25rem;
