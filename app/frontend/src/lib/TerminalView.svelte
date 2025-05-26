@@ -178,7 +178,7 @@
 
 <style>
   #inline-terminal-container {
-    max-height: 100%;
+    max-height: 95%;
   }
   .inline-terminal-default-style {
     width: 100%;

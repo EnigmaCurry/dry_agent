@@ -283,6 +283,7 @@
     display: flex;
     flex-wrap: nowrap;
     gap: 0.25rem;
+    height: 1.5em;
   }
 
   #window-list .button {
@@ -297,7 +298,7 @@
     padding-left: 0.4em;
     padding-right: 0.4em;
     min-width: auto;
-    color: red;
+    color:red;
     background-color: --bulma-primary-invert;
   }
 
