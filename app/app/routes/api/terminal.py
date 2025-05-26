@@ -27,6 +27,7 @@ from app.lib.tmux import (
     get_windows,
     set_window_active,
     create_new_window,
+    delete_window,
     TMUX_SESSION_DEFAULT,
 )
 from app.broadcast import broadcast, subscribe, unsubscribe
@@ -297,3 +298,18 @@ async def set_active_window(
     await broadcast(TmuxSessionChangedEvent(session=session_name, **state))
 
     return {"session": session_name, "active": state["active"]}
+
+
+@router.delete("/{session_name}/window/")
+async def delete_tmux_window(
+    session_name: str = Path(...),
+    window_index: int = Query(..., description="Index of the window to delete"),
+):
+    success = delete_window(session_name, window_index)
+    if not success:
+        raise HTTPException(status_code=404, detail="Session or window not found")
+
+    return {
+        "session": session_name,
+        "deleted_index": window_index,
+    }

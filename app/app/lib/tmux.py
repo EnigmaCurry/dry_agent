@@ -250,3 +250,21 @@ def set_window_active(session_name: str, window_index: int) -> bool:
         raise RuntimeError(
             f"Could not activate window {window_index} in session: {session_name}"
         )
+
+
+def delete_window(session_name: str, window_index: int) -> bool:
+    """
+    Deletes the specified tmux window by killing the window.
+
+    :param session_name: Name of the tmux session
+    :param window_index: Index of the tmux window to delete
+    :return: True if successful, False otherwise
+    """
+    try:
+        subprocess.check_call(
+            ["tmux", "kill-window", "-t", f"{session_name}:{window_index}"]
+        )
+        return True
+    except subprocess.CalledProcessError as e:
+        print(f"Failed to delete tmux window: {e}")
+        return False

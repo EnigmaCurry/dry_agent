@@ -92,6 +92,26 @@
     }
   }
 
+  async function deleteWindow(session, index) {
+    const url = new URL(
+      `/api/terminal/${session}/window/`,
+      window.location.origin,
+    );
+    url.searchParams.set("window_index", index);
+
+    try {
+      const res = await fetch(url.toString(), {
+        method: "DELETE",
+      });
+
+      if (!res.ok) {
+        console.error("Failed to delete window:", await res.text());
+      }
+    } catch (err) {
+      console.error("Network error while deleting window:", err);
+    }
+  }
+
   $effect(() => {
     const unsubscribe = terminalFontSize.subscribe((val) => {
       fontSize = val;
@@ -132,7 +152,11 @@
         {/if}
       </div>
     {:else}
-      <div id="window-list" class="buttons mb-2">
+      <div
+        id="window-list"
+        class="mb-2"
+        style="display: flex; flex-wrap: wrap; gap: 0.25rem;"
+      >
         <button
           type="button"
           class="button is-small"
@@ -144,17 +168,34 @@
         >
           +
         </button>
+
         {#each $terminalSessionState?.windows ?? [] as window}
-          <button
-            type="button"
-            class="button is-small"
-            class:is-info={window.index === $terminalSessionState?.active}
-            onclick={() =>
-              setActiveWindow($terminalSessionState?.session, window.index)}
-            disabled={!$eventSourceConnected}
-          >
-            {window.name}
-          </button>
+          <div class="field has-addons" style="align-items: stretch;">
+            <p class="control">
+              <button
+                type="button"
+                class="button is-small"
+                class:is-info={window.index === $terminalSessionState?.active}
+                onclick={() =>
+                  setActiveWindow($terminalSessionState?.session, window.index)}
+                disabled={!$eventSourceConnected}
+              >
+                {window.name}
+              </button>
+            </p>
+            <p class="control">
+              <button
+                type="button"
+                class="button is-small is-danger"
+                title="Close window"
+                onclick={() =>
+                  deleteWindow($terminalSessionState?.session, window.index)}
+                disabled={!$eventSourceConnected}
+              >
+                ✕
+              </button>
+            </p>
+          </div>
         {/each}
       </div>
     {/if}
@@ -199,6 +240,20 @@
 
   #window-list {
     margin-left: 0.5em;
+  }
+
+  #window-list .button {
+    height: 2em;
+    padding-top: 0;
+    padding-bottom: 0;
+    display: flex;
+    align-items: center;
+  }
+
+  #window-list .button.is-danger {
+    padding-left: 0.4em;
+    padding-right: 0.4em;
+    min-width: auto;
   }
 
   #inline-restart-overlay p {
