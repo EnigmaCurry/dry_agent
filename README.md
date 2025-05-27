@@ -338,9 +338,14 @@ changes (`--reload`).
 
  * Vite rebuilds Svelte Kit app on source file changes.
 
- * It **disables authentication** by statically setting the token to
-`correct-horse-battery-staple-this-is-for-dev-mode-only`. This is so
-that you don't have to login again after the app reloads.
+ * The auth token is staticly set to
+`correct-horse-battery-staple-this-is-for-dev-mode-only`, which is
+**insecure**, but by keeping the token static makes it so you don't
+have to log in again after the app reloads. TOTP secondary auth is
+still required though.
+
+ * Only in dev mode are you allowed to log in via multiple devices
+   simultaneously.
 
  * Your workstation (tmux) sessions are unaffected by app reloads.
 
