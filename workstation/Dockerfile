@@ -8,6 +8,7 @@ RUN apt-get update && \
     bash-completion \
     bsdmainutils \
     build-essential \
+    btop \
     ca-certificates \
     curl \
     dnsutils \

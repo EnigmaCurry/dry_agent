@@ -19,4 +19,5 @@ alembic = "^1.15.2"
 gibberish = "^0.4.0"
 watchdog = "^6.0.0"
 slowapi = "^0.1.9"
+hold-your-shell = "^0.1.3"
 

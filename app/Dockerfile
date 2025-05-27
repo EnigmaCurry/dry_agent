@@ -61,6 +61,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Copy installed site-packages from builder
 COPY --from=builder /usr/local/lib/python${PYTHON_VERSION}/dist-packages /usr/local/lib/python${PYTHON_VERSION}/dist-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
 
 # Copy app code and frontend
 COPY app app
