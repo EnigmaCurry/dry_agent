@@ -18,12 +18,27 @@ import os
 from app.lib.require_client_cn import require_client_cn
 from app.lib.rate_limit import limiter
 
+logger = logging.getLogger("auth")
+
 PUBLIC_HOST = os.environ.get("PUBLIC_HOST", "127.0.0.1")
 PUBLIC_PORT = os.environ.get("PUBLIC_PORT", "8123")
 
+DEVELOPMENT_MODE = os.environ.get("DEPLOYMENT", "production") == "development"
+DEVELOPMENT_TOKEN = "correct-horse-battery-staple-this-is-for-dev-mode-only"
+if DEVELOPMENT_MODE:
+    logger.warn("DEVELOPMENT MODE ENABLED")
+    logger.warn(f"Using static token: {DEVELOPMENT_TOKEN}")
+
 
 def token():
-    return "-".join(diceware(10))
+    """
+    Generate new token.
+    if DEVELOPMENT_MODE == True, return a known static token
+    """
+    if DEVELOPMENT_MODE:
+        return DEVELOPMENT_TOKEN
+    else:
+        return "-".join(diceware(10))
 
 
 # Generate an initial token at startup using 10 diceware words joined by hyphens.
@@ -31,8 +46,6 @@ current_token = token()
 APP_COOKIE_NAME = "dry_agent_auth"
 CSRF_COOKIE_NAME = "csrf_token"
 TOKEN_FILE = "/data/token/current_token.txt"
-
-logger = logging.getLogger("auth")
 
 ALLOWED_CNS = {
     "dry-agent Bot",
@@ -98,6 +111,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
 
 
 def add_auth_middleware(app):
+    logger.info("Adding auth middleware")
     app.add_middleware(AuthMiddleware)
 
 
@@ -137,6 +151,19 @@ async def login_get(request: Request):
         </html>
         """
         return HTMLResponse(content=html_content)
+
+    # If in dev mode, automatically set auth cookie with DEVELOPMENT_TOKEN
+    if DEVELOPMENT_MODE:
+        response = RedirectResponse(
+            url=f"https://{PUBLIC_HOST}:{PUBLIC_PORT}/login", status_code=302
+        )
+        response.set_cookie(
+            key=APP_COOKIE_NAME,
+            value=DEVELOPMENT_TOKEN,
+            httponly=True,
+            samesite="strict",
+        )
+        return response
 
     # Otherwise, proceed with rendering the login form.
     csrf_cookie = request.cookies.get(CSRF_COOKIE_NAME)

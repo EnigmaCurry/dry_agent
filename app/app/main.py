@@ -45,7 +45,11 @@ app.add_api_route(
     "/login", login_get, methods=["GET"], response_class=HTMLResponse, tags=["auth"]
 )
 app.add_api_route(
-    "/login", login_post, methods=["POST"], response_class=HTMLResponse, tags=["auth"]
+    "/login",
+    login_post,
+    methods=["POST"],
+    response_class=HTMLResponse,
+    tags=["auth"],
 )
 app.add_api_route(
     "/logout", logout, methods=["GET"], response_class=HTMLResponse, tags=["auth"]

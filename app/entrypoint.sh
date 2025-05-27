@@ -54,4 +54,4 @@ exec python -m uvicorn app.main:app \
   --ssl-keyfile   /certs/dry-agent_App.key \
   --ssl-ca-certs  /certs/dry-agent-root.crt \
   --ssl-cert-reqs 2 \
-  --log-level info
+  --log-level info ${UVICORN_ARGS_EXTRA}

@@ -5,3 +5,4 @@ target
 deployment.yaml
 secret.yaml
 /.hushcrumbs
+__pycache__

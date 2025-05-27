@@ -26,6 +26,13 @@ PODS := dry-agent
 
 DOTENV := ./_lib/dotenv.sh
 
+## Prod defaults as daemon with no app volume and no extra uvicorn args:
+## Dev mode overrides these:
+DEPLOYMENT ?= "production"
+APP_DOCKER_ARGS ?= "-d"
+APP_VOLUME_ARG ?=
+UVICORN_ARGS_EXTRA ?=
+
 .PHONY: help # Show this help screen
 help:
 	@grep -h '^.PHONY: .* #' Makefile | sed 's/\.PHONY: \(.*\) # \(.*\)/make \1 \t- \2/' | expand -t20
@@ -108,17 +115,8 @@ install: deps expect-config build uninstall ca
 		--label project=dry-agent \
 		--publish 127.0.0.1:$${APP_LOCALHOST_PORT}:8001 \
 		--publish 127.0.0.1:$${AUTH_LOCALHOST_PORT}:8002 \
-		--publish 127.0.0.1:$${SSH_LOCALHOST_PORT}:22; \
-	podman run --pod dry-agent --name dry-agent-app -d \
-	       --label project=dry-agent \
-           -v dry-agent-workstation-data:/root \
-	       -v dry-agent-auth-token:/data/token \
-           -e PUBLIC_HOST=$${PUBLIC_HOST} \
-           -e PUBLIC_PORT=$${PUBLIC_PORT}  \
-	       -e LOG_LEVEL=$${APP_LOG_LEVEL} \
-	       -e OPENAI_BASE_URL="http://127.0.0.1:4000" \
-	       -v dry-agent-certs-app:/certs \
-	       localhost/dry-agent/app; \
+		--publish 127.0.0.1:$${SSH_LOCALHOST_PORT}:22 &&  \
+	$(MAKE) --no-print-directory install-app &&  \
 	podman run --pod dry-agent --name dry-agent-auth -d \
 	       --label project=dry-agent \
 	       -v dry-agent-auth-secret:/data/secret \
@@ -126,7 +124,7 @@ install: deps expect-config build uninstall ca
 	       -v dry-agent-certs-auth:/certs \
 	       -e PUBLIC_HOST=$${PUBLIC_HOST} \
            -e PUBLIC_PORT=$${PUBLIC_PORT}  \
-	       localhost/dry-agent/auth; \
+	       localhost/dry-agent/auth &&  \
 	podman run --pod dry-agent --name dry-agent-bot -d \
 	       --label project=dry-agent \
 	       -v dry-agent-bot-data:/data \
@@ -138,7 +136,7 @@ install: deps expect-config build uninstall ca
 	       -e MATRIX_PASSWORD=$${MATRIX_PASSWORD} \
 	       -e DISCORD_TOKEN=$${DISCORD_TOKEN} \
 	       -e BOT_FRIEND_IDS=$${BOT_FRIEND_IDS} \
-	       localhost/dry-agent/bot; \
+	       localhost/dry-agent/bot &&  \
 	podman run --pod dry-agent --name dry-agent-litellm -d \
 	       --label project=dry-agent \
            -e OPENAI_API_KEY=$${OPENAI_API_KEY} \
@@ -146,7 +144,7 @@ install: deps expect-config build uninstall ca
 	       -e OPENAI_MODEL_ASSISTANT=$${OPENAI_MODEL_ASSISTANT} \
 	       -e OPENAI_MODEL_LITE=$${OPENAI_MODEL_LITE} \
 	       -e OPENAI_BASE_URL=$${OPENAI_BASE_URL} \
-	       localhost/dry-agent/litellm; \
+	       localhost/dry-agent/litellm &&  \
 	podman run --name dry-agent-proxy --label project=dry-agent -d \
 	       -v dry-agent-certs-traefik:/certs \
 	       -e PUBLIC_SUBNET=$${PUBLIC_SUBNET} \
@@ -158,17 +156,37 @@ install: deps expect-config build uninstall ca
 	       -e SSH_LOCALHOST_PORT=$${SSH_LOCALHOST_PORT} \
 	       -e TRAEFIK_LOG_LEVEL=$${TRAEFIK_LOG_LEVEL} \
 	       --network host \
-	       localhost/dry-agent/traefik;
+	       localhost/dry-agent/traefik
 	@echo
-	@sleep 2; \
-	if ! podman exec dry-agent-app test -f /root/dry_agent/database/dry_agent.db; then \
+	@sleep 2;
+	$(MAKE) --no-print-directory migrate
+	@echo
+	@podman ps --filter "label=project=dry-agent"
+
+.PHONY: migrate
+migrate:
+	@if ! podman exec dry-agent-app test -f /root/dry_agent/database/dry_agent.db; then \
 	    echo "🔧 Migrating database…"; \
 	    make --no-print-directory migrate-db; \
 	else \
 	    echo "✔️ Database already in place."; \
 	fi
-	@echo
-	@podman ps --filter "label=project=dry-agent"
+
+.PHONY: install-app
+install-app:
+	@podman run --pod dry-agent --name dry-agent-app $(APP_DOCKER_ARGS) \
+		--label project=dry-agent \
+		-v dry-agent-workstation-data:/root \
+		-v dry-agent-auth-token:/data/token \
+		-v dry-agent-certs-app:/certs \
+		$(APP_VOLUME_ARG) \
+	    -e DEPLOYMENT=${DEPLOYMENT} \
+		-e PUBLIC_HOST=$${PUBLIC_HOST} \
+		-e PUBLIC_PORT=$${PUBLIC_PORT} \
+		-e LOG_LEVEL=$${APP_LOG_LEVEL} \
+	    -e UVICORN_ARGS_EXTRA="$(UVICORN_ARGS_EXTRA)" \
+		-e OPENAI_BASE_URL="http://127.0.0.1:4000" \
+		localhost/dry-agent/app
 
 .PHONY: ca # Make StepCA mTLS authority for Traefik backend
 ca:
@@ -336,7 +354,15 @@ migrate-db:
 	podman exec -i -w /app/app dry-agent-app python -m alembic upgrade head
 
 .PHONY: dev # Run development loop
-dev: install open logs
+dev:
+	@podman rm -f dry-agent-app
+	@set -a; \
+	source .env; \
+	$(MAKE) --no-print-directory install-app \
+	    DEPLOYMENT="development" \
+	    APP_DOCKER_ARGS="--rm -it" \
+		APP_VOLUME_ARG="-v $(PWD)/app/app:/app/app:Z" \
+		UVICORN_ARGS_EXTRA="--reload"
 
 .PHONY: dry_agent_alias # Create a Bash function for dry_agent's Makefile
 dry_agent_alias:
