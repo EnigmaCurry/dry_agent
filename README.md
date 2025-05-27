@@ -322,10 +322,27 @@ between LLM service APIs (e.g. OpenAI, LM Studio). Only LiteLLM has
 access to your API keys. The app Python code does not need to pass any
 credentials, and so it is not made privy to them.
 
-### Development
+### Development mode
 
 ```
 make dev
 ```
 
-(This target is simply a shortcut for `make install open logs`.)
+Dev mode does the following:
+
+ * The local [app](app) source directory is bind mounted inside the
+container (`/app/app`).
+
+ * FastAPI is set to reload automatically on source file
+changes (`--reload`). 
+
+ * It **disables authentication** by statically setting the token to
+`correct-horse-battery-staple-this-is-for-dev-mode-only`. This is so
+that you don't have to login again after the app reloads.
+
+ * Your workstation (tmux) sessions are unaffected by app reloads.
+
+Dev mode is set to only run in your shell foreground (it adds the
+docker args `--rm -it`). To quit, press Ctrl-C several times. If you
+run `make install` it will disable development mode and go back into
+production mode in the background.
