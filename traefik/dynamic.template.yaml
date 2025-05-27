@@ -14,7 +14,7 @@ http:
 
   routers:
     app-router:
-      rule: "(Host(`${PUBLIC_HOST}`) || Host(`127.0.0.1`) || Host(`::1`)) && PathPrefix(`/api`)"
+      rule: "(Host(`${PUBLIC_HOST}`) || Host(`127.0.0.1`) || Host(`::1`)) && (PathPrefix(`/api/`) || Path(`/docs`) || Path(`/get-login-url`) || Path(`/openapi.json`))"
       entryPoints: ["websecure"]
       service: app-service
       tls: {}
