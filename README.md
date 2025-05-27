@@ -336,6 +336,8 @@ container (`/app/app`).
  * FastAPI is set to reload automatically on source file
 changes (`--reload`). 
 
+ * Vite rebuilds Svelte Kit app on source file changes.
+
  * It **disables authentication** by statically setting the token to
 `correct-horse-battery-staple-this-is-for-dev-mode-only`. This is so
 that you don't have to login again after the app reloads.
