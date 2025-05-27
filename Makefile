@@ -311,14 +311,6 @@ bot-logs:
 litellm-logs:
 	podman logs -f dry-agent-litellm
 
-.PHONY: start # Start the containers (must be installed already)
-start:
-	podman start dry-agent-app dry-agent-proxy
-
-.PHONY: stop # Stop the pod
-stop:
-	podman stop dry-agent-app dry-agent-proxy
-
 .PHONY: get-url # Get the webapp authentication URL
 get-url:
 	@podman exec -it dry-agent-app python app/get_token.py
