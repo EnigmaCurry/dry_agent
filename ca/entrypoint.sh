@@ -8,7 +8,7 @@ CERT_BASE_DIR="/certs"
 CERT_DIR_CA="$CERT_BASE_DIR/CA"
 
 # List of services to generate certs for
-SERVICES=(app auth bot)
+SERVICES=(app frontend auth bot)
 
 CA_EXPIRES=${CA_EXPIRES:-876000h}
 

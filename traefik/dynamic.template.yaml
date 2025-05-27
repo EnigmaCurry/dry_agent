@@ -14,7 +14,7 @@ http:
 
   routers:
     app-router:
-      rule: "(Host(`${PUBLIC_HOST}`) || Host(`127.0.0.1`) || Host(`::1`)) && PathPrefix(`/`) && !PathPrefix(`/admin`) && !Path(`/login`) && !Path(`/logout`) && !PathPrefix(`/totp`)"
+      rule: "(Host(`${PUBLIC_HOST}`) || Host(`127.0.0.1`) || Host(`::1`)) && PathPrefix(`/api`)"
       entryPoints: ["websecure"]
       service: app-service
       tls: {}
@@ -39,6 +39,15 @@ http:
         - app-allowlist
         - set-x-forwarded-proto
 
+    frontend-router:
+      rule: "(Host(`${PUBLIC_HOST}`) || Host(`127.0.0.1`) || Host(`::1`)) && PathPrefix(`/`)"
+      entryPoints: ["websecure"]
+      service: frontend-service
+      tls: {}
+      middlewares:
+        - app-allowlist
+        - dry-agent-auth
+
   services:
     app-service:
       loadBalancer:
@@ -46,6 +55,13 @@ http:
         serversTransport: secure-backends
         servers:
           - url: "https://127.0.0.1:${APP_LOCALHOST_PORT}"
+
+    frontend-service:
+      loadBalancer:
+        passHostHeader: true
+        serversTransport: secure-backends
+        servers:
+          - url: "https://127.0.0.1:${FRONTEND_LOCALHOST_PORT}"
 
     auth-service:
       loadBalancer:

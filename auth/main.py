@@ -11,6 +11,7 @@ from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 import asyncio
 from pathlib import Path
+from starlette.status import HTTP_302_FOUND, HTTP_403_FORBIDDEN
 
 from slowapi import Limiter
 from slowapi.errors import RateLimitExceeded
@@ -150,21 +151,25 @@ async def auth(request: Request):
     """
     Traefik ForwardAuth middleware endpoint
     """
+    forwarded_uri = request.headers.get("X-Forwarded-Uri", "")
+    is_api_request = forwarded_uri.startswith("/api/")
+
+    def forbidden_or_redirect(redirect_path: str):
+        if is_api_request:
+            return PlainTextResponse("Forbidden", status_code=HTTP_403_FORBIDDEN)
+        return RedirectResponse(
+            url=f"https://{PUBLIC_HOST}:{PUBLIC_PORT}{redirect_path}",
+            status_code=HTTP_302_FOUND,
+        )
+
     app_cookie = request.cookies.get(APP_COOKIE_NAME)
-    if not app_cookie:
-        return RedirectResponse(
-            url=f"https://{PUBLIC_HOST}:{PUBLIC_PORT}/logout", status_code=302
-        )
-    elif app_cookie != current_token:
-        return RedirectResponse(
-            url=f"https://{PUBLIC_HOST}:{PUBLIC_PORT}/logout", status_code=302
-        )
+    if not app_cookie or app_cookie != current_token:
+        return forbidden_or_redirect("/logout")
 
     otp_cookie = request.cookies.get(OTP_COOKIE_NAME)
     if not otp_cookie:
-        return RedirectResponse(
-            url=f"https://{PUBLIC_HOST}:{PUBLIC_PORT}/totp", status_code=302
-        )
+        return forbidden_or_redirect("/totp")
+
     try:
         value = signer.unsign(otp_cookie).decode()
         if value == OTP_COOKIE_VALUE:
@@ -172,9 +177,7 @@ async def auth(request: Request):
     except BadSignature:
         pass
 
-    return RedirectResponse(
-        url=f"https://{PUBLIC_HOST}:{PUBLIC_PORT}/totp", status_code=302
-    )
+    return forbidden_or_redirect("/totp")
 
 
 @app.post("/totp/verify")

@@ -88,19 +88,6 @@ app.include_router(api_routes.instances.router)
 app.include_router(api_routes.chat.router)
 app.include_router(api_routes.events.router)
 
-## Add static frontend route LAST:
-public_path = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "public"
-)
-app.mount(
-    "/",
-    StaticFiles(
-        directory=public_path,
-        html=True,
-    ),
-    name="static",
-)
-
 
 @app.on_event("startup")
 async def start_background_tasks():

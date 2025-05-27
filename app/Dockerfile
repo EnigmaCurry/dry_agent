@@ -1,17 +1,4 @@
 # --------------------
-# Build svelte frontend stage
-# --------------------
-FROM node:23 as frontend-builder
-WORKDIR /app/frontend
-# Copy only package files first to leverage Docker cache.
-COPY frontend/package*.json ./
-RUN npm install
-# Copy the rest of the Svelte source code.
-COPY frontend/ .
-# Build the Svelte app (this will output files into the public/build folder).
-RUN npm run build
-
-# --------------------
 # Build fastapi with poetry
 # --------------------
 FROM debian:bookworm-slim AS builder
@@ -63,9 +50,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=builder /usr/local/lib/python${PYTHON_VERSION}/dist-packages /usr/local/lib/python${PYTHON_VERSION}/dist-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
 
-# Copy app code and frontend
+# Copy app code
 COPY app app
-COPY --from=frontend-builder /app/frontend/build ./public
 
 # Make entrypoint executable
 COPY entrypoint.sh /entrypoint.sh

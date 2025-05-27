@@ -2,6 +2,7 @@ SHELL := /bin/bash
 
 CONTAINERS := \
 	dry-agent-app \
+	dry-agent-frontend \
 	dry-agent-auth \
 	dry-agent-bot \
 	dry-agent-litellm \
@@ -17,6 +18,7 @@ CERT_VOLUMES := \
 	dry-agent-certs-CA \
 	dry-agent-certs-traefik \
 	dry-agent-certs-app \
+	dry-agent-certs-frontend \
 	dry-agent-certs-auth \
 	dry-agent-certs-bot
 
@@ -115,6 +117,7 @@ install: deps expect-config build uninstall ca
 		--label project=dry-agent \
 		--publish 127.0.0.1:$${APP_LOCALHOST_PORT}:8001 \
 		--publish 127.0.0.1:$${AUTH_LOCALHOST_PORT}:8002 \
+		--publish 127.0.0.1:$${FRONTEND_LOCALHOST_PORT}:8003 \
 		--publish 127.0.0.1:$${SSH_LOCALHOST_PORT}:22 &&  \
 	$(MAKE) --no-print-directory install-app &&  \
 	podman run --pod dry-agent --name dry-agent-auth -d \
@@ -152,6 +155,7 @@ install: deps expect-config build uninstall ca
 	       -e PUBLIC_PORT=$${PUBLIC_PORT} \
 	       -e PUBLIC_SSH_PORT=$${PUBLIC_SSH_PORT} \
 	       -e APP_LOCALHOST_PORT=$${APP_LOCALHOST_PORT} \
+	       -e FRONTEND_LOCALHOST_PORT=$${FRONTEND_LOCALHOST_PORT} \
 	       -e AUTH_LOCALHOST_PORT=$${AUTH_LOCALHOST_PORT} \
 	       -e SSH_LOCALHOST_PORT=$${SSH_LOCALHOST_PORT} \
 	       -e TRAEFIK_LOG_LEVEL=$${TRAEFIK_LOG_LEVEL} \
@@ -174,7 +178,7 @@ migrate:
 
 .PHONY: install-app
 install-app:
-	@podman run --pod dry-agent --name dry-agent-app $(APP_DOCKER_ARGS) \
+	@stdbuf -oL podman run --pod dry-agent --name dry-agent-app $(APP_DOCKER_ARGS) \
 		--label project=dry-agent \
 		-v dry-agent-workstation-data:/root \
 		-v dry-agent-auth-token:/data/token \
@@ -186,7 +190,13 @@ install-app:
 		-e LOG_LEVEL=$${APP_LOG_LEVEL} \
 	    -e UVICORN_ARGS_EXTRA="$(UVICORN_ARGS_EXTRA)" \
 		-e OPENAI_BASE_URL="http://127.0.0.1:4000" \
-		localhost/dry-agent/app
+		localhost/dry-agent/app & \
+	stdbuf -oL podman run --pod dry-agent --name dry-agent-frontend $(APP_DOCKER_ARGS) \
+		--label project=dry-agent \
+	    -v dry-agent-certs-frontend:/certs \
+		"localhost/dry-agent/frontend:${DEPLOYMENT}" & \
+	wait
+
 
 .PHONY: ca # Make StepCA mTLS authority for Traefik backend
 ca:
@@ -197,6 +207,7 @@ ca:
      -v dry-agent-certs-CA:/certs/CA \
 	 -v dry-agent-certs-traefik:/certs/traefik \
 	 -v dry-agent-certs-app:/certs/app \
+	 -v dry-agent-certs-frontend:/certs/frontend \
 	 -v dry-agent-certs-auth:/certs/auth \
 	 -v dry-agent-certs-bot:/certs/bot \
 	 -e PUBLIC_HOST=$${PUBLIC_HOST} \
@@ -245,6 +256,8 @@ build: deps
 	podman build -t localhost/dry-agent/auth auth
 	podman build -t localhost/dry-agent/bot bot
 	podman build -t localhost/dry-agent/app app
+	podman build --target prod-server -t "localhost/dry-agent/frontend:production" frontend
+	podman build --target dev-server -t "localhost/dry-agent/frontend:development" frontend
 
 expect-images:
 	@missing=0; \
@@ -278,6 +291,10 @@ logs:
 .PHONY: traefik-logs # Show the traefik logs
 traefik-logs:
 	podman logs -f dry-agent-proxy
+
+.PHONY: frontend-logs # Show the frontend logs
+frontend-logs:
+	podman logs -f dry-agent-frontend
 
 .PHONY: auth-logs # Show the auth logs
 auth-logs:
@@ -316,6 +333,10 @@ open:
 .PHONY: shell # Exec into the workstation container
 shell:
 	podman exec -it -w /root/git/vendor/enigmacurry/d.rymcg.tech dry-agent-app /bin/bash
+
+.PHONY: frontend-shell # Exec into the frontend container
+frontend-shell:
+	podman exec -it dry-agent-frontend /bin/sh
 
 .PHONY: traefik-shell # Exec into the traefik container
 traefik-shell:
@@ -356,6 +377,7 @@ migrate-db:
 .PHONY: dev # Run development loop
 dev:
 	@podman rm -f dry-agent-app
+	@podman rm -f dry-agent-frontend
 	@set -a; \
 	source .env; \
 	$(MAKE) --no-print-directory install-app \
