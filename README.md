@@ -343,6 +343,6 @@ that you don't have to login again after the app reloads.
  * Your workstation (tmux) sessions are unaffected by app reloads.
 
 Dev mode is set to only run in your shell foreground (it adds the
-docker args `--rm -it`). To quit, press Ctrl-C several times. If you
+docker arg `--rm`). To quit, press Ctrl-C several times. If you
 run `make install` it will disable development mode and go back into
 production mode in the background.

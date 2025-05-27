@@ -1,40 +1,41 @@
 # --------------------
-# Build svelte frontend stage
+# Build Svelte frontend
 # --------------------
-FROM docker.io/library/node:23 as frontend-builder
+FROM node:23 as frontend-builder
 WORKDIR /app/frontend
 
-# Copy only package files first to leverage Docker cache.
 COPY package*.json ./
 RUN npm install
 
-# Copy the rest of the Svelte source code.
 COPY . .
-
-# Build static files (even in dev mode, this ensures consistent output)
 RUN npm run build
 
+
 # --------------------
-# Dev server for development
+# Unified dev/prod container with nginx and Vite
 # --------------------
-FROM docker.io/library/node:23 as dev-server
+FROM alpine:latest as frontend-server
+
+# Install Node and nginx
+RUN apk add --no-cache nodejs npm nginx
+
+# Create working directory
 WORKDIR /app/frontend
-COPY --from=frontend-builder /app/frontend ./
 
-# Expose port Vite will use
-EXPOSE 5173
+# Copy app and build artifacts
+COPY --from=frontend-builder /app/frontend /app/frontend
 
-# Use Vite's development server
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "8003"]
+# Copy custom nginx config
+ARG NGINX_CONF=nginx.conf
+COPY ${NGINX_CONF} /etc/nginx/nginx.conf
 
-# --------------------
-# Production server using nginx
-# --------------------
-FROM docker.io/library/nginx:stable-alpine as prod-server
-COPY --from=frontend-builder /app/frontend/build /usr/share/nginx/html
+# Copy startup script
+COPY start.sh /start.sh
+RUN chmod +x /start.sh
 
-# Optional: override default nginx.conf if needed
-COPY nginx.conf /etc/nginx/nginx.conf
+# Set build arg for deployment mode
+ARG DEPLOYMENT=production
+ENV DEPLOYMENT=${DEPLOYMENT}
 
 EXPOSE 8003
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["/start.sh"]

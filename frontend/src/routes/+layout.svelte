@@ -1,6 +1,6 @@
 <script>
   import { onMount, onDestroy, tick } from "svelte";
-  import { page } from '$app/stores';
+  import { page } from "$app/stores";
   import {
     agentViewState,
     isPaneDragging,
@@ -168,17 +168,17 @@
   });
 
   $effect(() => {
-	const currentId = $page.url.searchParams.get('id');
-	const storeId = $conversationId;
+    const currentId = $page.url.searchParams.get("id");
+    const storeId = $conversationId;
 
-	if (currentId && currentId !== storeId) {
-	  conversationId.set(currentId);
-	} else if (!currentId && storeId) {
-	  // Reinsert the id into the URL if it's missing
-	  const url = new URL(window.location.href);
-	  url.searchParams.set('id', storeId);
-	  window.history.replaceState({}, '', url.toString());
-	}
+    if (currentId && currentId !== storeId) {
+      conversationId.set(currentId);
+    } else if (!currentId && storeId) {
+      // Reinsert the id into the URL if it's missing
+      const url = new URL(window.location.href);
+      url.searchParams.set("id", storeId);
+      window.history.replaceState({}, "", url.toString());
+    }
   });
 
   onMount(() => {

@@ -33,6 +33,7 @@ DOTENV := ./_lib/dotenv.sh
 DEPLOYMENT ?= "production"
 APP_DOCKER_ARGS ?= "-d"
 APP_VOLUME_ARG ?=
+FRONTEND_VOLUME_ARG ?=
 UVICORN_ARGS_EXTRA ?=
 
 .PHONY: help # Show this help screen
@@ -193,7 +194,9 @@ install-app:
 		localhost/dry-agent/app & \
 	stdbuf -oL podman run --pod dry-agent --name dry-agent-frontend $(APP_DOCKER_ARGS) \
 		--label project=dry-agent \
+	    -e DEPLOYMENT=${DEPLOYMENT} \
 	    -v dry-agent-certs-frontend:/certs \
+		$(FRONTEND_VOLUME_ARG) \
 		"localhost/dry-agent/frontend:${DEPLOYMENT}" & \
 	wait
 
@@ -256,8 +259,8 @@ build: deps
 	podman build -t localhost/dry-agent/auth auth
 	podman build -t localhost/dry-agent/bot bot
 	podman build -t localhost/dry-agent/app app
-	podman build --target prod-server -t "localhost/dry-agent/frontend:production" frontend
-	podman build --target dev-server -t "localhost/dry-agent/frontend:development" frontend
+	podman build --build-arg NGINX_CONF=nginx.conf -t "localhost/dry-agent/frontend:production" frontend
+	podman build --build-arg NGINX_CONF=nginx.development.conf -t "localhost/dry-agent/frontend:development" frontend
 
 expect-images:
 	@missing=0; \
@@ -382,8 +385,9 @@ dev:
 	source .env; \
 	$(MAKE) --no-print-directory install-app \
 	    DEPLOYMENT="development" \
-	    APP_DOCKER_ARGS="--rm -it" \
-		APP_VOLUME_ARG="-v $(PWD)/app/app:/app/app:Z" \
+	    APP_DOCKER_ARGS="--rm" \
+		APP_VOLUME_ARG="-v ./app/app:/app/app:Z" \
+		FRONTEND_VOLUME_ARG="-v ./frontend:/app/frontend:Z" \
 		UVICORN_ARGS_EXTRA="--reload"
 
 .PHONY: dry_agent_alias # Create a Bash function for dry_agent's Makefile
