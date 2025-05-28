@@ -264,11 +264,11 @@ async def create_tmux_window(
             window_name=window_name,
             active=active,
         )
-        if active:
-            await broadcast(OpenAppEvent(page="workstation"))
         await broadcast(
             TmuxSessionChangedEvent(session=session_name, **get_windows(session_name))
         )
+        if active:
+            await broadcast(OpenAppEvent(page="workstation"))
         return JSONResponse(
             content={
                 "status": "ok",

@@ -43,6 +43,7 @@ def create_new_window(
     session_name: str,
     window_name: str = "new",
     active: bool = False,
+    command: str = "bash",
 ) -> int:
     """
     Create a new tmux window in the given session and return its index.
@@ -70,7 +71,15 @@ def create_new_window(
 
     # Create the new window at the desired index
     subprocess.check_call(
-        ["tmux", "new-window", "-t", f"{session_name}:{new_index}", "-n", window_name]
+        [
+            "tmux",
+            "new-window",
+            "-t",
+            f"{session_name}:{new_index}",
+            "-n",
+            window_name,
+            command,
+        ]
     )
 
     if active:
