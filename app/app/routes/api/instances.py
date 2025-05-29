@@ -12,6 +12,7 @@ from .lib import run_command, run_command_status, parse_env_file_contents
 from .docker_context import get_docker_context_names
 import json
 import asyncio
+from app.lib.json import wrap_json_lines_as_list
 
 """
 Manage app instances.
@@ -87,9 +88,8 @@ def get_instances(
                         "EXTRA_ARGS=ps -a --format json",
                         "instance=" + instance_name,
                     ]
-                    logger.debug(status_command)
                     status_output = run_command(status_command)
-                    status_json = json.loads(status_output)
+                    status_json = wrap_json_lines_as_list(status_output)
                 except HTTPException:
                     status = "uninstalled"
                 except json.JSONDecodeError as e:
@@ -99,7 +99,7 @@ def get_instances(
                         status = "error"
                         logger.error(e)
                 else:
-                    status = status_json.get("State", None)
+                    status = determine_project_status(status_json)
             else:
                 status = None
 
@@ -115,6 +115,28 @@ def get_instances(
             instances.append(instance_obj)
 
     return instances
+
+
+def determine_project_status(container_list: list[dict]) -> str:
+    """
+    Determines the status of a project by inspecting the 'State' of containers,
+    ignoring those with Service == 'config'.
+
+    Parameters:
+    - container_list: a list of container JSON objects (already parsed from JSON)
+
+    Returns:
+    - The uniform 'State' if all non-config services share it,
+      'error' if states differ,
+      or 'unknown' if no applicable services exist.
+    """
+    states = {c["State"] for c in container_list if c.get("Service") != "config"}
+
+    if not states:
+        return "unknown"
+    if len(states) == 1:
+        return states.pop()
+    return "error"
 
 
 @router.get("/", response_class=JSONResponse)

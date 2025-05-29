@@ -690,9 +690,12 @@
 </ModalTerminal>
 
 <style>
+  .status_icon span {
+    padding: 0.05em;
+  }
   .instance_row.is-primary .status_icon span {
-    background-color: #440707;
-    padding: 0.5em;
-    opacity: 0.5;
+    background-color: #004b6b;
+    padding: 0.05em;
+    opacity: 0.75;
   }
 </style>
