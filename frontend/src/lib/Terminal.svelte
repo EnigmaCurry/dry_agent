@@ -30,7 +30,7 @@
   let hasExited = $state(false);
   let sessionName = $state("work");
   let terminalRef;
-  
+
   function handleKeydown(e) {
     if (e.key === "Escape" && hasExited) {
       dispatch("close");

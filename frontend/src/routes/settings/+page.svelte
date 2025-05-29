@@ -7,7 +7,7 @@
   import GitRepository from "$lib/GitRepository.svelte";
   import DockerContext from "$lib/DockerContext.svelte";
   import Terminal from "$lib/Terminal.svelte";
-  import { goto } from '$app/navigation';
+  import { goto } from "$app/navigation";
 
   let { data } = $props();
   let selectedTab = $state(data.tab);
@@ -20,8 +20,10 @@
   function selectTab(tab) {
     selectedTab = tab;
     const url = new URL(window.location.href);
-    url.searchParams.set('tab', tab);
-    goto(`${url.pathname}?${url.searchParams.toString()}`, { replaceState: true });
+    url.searchParams.set("tab", tab);
+    goto(`${url.pathname}?${url.searchParams.toString()}`, {
+      replaceState: true,
+    });
   }
   async function fetchTransferUrl() {
     if (loginUrl || isLoading) return;
@@ -223,6 +225,6 @@
     />
   </div>
   {#key terminalFontSize}
-    <Terminal command="neofetch" />
+    <Terminal command="neofetch" showWindowList={false} />
   {/key}
 {/if}
