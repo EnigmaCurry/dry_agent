@@ -328,28 +328,35 @@ credentials, and so it is not made privy to them.
 make dev
 ```
 
-Dev mode does the following:
+Dev mode tips:
 
- * The local [app](app) source directory is bind mounted inside the
-container (`/app/app`).
+ * To enable dev mode, you must set `ALLOW_DEV_MODE=true` in the .env
+   file.
 
- * FastAPI is set to reload automatically on source file
-changes (`--reload`). 
+ * Before you run `make dev`, you must run `make install` first.
 
- * Vite rebuilds Svelte Kit app on source file changes.
+ * The local [app](app) and [frontend](frontend) source directories
+   are bind mounted inside the container (`/app`)
+
+ * FastAPI is set to reload automatically on Python source file
+   changes (`--reload`).
+
+ * Vite rebuilds Svelte Kit app on Javascript source file changes.
 
  * The auth token is staticly set to
-`correct-horse-battery-staple-this-is-for-dev-mode-only`, which is
-**insecure**, but by keeping the token static makes it so you don't
-have to log in again after the app reloads. TOTP secondary auth is
-still required though.
+   `correct-horse-battery-staple-this-is-for-dev-mode-only`, which is
+   **insecure**, but this makes it so you don't have to log in again
+   after the app reloads. TOTP secondary auth is still required in dev
+   mode, so it is not completely open.
 
  * Only in dev mode are you allowed to log in via multiple devices
    simultaneously.
 
  * Your workstation (tmux) sessions are unaffected by app reloads.
 
-Dev mode is set to only run in your shell foreground (it adds the
-docker arg `--rm`). To quit, press Ctrl-C several times. If you
-run `make install` it will disable development mode and go back into
-production mode in the background.
+ * Dev mode will only run in your shell foreground (it adds the docker
+   arg `--rm`). To quit, press Ctrl-C several times. Once you quit dev
+   mode, the app will respond `Bad Gateway`.
+   
+ * You may run `make install` to go back into production mode (in the
+   background).

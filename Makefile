@@ -375,6 +375,10 @@ dev:
 	@podman rm -f dry-agent-frontend
 	@set -a; \
 	source .env; \
+	if [[ "$${ALLOW_DEV_MODE}" != "true" ]]; then \
+	    echo -e "ALLOW_DEV_MODE != true\nTo enable Dev Mode, set ALLOW_DEV_MODE=true in $$(pwd)/.env"; \
+	    exit 1; \
+	fi; \
 	$(MAKE) --no-print-directory install-app \
 	    DEPLOYMENT="development" \
 	    APP_DOCKER_ARGS="--rm" \
