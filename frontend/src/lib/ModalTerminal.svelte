@@ -61,6 +61,7 @@
               {restartable}
               height={`${terminalHeight}px`}
               {command}
+              showWindowList={false}
               on:close={close}
             />
           {/key}
