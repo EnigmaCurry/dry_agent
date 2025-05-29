@@ -397,6 +397,7 @@
         <tbody>
           {#each instances as instance (instance.instance)}
             <tr
+              class="instance_row"
               class:is-primary={expandedInstance === instance.instance}
               class:has-background-grey-darker={instance.status == null}
               class:is-dark={instance.status === "running"}
@@ -408,7 +409,7 @@
                   {instance.instance}
                 </button>
               </td>
-              <td style="vertical-align: middle;">
+              <td class="status_icon" style="vertical-align: middle;">
                 {#if instance.status === "running"}
                   <span class="title" title="Instance is running">🏃</span>
                 {:else if instance.status === "exited"}
@@ -568,7 +569,8 @@
                     {#if expandedConfig?.env && envDist?.env}
                       <div class="mb-4">
                         <h2 class="subtitle">
-                          Edit the environment variables below.
+                          To reconfigure this instance, click Config, or edit
+                          the variables below.
                         </h2>
                         <em
                           >All changes are saved automatically. Reinstall to
@@ -686,3 +688,11 @@
     {/if}
   </div>
 </ModalTerminal>
+
+<style>
+  .instance_row.is-primary .status_icon span {
+    background-color: #440707;
+    padding: 0.5em;
+    opacity: 0.5;
+  }
+</style>

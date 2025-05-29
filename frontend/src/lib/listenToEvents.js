@@ -66,7 +66,7 @@ export function listenToServerEvents() {
         targetPath = "/settings";
         break;
       case "docker":
-        targetPath = "/docker";
+        targetPath = "/settings/?tab=docker";
         break;
       case "projects":
         targetPath = "/projects";
@@ -75,7 +75,7 @@ export function listenToServerEvents() {
         targetPath = "/config";
         break;
       case "repository":
-        targetPath = "/repository";
+        targetPath = "/settings/?tab=repository";
         break;
       case "workstation":
         targetPath = "/workstation";

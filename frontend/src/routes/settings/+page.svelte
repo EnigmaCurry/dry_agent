@@ -12,6 +12,12 @@
   let { data } = $props();
   let selectedTab = $state(data.tab);
 
+  $effect(() => {
+    if (data.tab !== selectedTab) {
+      selectedTab = data.tab;
+    }
+  });
+
   let loginUrl = $state("");
   let isLoading = $state(false);
   let transferError = $state("");
@@ -25,6 +31,7 @@
       replaceState: true,
     });
   }
+  
   async function fetchTransferUrl() {
     if (loginUrl || isLoading) return;
     isLoading = true;
