@@ -419,29 +419,16 @@
     <div class="notification is-info">Loading SSH connections...</div>
   {:else if sshConfigs.length === 0}
     <div class="is-flex is-flex-wrap-wrap is-align-items-centerm-4">
-      <h1 class="title m-0 is-no-text-wrap">SSH Config and Docker Contexts</h1>
       <div class="is-flex-grow-1"></div>
       <div class="field has-addons">
-        <p class="control">
-          <button class="button is-link" onclick={openAddForm}>
-            Add new context
-          </button>
-        </p>
+        <p class="control"></p>
       </div>
     </div>
     <div class="notification is-warning">No SSH connections defined.</div>
+    <button class="button is-link" onclick={openAddForm}>
+      Add new context
+    </button>
   {:else}
-    <div class="is-flex is-align-items-center is-flex-wrap-wrap m-4">
-      <h1 class="title m-0 is-no-text-wrap">SSH Config and Docker Contexts</h1>
-      <div class="is-flex-grow-1"></div>
-      <div class="field has-addons">
-        <p class="control">
-          <button class="button is-link" onclick={openAddForm}>
-            Add new context
-          </button>
-        </p>
-      </div>
-    </div>
     <div class="is-scrollable-y">
       <table class="table is-striped is-hoverable">
         <thead>
@@ -562,6 +549,9 @@
           {/each}
         </tbody>
       </table>
+      <button class="button is-link" onclick={openAddForm}>
+        Add new context
+      </button>
     </div>
   {/if}
 </div>

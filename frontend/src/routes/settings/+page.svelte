@@ -2,13 +2,15 @@
   import { tick } from "svelte";
   import { toTitleCase } from "$lib/utils.js";
   import { invalidateAll } from "$app/navigation";
-  import { page } from "$app/stores";
   import ProjectsTable from "$lib/ProjectsTable.svelte";
   import { currentContext, terminalFontSize } from "$lib/stores";
+  import GitRepository from "$lib/GitRepository.svelte";
+  import DockerContext from "$lib/DockerContext.svelte";
   import Terminal from "$lib/Terminal.svelte";
+  import { goto } from '$app/navigation';
 
   let { data } = $props();
-  let selectedTab = $state("session");
+  let selectedTab = $state(data.tab);
 
   let loginUrl = $state("");
   let isLoading = $state(false);
@@ -17,6 +19,9 @@
 
   function selectTab(tab) {
     selectedTab = tab;
+    const url = new URL(window.location.href);
+    url.searchParams.set('tab', tab);
+    goto(`${url.pathname}?${url.searchParams.toString()}`, { replaceState: true });
   }
   async function fetchTransferUrl() {
     if (loginUrl || isLoading) return;
@@ -54,7 +59,11 @@
 
 <div class="is-flex is-flex-wrap-wrap">
   <h1 class="title m-4 is-flex-grow-1 is-no-text-wrap">
-    {toTitleCase(selectedTab)} Settings
+    {#if selectedTab === "docker"}
+      Docker SSH contexts
+    {:else}
+      {toTitleCase(selectedTab)} Settings
+    {/if}
   </h1>
   <div class="is-flex-grow-1"></div>
   <div class="tabs is-toggle m-4">
@@ -71,6 +80,34 @@
             <i class="fas fa-music" aria-hidden="true"></i>
           </span>
           <span>Session</span>
+        </a>
+      </li>
+      <li class:is-active={selectedTab === "docker"}>
+        <a
+          href="#"
+          onclick={(e) => {
+            e.preventDefault();
+            selectTab("docker");
+          }}
+        >
+          <span class="is-small">
+            <i class="fas fa-music" aria-hidden="true"></i>
+          </span>
+          <span>Docker</span>
+        </a>
+      </li>
+      <li class:is-active={selectedTab === "repository"}>
+        <a
+          href="#"
+          onclick={(e) => {
+            e.preventDefault();
+            selectTab("repository");
+          }}
+        >
+          <span class="is-small">
+            <i class="fas fa-music" aria-hidden="true"></i>
+          </span>
+          <span>Repository</span>
         </a>
       </li>
       <li class:is-active={selectedTab === "terminal"}>
@@ -166,6 +203,10 @@
       <a class="button is-danger" href="/logout?full=true">Full Logout</a>
     </div>
   </section>
+{:else if selectedTab === "docker"}
+  <DockerContext />
+{:else if selectedTab === "repository"}
+  <GitRepository />
 {:else if selectedTab === "terminal"}
   <label class="label" for="terminalFontSize"
     >Font Size: {$terminalFontSize}</label

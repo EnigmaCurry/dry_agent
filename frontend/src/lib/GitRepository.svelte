@@ -1,16 +1,16 @@
-<script lang="ts">
+<script>
   import { onMount } from "svelte";
   import { writable } from "svelte/store";
 
-  const branches = writable<string[]>([]);
-  const current = writable<string>("");
-  const loading = writable<boolean>(false);
-  const error = writable<string | null>(null);
-  const successMessage = writable<string | null>(null);
-  const statusMessage = writable<string | null>(null);
-  const behind = writable<boolean>(false);
-  const gitOutput = writable<string | null>(null);
-  const localHead = writable<string | null>(null);
+  const branches = writable([]);
+  const current = writable("");
+  const loading = writable(false);
+  const error = writable(null);
+  const successMessage = writable(null);
+  const statusMessage = writable(null);
+  const behind = writable(false);
+  const gitOutput = writable(null);
+  const localHead = writable(null);
 
   onMount(() => {
     loadAll();
@@ -49,7 +49,7 @@
     }
   }
 
-  async function checkoutBranch(branch: string) {
+  async function checkoutBranch(branch) {
     loading.set(true);
     error.set(null);
     successMessage.set(null);
@@ -99,18 +99,26 @@
 
 <div class="space-y-2 m-4">
   {#if $branches.length > 0}
-    <label for="branch-select" class="block font-semibold">Switch Branch</label>
-    <select
-      id="branch-select"
-      class="border rounded px-2 py-1"
-      bind:value={$current}
-      on:change={(e) => checkoutBranch(e.target.value)}
-      disabled={$loading}
-    >
-      {#each $branches as branch}
-        <option value={branch}>{branch}</option>
-      {/each}
-    </select>
+    <div>
+      Repository: <code>https://github.com/EnigmaCurry/d.rymcg.tech</code>
+    </div>
+    <br />
+    <div>
+      <label for="branch-select" class="block font-semibold"
+        >Switch Branch</label
+      >
+      <select
+        id="branch-select"
+        class="border rounded px-2 py-1"
+        bind:value={$current}
+        on:change={(e) => checkoutBranch(e.target.value)}
+        disabled={$loading}
+      >
+        {#each $branches as branch}
+          <option value={branch}>{branch}</option>
+        {/each}
+      </select>
+    </div>
   {/if}
   <hr />
 

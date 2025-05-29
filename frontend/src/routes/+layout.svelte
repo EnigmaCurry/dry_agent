@@ -292,60 +292,6 @@
 
   <div id="main-navbar" class="navbar-menu" class:is-active={burgerActive}>
     <div class="navbar-start">
-      <!-- Setup -->
-      <div
-        class="navbar-item has-dropdown"
-        class:is-active={activeDropdown === "setup"}
-      >
-        <button
-          type="button"
-          class="navbar-link"
-          onclick={() => toggleDropdown("setup")}
-        >
-          Setup
-        </button>
-        <div class="navbar-dropdown">
-          <a
-            class="navbar-item is-deep-red"
-            href="/settings"
-            onclick={handleMenuItemClick}
-          >
-            Settings
-          </a>
-
-          <a
-            class="navbar-item is-deep-red"
-            href="/docker"
-            onclick={handleMenuItemClick}
-          >
-            Docker
-          </a>
-          <a
-            class="navbar-item is-deep-red"
-            href="/repository/"
-            onclick={handleMenuItemClick}
-          >
-            Repository
-          </a>
-          <a
-            class="navbar-item is-deep-red"
-            href="/config/"
-            onclick={handleMenuItemClick}
-          >
-            Config (Traefik)
-          </a>
-        </div>
-      </div>
-
-      <a
-        class="navbar-item is-deep-red {'/projects/' === $page.url.pathname
-          ? 'is-active'
-          : ''}"
-        onclick={handleMenuItemClick}
-        href="/projects/"
-      >
-        Projects
-      </a>
       <a
         class="navbar-item is-deep-red {'/workstation/' === $page.url.pathname
           ? 'is-active'
@@ -354,6 +300,35 @@
         href="/workstation/"
       >
         Workstation
+      </a>
+      {#if $dockerContexts.length > 0}
+        <a
+          class="navbar-item is-deep-red {'/config/' === $page.url.pathname
+            ? 'is-active'
+            : ''}"
+          onclick={handleMenuItemClick}
+          href="/config/"
+        >
+          Traefik
+        </a>
+        <a
+          class="navbar-item is-deep-red {'/projects/' === $page.url.pathname
+            ? 'is-active'
+            : ''}"
+          onclick={handleMenuItemClick}
+          href="/projects/"
+        >
+          Projects
+        </a>
+      {/if}
+      <a
+        class="navbar-item is-deep-red {'/settings/' === $page.url.pathname
+          ? 'is-active'
+          : ''}"
+        href="/settings/"
+        onclick={handleMenuItemClick}
+      >
+        Settings
       </a>
     </div>
     <div class="navbar-end">
@@ -373,18 +348,28 @@
           {#if $dockerContexts.length > 0}
             <div class="has-text-weight-semibold ml-2 mr-1">Set context:</div>
             <hr class="is-light-red ml-3 mr-3 navbar-divider" />
-
-            {#each $dockerContexts as context}
-              <a class="navbar-item" onclick={() => setDefaultContext(context)}>
-                {#if context === $currentContext}✅
-                {/if}{context}
-              </a>
-            {/each}
-          {:else}
-            <div class="navbar-item has-text-grey-light">
-              No contexts available
-            </div>
           {/if}
+          {#each $dockerContexts as context}
+            <a
+              href="/"
+              class="navbar-item"
+              onclick={(e) => {
+                e.preventDefault();
+                setDefaultContext(context);
+              }}
+            >
+              {#if context === $currentContext}✅{/if}
+              {context}
+            </a>
+          {/each}
+          <hr class="is-light-red ml-3 mr-3 navbar-divider" />
+          <a
+            class="navbar-item is-deep-red"
+            href="/settings?tab=docker"
+            onclick={handleMenuItemClick}
+          >
+            Manage Contexts
+          </a>
         </div>
       </div>
     </div>
