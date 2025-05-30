@@ -8,6 +8,10 @@ self-hosted Docker platform. `dry_agent` provides a central location
 to manage all of your remote Docker contexts and services, and gives
 you a persistent tool that you can log into from anywhere.
 
+![Screenshot 2025-05-30 at 15-04-35 dry_agent - Workstation](https://github.com/user-attachments/assets/e184bf5b-9181-4cdd-b01e-ef531d10b4ac)
+
+(development screenshot shows a single web page view with a split pane between LLM agent and attached workstation terminal session)
+
 This software is in development and is unstable Alpha. See
 [LICENSE.TXT](LICENSE.TXT), especially about the notice that this
 software has no warranty. This is experimental security software that
